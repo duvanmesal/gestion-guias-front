@@ -9,7 +9,7 @@ interface GlassTableProps {
 
 export function GlassTable({ children, className = "" }: GlassTableProps) {
   return (
-    <div className={`glass overflow-hidden ${className}`}>
+    <div className={`overflow-hidden ${className}`}>
       <div className="overflow-x-auto">
         <table className="w-full">{children}</table>
       </div>
@@ -22,7 +22,7 @@ interface GlassTableHeaderProps {
 }
 
 export function GlassTableHeader({ children }: GlassTableHeaderProps) {
-  return <thead className="bg-white/10">{children}</thead>
+  return <thead className="glass-strong border-b border-white/10">{children}</thead>
 }
 
 interface GlassTableBodyProps {
@@ -44,7 +44,7 @@ export function GlassTableRow({ children, onClick, className = "" }: GlassTableR
 
   return (
     <tr
-      className={`border-b border-white/5 hover:bg-white/5 transition-colors ${clickableClass} ${className}`}
+      className={`border-b border-white/5 hover:bg-white/5 transition-all ${clickableClass} ${className}`}
       onClick={onClick}
     >
       {children}
@@ -59,7 +59,11 @@ interface GlassTableHeadProps {
 
 export function GlassTableHead({ children, className = "" }: GlassTableHeadProps) {
   return (
-    <th className={`px-4 py-3 text-left text-sm font-semibold text-[rgb(var(--color-fg))] ${className}`}>{children}</th>
+    <th
+      className={`px-5 py-4 text-left text-xs font-bold text-[rgb(var(--color-fg))] uppercase tracking-wider ${className}`}
+    >
+      {children}
+    </th>
   )
 }
 
@@ -69,5 +73,5 @@ interface GlassTableCellProps {
 }
 
 export function GlassTableCell({ children, className = "" }: GlassTableCellProps) {
-  return <td className={`px-4 py-3 text-sm text-[rgb(var(--color-fg)/0.8)] ${className}`}>{children}</td>
+  return <td className={`px-5 py-4 text-sm text-[rgb(var(--color-fg)/0.9)] ${className}`}>{children}</td>
 }

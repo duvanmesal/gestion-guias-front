@@ -1,3 +1,5 @@
+"use client"
+
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useAuth } from "@/hooks/use-auth"
@@ -34,7 +36,7 @@ export function LoginPage() {
 
   const onSubmit = (data: LoginFormData) => {
     login(
-      { ...data,},
+      { ...data },
       {
         onError: (error) => {
           const axiosError = error as AxiosError<ApiResponse<unknown>>
@@ -46,53 +48,49 @@ export function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-[rgb(var(--color-primary)/0.15)] via-transparent to-[rgb(var(--color-accent)/0.1)]">
-      <div className="w-full max-w-md">
-        <GlassCard>
+    <div className="min-h-screen flex items-center justify-center p-4 relative z-10 bg-gradient-to-br from-[rgb(var(--color-primary)/0.1)] via-transparent to-[rgb(var(--color-accent)/0.08)]">
+      <div className="w-full max-w-md animate-scale-in">
+        <GlassCard className="hover-lift">
           <GlassCardHeader>
-            <div className="flex items-center justify-center mb-2">
-              <div className="w-12 h-12 rounded-xl bg-[rgb(var(--color-primary))] flex items-center justify-center">
-                <LogIn className="w-6 h-6 text-white" />
+            <div className="flex items-center justify-center mb-4">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[rgb(var(--color-primary))] to-[rgb(var(--color-accent))] flex items-center justify-center shadow-lg shadow-[rgb(var(--color-primary)/0.3)] hover-glow">
+                <LogIn className="w-8 h-8 text-white" />
               </div>
             </div>
-            <GlassCardTitle className="text-center">Gestión Guías</GlassCardTitle>
+            <GlassCardTitle className="text-center text-3xl font-bold bg-gradient-to-r from-[rgb(var(--color-primary))] to-[rgb(var(--color-accent))] bg-clip-text text-transparent">
+              Gestión Guías
+            </GlassCardTitle>
+            <p className="text-center text-sm text-[rgb(var(--color-fg)/0.6)] mt-2">Inicia sesión para continuar</p>
           </GlassCardHeader>
 
           <GlassCardContent>
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-              <GlassInput
-                label="Email"
-                type="email"
-                placeholder="usuario@ejemplo.com"
-                error={errors.email?.message}
-                {...register("email")}
-              />
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+              <GlassInput label="Email" type="email" error={errors.email?.message} {...register("email")} />
 
               <GlassInput
                 label="Contraseña"
                 type="password"
-                placeholder="••••••••"
                 error={errors.password?.message}
                 {...register("password")}
               />
 
               {loginError && (
-                <div className="glass p-3 border border-red-400/20 bg-red-400/10">
-                  <p className="text-sm text-red-400">
+                <div className="glass p-4 border-2 border-red-400/30 bg-red-400/10 rounded-xl animate-fade-in-up">
+                  <p className="text-sm text-red-400 font-medium">
                     {(loginError as AxiosError<ApiResponse<unknown>>).response?.data?.error?.message ||
                       "Error al iniciar sesión"}
                   </p>
                 </div>
               )}
 
-              <GlassButton type="submit" variant="primary" fullWidth loading={isLoggingIn}>
+              <GlassButton type="submit" variant="primary" fullWidth loading={isLoggingIn} className="hover-glow">
                 Iniciar Sesión
               </GlassButton>
             </form>
           </GlassCardContent>
         </GlassCard>
 
-        <p className="text-center mt-4 text-sm text-[rgb(var(--color-fg)/0.6)]">
+        <p className="text-center mt-6 text-sm text-[rgb(var(--color-fg)/0.5)] animate-fade-in-up">
           Sistema de gestión de guías turísticos
         </p>
       </div>

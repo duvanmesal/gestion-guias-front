@@ -1,5 +1,3 @@
-"use client"
-
 import { type ReactNode, useState } from "react"
 import { Topbar } from "./Topbar"
 import { Sidebar } from "./Sidebar"
@@ -12,7 +10,7 @@ export function AppShell({ children }: AppShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[rgb(var(--color-primary)/0.08)] via-transparent to-[rgb(var(--color-accent)/0.05)]">
+    <div className="min-h-screen relative z-10">
       <Topbar onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
 
       <div className="flex">

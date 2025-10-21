@@ -15,7 +15,7 @@ import { usersApi } from "@/core/api"
 import { updateProfileSchema, changePasswordSchema } from "@/core/utils/validation"
 import type { UpdateProfileFormData, ChangePasswordFormData } from "@/core/utils/validation"
 import { DocumentType } from "@/core/models/auth"
-import { User, Lock, Monitor } from "lucide-react"
+import { User, Lock, Monitor, Save } from "lucide-react"
 import type { AxiosError } from "axios"
 import type { ApiResponse } from "@/core/models/api"
 import { SessionsCard } from "./SessionsCard"
@@ -95,86 +95,85 @@ export function ProfilePage() {
   return (
     <AppShell>
       <div className="space-y-6 max-w-4xl">
-        <div>
-          <h2 className="text-3xl font-bold text-[rgb(var(--color-fg))]">Mi Perfil</h2>
-          <p className="text-[rgb(var(--color-fg)/0.6)]">Gestiona tu información personal y configuración</p>
+        <div className="glass-strong p-8 rounded-2xl border border-white/10 hover-lift animate-fade-in-up relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-[rgb(var(--color-primary)/0.1)] to-transparent rounded-full blur-3xl" />
+          <div className="relative z-10">
+            <h2 className="text-4xl font-bold bg-gradient-to-r from-[rgb(var(--color-primary))] via-[rgb(var(--color-accent))] to-[rgb(var(--color-primary))] bg-clip-text text-transparent mb-2">
+              Mi Perfil
+            </h2>
+            <p className="text-[rgb(var(--color-fg)/0.6)] text-base">
+              Gestiona tu información personal y configuración
+            </p>
+          </div>
         </div>
 
-        {/* Tabs */}
-        <div className="glass p-1 inline-flex rounded-xl">
+        <div
+          className="glass-strong p-1.5 inline-flex rounded-xl border border-white/10 animate-fade-in-up"
+          style={{ animationDelay: "0.1s" }}
+        >
           <button
             onClick={() => setActiveTab("profile")}
-            className={`px-4 py-2 rounded-lg transition-colors focus-ring ${
+            className={`px-5 py-2.5 rounded-lg transition-all focus-ring flex items-center gap-2 ${
               activeTab === "profile"
-                ? "bg-[rgb(var(--color-primary)/0.2)] text-[rgb(var(--color-primary))]"
-                : "text-[rgb(var(--color-fg)/0.8)] hover:bg-white/10"
+                ? "glass-strong border border-white/10 bg-gradient-to-r from-[rgb(var(--color-primary)/0.2)] to-[rgb(var(--color-accent)/0.15)] text-[rgb(var(--color-primary))] shadow-lg"
+                : "text-[rgb(var(--color-fg)/0.7)] hover:bg-white/5 hover:text-[rgb(var(--color-fg))]"
             }`}
           >
-            <User className="w-4 h-4 inline mr-2" />
-            Perfil
+            <User className="w-4 h-4" />
+            <span className="font-medium">Perfil</span>
           </button>
           <button
             onClick={() => setActiveTab("password")}
-            className={`px-4 py-2 rounded-lg transition-colors focus-ring ${
+            className={`px-5 py-2.5 rounded-lg transition-all focus-ring flex items-center gap-2 ${
               activeTab === "password"
-                ? "bg-[rgb(var(--color-primary)/0.2)] text-[rgb(var(--color-primary))]"
-                : "text-[rgb(var(--color-fg)/0.8)] hover:bg-white/10"
+                ? "glass-strong border border-white/10 bg-gradient-to-r from-[rgb(var(--color-primary)/0.2)] to-[rgb(var(--color-accent)/0.15)] text-[rgb(var(--color-primary))] shadow-lg"
+                : "text-[rgb(var(--color-fg)/0.7)] hover:bg-white/5 hover:text-[rgb(var(--color-fg))]"
             }`}
           >
-            <Lock className="w-4 h-4 inline mr-2" />
-            Contraseña
+            <Lock className="w-4 h-4" />
+            <span className="font-medium">Contraseña</span>
           </button>
           <button
             onClick={() => setActiveTab("sessions")}
-            className={`px-4 py-2 rounded-lg transition-colors focus-ring ${
+            className={`px-5 py-2.5 rounded-lg transition-all focus-ring flex items-center gap-2 ${
               activeTab === "sessions"
-                ? "bg-[rgb(var(--color-primary)/0.2)] text-[rgb(var(--color-primary))]"
-                : "text-[rgb(var(--color-fg)/0.8)] hover:bg-white/10"
+                ? "glass-strong border border-white/10 bg-gradient-to-r from-[rgb(var(--color-primary)/0.2)] to-[rgb(var(--color-accent)/0.15)] text-[rgb(var(--color-primary))] shadow-lg"
+                : "text-[rgb(var(--color-fg)/0.7)] hover:bg-white/5 hover:text-[rgb(var(--color-fg))]"
             }`}
           >
-            <Monitor className="w-4 h-4 inline mr-2" />
-            Sesiones
+            <Monitor className="w-4 h-4" />
+            <span className="font-medium">Sesiones</span>
           </button>
         </div>
 
-        {/* Profile Tab */}
         {activeTab === "profile" && (
-          <GlassCard>
+          <GlassCard className="border border-white/5 animate-fade-in-up" style={{ animationDelay: "0.15s" }}>
             <GlassCardHeader>
               <GlassCardTitle>Información Personal</GlassCardTitle>
             </GlassCardHeader>
             <GlassCardContent>
-              <form onSubmit={handleSubmitProfile(onSubmitProfile)} className="space-y-4">
-                <div className="glass p-4 rounded-xl">
-                  <p className="text-sm text-[rgb(var(--color-fg)/0.6)] mb-1">Email</p>
-                  <p className="font-medium text-[rgb(var(--color-fg))]">{user?.email}</p>
-                  <p className="text-xs text-[rgb(var(--color-fg)/0.5)] mt-1">El email no se puede modificar</p>
+              <form onSubmit={handleSubmitProfile(onSubmitProfile)} className="space-y-5">
+                <div className="glass-strong p-5 rounded-xl border border-white/10 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-[rgb(var(--color-primary)/0.1)] to-transparent rounded-full blur-2xl" />
+                  <div className="relative z-10">
+                    <p className="text-xs text-[rgb(var(--color-fg)/0.5)] uppercase tracking-wider mb-1.5">Email</p>
+                    <p className="font-semibold text-[rgb(var(--color-fg))] text-lg">{user?.email}</p>
+                    <p className="text-xs text-[rgb(var(--color-fg)/0.5)] mt-2">El email no se puede modificar</p>
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <GlassInput
-                    label="Nombres"
-                    placeholder="Juan"
-                    error={profileErrors.nombres?.message}
-                    {...registerProfile("nombres")}
-                  />
-
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <GlassInput label="Nombres" error={profileErrors.nombres?.message} {...registerProfile("nombres")} />
                   <GlassInput
                     label="Apellidos"
-                    placeholder="Pérez"
                     error={profileErrors.apellidos?.message}
                     {...registerProfile("apellidos")}
                   />
                 </div>
 
-                <GlassInput
-                  label="Teléfono"
-                  placeholder="+57 300 123 4567"
-                  error={profileErrors.telefono?.message}
-                  {...registerProfile("telefono")}
-                />
+                <GlassInput label="Teléfono" error={profileErrors.telefono?.message} {...registerProfile("telefono")} />
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <GlassSelect
                     label="Tipo de Documento"
                     options={[
@@ -189,14 +188,19 @@ export function ProfilePage() {
 
                   <GlassInput
                     label="Número de Documento"
-                    placeholder="1020304050"
                     error={profileErrors.documentNumber?.message}
                     {...registerProfile("documentNumber")}
                   />
                 </div>
 
-                <div className="flex justify-end">
-                  <GlassButton type="submit" variant="primary" loading={updateProfileMutation.isPending}>
+                <div className="flex justify-end pt-2">
+                  <GlassButton
+                    type="submit"
+                    variant="primary"
+                    loading={updateProfileMutation.isPending}
+                    className="hover-glow"
+                  >
+                    <Save className="w-4 h-4" />
                     Guardar Cambios
                   </GlassButton>
                 </div>
@@ -205,18 +209,16 @@ export function ProfilePage() {
           </GlassCard>
         )}
 
-        {/* Password Tab */}
         {activeTab === "password" && (
-          <GlassCard>
+          <GlassCard className="border border-white/5 animate-fade-in-up" style={{ animationDelay: "0.15s" }}>
             <GlassCardHeader>
               <GlassCardTitle>Cambiar Contraseña</GlassCardTitle>
             </GlassCardHeader>
             <GlassCardContent>
-              <form onSubmit={handleSubmitPassword(onSubmitPassword)} className="space-y-4">
+              <form onSubmit={handleSubmitPassword(onSubmitPassword)} className="space-y-5">
                 <GlassInput
                   label="Contraseña Actual"
                   type="password"
-                  placeholder="••••••••"
                   error={passwordErrors.currentPassword?.message}
                   {...registerPassword("currentPassword")}
                 />
@@ -224,14 +226,19 @@ export function ProfilePage() {
                 <GlassInput
                   label="Nueva Contraseña"
                   type="password"
-                  placeholder="••••••••"
                   error={passwordErrors.newPassword?.message}
                   helperText="Mínimo 8 caracteres con mayúscula, minúscula, número y símbolo"
                   {...registerPassword("newPassword")}
                 />
 
-                <div className="flex justify-end">
-                  <GlassButton type="submit" variant="primary" loading={changePasswordMutation.isPending}>
+                <div className="flex justify-end pt-2">
+                  <GlassButton
+                    type="submit"
+                    variant="primary"
+                    loading={changePasswordMutation.isPending}
+                    className="hover-glow"
+                  >
+                    <Lock className="w-4 h-4" />
                     Cambiar Contraseña
                   </GlassButton>
                 </div>
@@ -240,7 +247,6 @@ export function ProfilePage() {
           </GlassCard>
         )}
 
-        {/* Sessions Tab */}
         {activeTab === "sessions" && <SessionsCard />}
       </div>
     </AppShell>

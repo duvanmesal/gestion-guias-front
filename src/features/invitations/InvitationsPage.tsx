@@ -1,21 +1,36 @@
-"use client"
-
 import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { AppShell } from "@/shared/components/layout/AppShell"
-import { GlassCard, GlassCardHeader, GlassCardTitle, GlassCardContent } from "@/shared/components/glass/GlassCard"
+import {
+  GlassCard,
+  GlassCardHeader,
+  GlassCardTitle,
+  GlassCardContent,
+} from "@/shared/components/glass/GlassCard"
 import { GlassInput } from "@/shared/components/glass/GlassInput"
 import { GlassSelect } from "@/shared/components/glass/GlassSelect"
 import { GlassButton } from "@/shared/components/glass/GlassButton"
 import { GlassModal, GlassModalFooter } from "@/shared/components/glass/GlassModal"
 import { Skeleton } from "@/shared/components/feedback/Skeleton"
 import { useToast } from "@/shared/components/feedback/Toast"
+import type { Invitation } from "@/core/models/invitations"
 import { useInvitations } from "@/hooks/use-invitations"
-import { createInvitationSchema, type CreateInvitationFormData } from "@/core/utils/validation"
+import {
+  createInvitationSchema,
+  type CreateInvitationFormData,
+} from "@/core/utils/validation"
 import { Rol } from "@/core/models/auth"
 import { InvitationStatus } from "@/core/models/invitations"
-import { Plus, Mail, Clock, CheckCircle, XCircle, RefreshCw } from "lucide-react"
+import {
+  Plus,
+  Mail,
+  Clock,
+  CheckCircle,
+  XCircle,
+  RefreshCw,
+  Send,
+} from "lucide-react"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
 import type { AxiosError } from "axios"
@@ -23,7 +38,14 @@ import type { ApiResponse } from "@/core/models/api"
 
 export function InvitationsPage() {
   const { showToast } = useToast()
-  const { invitations, isLoading, createInvitation, resendInvitation, isCreating, isResending } = useInvitations()
+  const {
+    invitations,
+    isLoading,
+    createInvitation,
+    resendInvitation,
+    isCreating,
+    isResending,
+  } = useInvitations()
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
 
   const {
@@ -44,7 +66,9 @@ export function InvitationsPage() {
       },
       onError: (error) => {
         const axiosError = error as AxiosError<ApiResponse<unknown>>
-        const errorMessage = axiosError.response?.data?.error?.message || "Error al enviar invitación"
+        const errorMessage =
+          axiosError.response?.data?.error?.message ||
+          "Error al enviar invitación"
         showToast("error", errorMessage)
       },
     })
@@ -57,7 +81,9 @@ export function InvitationsPage() {
       },
       onError: (error) => {
         const axiosError = error as AxiosError<ApiResponse<unknown>>
-        const errorMessage = axiosError.response?.data?.error?.message || "Error al reenviar invitación"
+        const errorMessage =
+          axiosError.response?.data?.error?.message ||
+          "Error al reenviar invitación"
         showToast("error", errorMessage)
       },
     })
@@ -77,33 +103,60 @@ export function InvitationsPage() {
   const getStatusColor = (status: InvitationStatus) => {
     switch (status) {
       case InvitationStatus.PENDING:
-        return "text-yellow-400"
+        return "text-yellow-400 bg-yellow-400/10 border-yellow-400/20"
       case InvitationStatus.ACCEPTED:
-        return "text-green-400"
+        return "text-green-400 bg-green-400/10 border-green-400/20"
       case InvitationStatus.EXPIRED:
-        return "text-red-400"
+        return "text-red-400 bg-red-400/10 border-red-400/20"
     }
   }
+
+  // ✅ siempre es array, incluso si backend devuelve null, objeto o string
+  const safeInvitations: Invitation[] = Array.isArray(invitations)
+    ? (invitations as Invitation[])
+    : Array.isArray((invitations as any)?.data)
+    ? ((invitations as any).data as Invitation[])
+    : []
 
   return (
     <AppShell>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-3xl font-bold text-[rgb(var(--color-fg))]">Invitaciones</h2>
-            <p className="text-[rgb(var(--color-fg)/0.6)]">Invita nuevos usuarios al sistema</p>
-          </div>
+        {/* HEADER */}
+        <div className="glass-strong p-8 rounded-2xl border border-white/10 hover-lift animate-fade-in-up relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-[rgb(var(--color-primary)/0.1)] to-transparent rounded-full blur-3xl" />
+          <div className="relative z-10 flex items-center justify-between">
+            <div>
+              <h2 className="text-4xl font-bold bg-gradient-to-r from-[rgb(var(--color-primary))] via-[rgb(var(--color-accent))] to-[rgb(var(--color-primary))] bg-clip-text text-transparent mb-2">
+                Invitaciones
+              </h2>
+              <p className="text-[rgb(var(--color-fg)/0.6)] text-base">
+                Invita nuevos usuarios al sistema
+              </p>
+            </div>
 
-          <GlassButton variant="primary" onClick={() => setIsCreateDialogOpen(true)}>
-            <Plus className="w-4 h-4" />
-            Nueva Invitación
-          </GlassButton>
+            <GlassButton
+              variant="primary"
+              onClick={() => setIsCreateDialogOpen(true)}
+              className="hover-glow"
+            >
+              <Plus className="w-4 h-4" />
+              Nueva Invitación
+            </GlassButton>
+          </div>
         </div>
 
-        <GlassCard>
+        {/* LISTA */}
+        <GlassCard
+          className="border border-white/5 animate-fade-in-up"
+          style={{ animationDelay: "0.1s" }}
+        >
           <GlassCardHeader>
-            <GlassCardTitle>Lista de Invitaciones</GlassCardTitle>
+            <div className="flex items-center gap-2">
+              <Send className="w-5 h-5 text-[rgb(var(--color-primary))]" />
+              <GlassCardTitle>Lista de Invitaciones</GlassCardTitle>
+            </div>
           </GlassCardHeader>
+
           <GlassCardContent>
             {isLoading ? (
               <div className="space-y-3">
@@ -111,30 +164,60 @@ export function InvitationsPage() {
                 <Skeleton height="5rem" />
                 <Skeleton height="5rem" />
               </div>
-            ) : invitations.length === 0 ? (
-              <div className="text-center py-12">
-                <Mail className="w-12 h-12 text-[rgb(var(--color-fg)/0.3)] mx-auto mb-3" />
-                <p className="text-[rgb(var(--color-fg)/0.6)]">No hay invitaciones</p>
-                <p className="text-sm text-[rgb(var(--color-fg)/0.5)] mt-1">Crea una nueva invitación para comenzar</p>
+            ) : safeInvitations.length === 0 ? (
+              <div className="text-center py-16">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[rgb(var(--color-primary)/0.2)] to-[rgb(var(--color-accent)/0.1)] flex items-center justify-center mx-auto mb-4 border border-white/10">
+                  <Mail className="w-8 h-8 text-[rgb(var(--color-primary))]" />
+                </div>
+                <p className="text-[rgb(var(--color-fg))] font-medium mb-1">
+                  No hay invitaciones
+                </p>
+                <p className="text-sm text-[rgb(var(--color-fg)/0.5)]">
+                  Crea una nueva invitación para comenzar
+                </p>
               </div>
             ) : (
               <div className="space-y-3">
-                {invitations.map((invitation) => (
-                  <div key={invitation.id} className="glass p-4 rounded-xl">
-                    <div className="flex items-start justify-between gap-4">
+                {safeInvitations.map((invitation, index) => (
+                  <div
+                    key={invitation.id}
+                    className="glass-strong p-5 rounded-xl border border-white/5 hover-lift animate-fade-in-up relative overflow-hidden group"
+                    style={{ animationDelay: `${index * 0.05}s` }}
+                  >
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-[rgb(var(--color-primary)/0.05)] to-transparent rounded-full blur-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="relative z-10 flex items-start justify-between gap-4">
                       <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-3">
+                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[rgb(var(--color-primary)/0.2)] to-[rgb(var(--color-accent)/0.1)] flex items-center justify-center border border-white/10">
+                            <Mail className="w-5 h-5 text-[rgb(var(--color-primary))]" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="font-semibold text-[rgb(var(--color-fg))]">
+                              {invitation.email}
+                            </p>
+                            <span className="inline-block text-xs px-2.5 py-1 rounded-lg glass border border-white/10 bg-gradient-to-r from-[rgb(var(--color-primary)/0.2)] to-[rgb(var(--color-accent)/0.15)] text-[rgb(var(--color-primary))] font-medium mt-1">
+                              {invitation.role}
+                            </span>
+                          </div>
+                        </div>
+
                         <div className="flex items-center gap-2 mb-2">
-                          <p className="font-medium text-[rgb(var(--color-fg))]">{invitation.email}</p>
-                          <span className="text-xs px-2 py-1 rounded bg-[rgb(var(--color-primary)/0.2)] text-[rgb(var(--color-primary))]">
-                            {invitation.role}
+                          {getStatusIcon(invitation.status)}
+                          <span
+                            className={`text-sm font-medium px-3 py-1 rounded-lg border ${getStatusColor(
+                              invitation.status
+                            )}`}
+                          >
+                            {invitation.status}
                           </span>
                         </div>
-                        <div className="flex items-center gap-2 text-sm">
-                          {getStatusIcon(invitation.status)}
-                          <span className={getStatusColor(invitation.status)}>{invitation.status}</span>
-                        </div>
-                        <p className="text-xs text-[rgb(var(--color-fg)/0.5)] mt-2">
-                          Expira: {format(new Date(invitation.expiresAt), "PPp", { locale: es })}
+
+                        <p className="text-xs text-[rgb(var(--color-fg)/0.5)] flex items-center gap-1.5">
+                          <Clock className="w-3.5 h-3.5" />
+                          Expira:{" "}
+                          {format(new Date(invitation.expiresAt), "PPp", {
+                            locale: es,
+                          })}
                         </p>
                       </div>
 
@@ -144,6 +227,7 @@ export function InvitationsPage() {
                           size="sm"
                           onClick={() => handleResend(invitation.id)}
                           disabled={isResending}
+                          className="hover-glow"
                         >
                           <RefreshCw className="w-4 h-4" />
                           Reenviar
@@ -158,18 +242,17 @@ export function InvitationsPage() {
         </GlassCard>
       </div>
 
-      {/* Create Invitation Dialog */}
+      {/* MODAL CREAR INVITACIÓN */}
       <GlassModal
         isOpen={isCreateDialogOpen}
         onClose={() => setIsCreateDialogOpen(false)}
         title="Nueva Invitación"
         size="md"
       >
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
           <GlassInput
             label="Email"
             type="email"
-            placeholder="usuario@ejemplo.com"
             error={errors.email?.message}
             {...register("email")}
           />
@@ -177,6 +260,7 @@ export function InvitationsPage() {
           <GlassSelect
             label="Rol"
             options={[
+              { value: "", label: "Seleccionar rol..." },
               { value: Rol.GUIA, label: "Guía" },
               { value: Rol.SUPERVISOR, label: "Supervisor" },
             ]}
@@ -184,18 +268,29 @@ export function InvitationsPage() {
             {...register("role")}
           />
 
-          <div className="glass p-3 rounded-xl border border-[rgb(var(--color-accent)/0.2)] bg-[rgb(var(--color-accent)/0.05)]">
-            <p className="text-sm text-[rgb(var(--color-fg)/0.8)]">
-              Se enviará un correo electrónico con las instrucciones para crear la cuenta. La invitación expirará en 24
-              horas.
+          <div className="glass-strong p-4 rounded-xl border border-[rgb(var(--color-accent)/0.2)] bg-[rgb(var(--color-accent)/0.05)] relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-bl from-[rgb(var(--color-accent)/0.1)] to-transparent rounded-full blur-2xl" />
+            <p className="text-sm text-[rgb(var(--color-fg)/0.8)] relative z-10 leading-relaxed">
+              Se enviará un correo electrónico con las instrucciones para crear
+              la cuenta. La invitación expirará en 24 horas.
             </p>
           </div>
 
           <GlassModalFooter>
-            <GlassButton type="button" variant="ghost" onClick={() => setIsCreateDialogOpen(false)}>
+            <GlassButton
+              type="button"
+              variant="ghost"
+              onClick={() => setIsCreateDialogOpen(false)}
+            >
               Cancelar
             </GlassButton>
-            <GlassButton type="submit" variant="primary" loading={isCreating}>
+            <GlassButton
+              type="submit"
+              variant="primary"
+              loading={isCreating}
+              className="hover-glow"
+            >
+              <Send className="w-4 h-4" />
               Enviar Invitación
             </GlassButton>
           </GlassModalFooter>

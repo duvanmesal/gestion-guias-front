@@ -4,15 +4,21 @@ import type { Invitation, CreateInvitationRequest } from "@/core/models/invitati
 
 export const invitationsApi = {
   // Get all invitations
-  async getInvitations(): Promise<ApiResponse<Invitation[]>> {
+  async getInvitations(): Promise<Invitation[]> {
     const response = await http.get<ApiResponse<Invitation[]>>("/invitations")
-    return response.data
+    const payload = response.data
+    // Soporta ambos casos: wrapper { data: [...] } o array directo
+    if (Array.isArray((payload as any)?.data)) return (payload as any).data as Invitation[]
+    if (Array.isArray(payload as any)) return payload as any as Invitation[]
+    return [] // fallback seguro
   },
 
   // Create invitation
-  async createInvitation(data: CreateInvitationRequest): Promise<ApiResponse<Invitation>> {
+  async createInvitation(data: CreateInvitationRequest): Promise<Invitation> {
     const response = await http.post<ApiResponse<Invitation>>("/invitations", data)
-    return response.data
+    const payload = response.data
+    if ((payload as any)?.data) return (payload as any).data as Invitation
+    return payload as any as Invitation
   },
 
   // Resend invitation
