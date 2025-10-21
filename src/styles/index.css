@@ -1,0 +1,97 @@
+@import "tailwindcss";
+
+/* Glass/Blur Design System Tokens */
+@theme inline {
+  /* Color Palette */
+  --color-bg: 248 250 252;
+  --color-fg: 12 12 16;
+  --color-primary: 124 58 237;
+  --color-accent: 34 211 238;
+  --color-glass: 255 255 255;
+  --color-ring: 167 139 250;
+
+  /* Spacing & Effects */
+  --radius: 16px;
+  --blur: 16px;
+  --shadow: 0 10px 30px rgb(0 0 0 / 0.15);
+
+  /* Font families */
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+}
+
+.dark {
+  --color-bg: 10 10 12;
+  --color-fg: 242 242 247;
+  --color-glass: 18 18 24;
+  --shadow: 0 10px 30px rgb(0 0 0 / 0.35);
+}
+
+/* Glass Effect Utilities */
+.glass {
+  border-radius: var(--radius);
+  background: rgba(var(--color-glass), 0.12);
+  backdrop-filter: blur(var(--blur));
+  -webkit-backdrop-filter: blur(var(--blur));
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: var(--shadow);
+}
+
+.glass-hover {
+  transition: all 0.25s ease;
+}
+
+.glass-hover:hover {
+  background: rgba(var(--color-glass), 0.16);
+  transform: translateY(-1px);
+  box-shadow: 0 14px 38px rgb(0 0 0 / 0.22);
+}
+
+/* Focus Ring for Accessibility */
+.focus-ring {
+  outline: none;
+  transition: box-shadow 0.2s ease;
+}
+
+.focus-ring:focus-visible {
+  box-shadow: 0 0 0 3px rgba(var(--color-ring), 0.6);
+}
+
+/* Skeleton Loading Animation */
+@keyframes shimmer {
+  0% {
+    background-position: -500px 0;
+  }
+  100% {
+    background-position: 500px 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.06) 25%,
+    rgba(255, 255, 255, 0.12) 37%,
+    rgba(255, 255, 255, 0.06) 63%
+  );
+  background-size: 1000px 100%;
+  animation: shimmer 1.5s infinite linear;
+  border-radius: 12px;
+}
+
+/* Base Styles */
+body {
+  background: rgb(var(--color-bg));
+  color: rgb(var(--color-fg));
+  font-family: var(--font-sans);
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
