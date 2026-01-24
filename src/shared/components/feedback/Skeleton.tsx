@@ -25,9 +25,9 @@ export function SkeletonCard() {
 
 export function SkeletonTable({ rows = 5 }: { rows?: number }) {
   return (
-    <div className="glass p-4 space-y-3">
+    <div className="space-y-3">
       {Array.from({ length: rows }).map((_, i) => (
-        <Skeleton key={i} height="2.5rem" />
+        <Skeleton key={i} height="3rem" className="rounded-xl" />
       ))}
     </div>
   )

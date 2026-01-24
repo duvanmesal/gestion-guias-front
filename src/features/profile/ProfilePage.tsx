@@ -5,15 +5,26 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { AppShell } from "@/shared/components/layout/AppShell"
-import { GlassCard, GlassCardHeader, GlassCardTitle, GlassCardContent } from "@/shared/components/glass/GlassCard"
+import {
+  GlassCard,
+  GlassCardHeader,
+  GlassCardTitle,
+  GlassCardContent,
+} from "@/shared/components/glass/GlassCard"
 import { GlassInput } from "@/shared/components/glass/GlassInput"
 import { GlassSelect } from "@/shared/components/glass/GlassSelect"
 import { GlassButton } from "@/shared/components/glass/GlassButton"
 import { useToast } from "@/shared/components/feedback/Toast"
 import { useAuthStore } from "@/app/stores/auth-store"
 import { usersApi } from "@/core/api"
-import { updateProfileSchema, changePasswordSchema } from "@/core/utils/validation"
-import type { UpdateProfileFormData, ChangePasswordFormData } from "@/core/utils/validation"
+import {
+  updateProfileSchema,
+  changePasswordSchema,
+} from "@/core/utils/validation"
+import type {
+  UpdateProfileFormData,
+  ChangePasswordFormData,
+} from "@/core/utils/validation"
 import { DocumentType } from "@/core/models/auth"
 import { User, Lock, Monitor, Save } from "lucide-react"
 import type { AxiosError } from "axios"
@@ -24,7 +35,9 @@ export function ProfilePage() {
   const { user, updateUser } = useAuthStore()
   const { showToast } = useToast()
   const queryClient = useQueryClient()
-  const [activeTab, setActiveTab] = useState<"profile" | "password" | "sessions">("profile")
+  const [activeTab, setActiveTab] = useState<"profile" | "password" | "sessions">(
+    "profile"
+  )
 
   // Update profile mutation
   const updateProfileMutation = useMutation({
@@ -37,7 +50,8 @@ export function ProfilePage() {
       }
     },
     onError: (error: AxiosError<ApiResponse<unknown>>) => {
-      const errorMessage = error.response?.data?.error?.message || "Error al actualizar perfil"
+      const errorMessage =
+        error.response?.data?.error?.message || "Error al actualizar perfil"
       showToast("error", errorMessage)
     },
   })
@@ -49,11 +63,12 @@ export function ProfilePage() {
       return usersApi.changePassword(user.id, data)
     },
     onSuccess: () => {
-      showToast("success", "Contraseña actualizada exitosamente")
+      showToast("success", "Contrasena actualizada exitosamente")
       resetPasswordForm()
     },
     onError: (error: AxiosError<ApiResponse<unknown>>) => {
-      const errorMessage = error.response?.data?.error?.message || "Error al cambiar contraseña"
+      const errorMessage =
+        error.response?.data?.error?.message || "Error al cambiar contrasena"
       showToast("error", errorMessage)
     },
   })
@@ -92,78 +107,76 @@ export function ProfilePage() {
     changePasswordMutation.mutate(data)
   }
 
+  const tabs = [
+    { id: "profile" as const, label: "Perfil", icon: User },
+    { id: "password" as const, label: "Contrasena", icon: Lock },
+    { id: "sessions" as const, label: "Sesiones", icon: Monitor },
+  ]
+
   return (
     <AppShell>
       <div className="space-y-6 max-w-4xl">
-        <div className="glass-strong p-8 rounded-2xl border border-white/10 hover-lift animate-fade-in-up relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-[rgb(var(--color-primary)/0.1)] to-transparent rounded-full blur-3xl" />
-          <div className="relative z-10">
-            <h2 className="text-4xl font-bold bg-gradient-to-r from-[rgb(var(--color-primary))] via-[rgb(var(--color-accent))] to-[rgb(var(--color-primary))] bg-clip-text text-transparent mb-2">
-              Mi Perfil
-            </h2>
-            <p className="text-[rgb(var(--color-fg)/0.6)] text-base">
-              Gestiona tu información personal y configuración
-            </p>
-          </div>
+        {/* Header */}
+        <div className="animate-fade-in-up">
+          <h1 className="text-3xl font-bold text-[rgb(var(--color-fg))] mb-1">
+            Mi Perfil
+          </h1>
+          <p className="text-[rgb(var(--color-muted))]">
+            Gestiona tu informacion personal y configuracion
+          </p>
         </div>
 
+        {/* Tabs */}
         <div
-          className="glass-strong p-1.5 inline-flex rounded-xl border border-white/10 animate-fade-in-up"
-          style={{ animationDelay: "0.1s" }}
+          className="glass-subtle p-1.5 inline-flex rounded-xl animate-fade-in-up"
+          style={{ animationDelay: "0.05s" }}
         >
-          <button
-            onClick={() => setActiveTab("profile")}
-            className={`px-5 py-2.5 rounded-lg transition-all focus-ring flex items-center gap-2 ${
-              activeTab === "profile"
-                ? "glass-strong border border-white/10 bg-gradient-to-r from-[rgb(var(--color-primary)/0.2)] to-[rgb(var(--color-accent)/0.15)] text-[rgb(var(--color-primary))] shadow-lg"
-                : "text-[rgb(var(--color-fg)/0.7)] hover:bg-white/5 hover:text-[rgb(var(--color-fg))]"
-            }`}
-          >
-            <User className="w-4 h-4" />
-            <span className="font-medium">Perfil</span>
-          </button>
-          <button
-            onClick={() => setActiveTab("password")}
-            className={`px-5 py-2.5 rounded-lg transition-all focus-ring flex items-center gap-2 ${
-              activeTab === "password"
-                ? "glass-strong border border-white/10 bg-gradient-to-r from-[rgb(var(--color-primary)/0.2)] to-[rgb(var(--color-accent)/0.15)] text-[rgb(var(--color-primary))] shadow-lg"
-                : "text-[rgb(var(--color-fg)/0.7)] hover:bg-white/5 hover:text-[rgb(var(--color-fg))]"
-            }`}
-          >
-            <Lock className="w-4 h-4" />
-            <span className="font-medium">Contraseña</span>
-          </button>
-          <button
-            onClick={() => setActiveTab("sessions")}
-            className={`px-5 py-2.5 rounded-lg transition-all focus-ring flex items-center gap-2 ${
-              activeTab === "sessions"
-                ? "glass-strong border border-white/10 bg-gradient-to-r from-[rgb(var(--color-primary)/0.2)] to-[rgb(var(--color-accent)/0.15)] text-[rgb(var(--color-primary))] shadow-lg"
-                : "text-[rgb(var(--color-fg)/0.7)] hover:bg-white/5 hover:text-[rgb(var(--color-fg))]"
-            }`}
-          >
-            <Monitor className="w-4 h-4" />
-            <span className="font-medium">Sesiones</span>
-          </button>
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`px-4 py-2.5 rounded-lg transition-all duration-200 focus-ring flex items-center gap-2 ${
+                activeTab === tab.id
+                  ? "glass bg-[rgb(var(--color-primary)/0.15)] text-[rgb(var(--color-primary))]"
+                  : "text-[rgb(var(--color-muted))] hover:text-[rgb(var(--color-fg))] hover:bg-[rgb(var(--color-glass-hover)/0.3)]"
+              }`}
+            >
+              <tab.icon className="w-4 h-4" />
+              <span className="font-medium text-sm">{tab.label}</span>
+            </button>
+          ))}
         </div>
 
+        {/* Profile Tab */}
         {activeTab === "profile" && (
-          <GlassCard className="border border-white/5 animate-fade-in-up" style={{ animationDelay: "0.15s" }}>
+          <GlassCard className="animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
             <GlassCardHeader>
-              <GlassCardTitle>Información Personal</GlassCardTitle>
+              <GlassCardTitle>Informacion Personal</GlassCardTitle>
             </GlassCardHeader>
             <GlassCardContent>
-              <form onSubmit={handleSubmitProfile(onSubmitProfile)} className="space-y-5">
-                <div className="glass-strong p-5 rounded-xl border border-white/10 relative overflow-hidden">
-                  <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-[rgb(var(--color-primary)/0.1)] to-transparent rounded-full blur-2xl" />
-                  <div className="relative z-10">
-                    <p className="text-xs text-[rgb(var(--color-fg)/0.5)] uppercase tracking-wider mb-1.5">Email</p>
-                    <p className="font-semibold text-[rgb(var(--color-fg))] text-lg">{user?.email}</p>
-                    <p className="text-xs text-[rgb(var(--color-fg)/0.5)] mt-2">El email no se puede modificar</p>
-                  </div>
+              <form
+                onSubmit={handleSubmitProfile(onSubmitProfile)}
+                className="space-y-5"
+              >
+                {/* Email (read-only) */}
+                <div className="glass-subtle p-4 rounded-xl">
+                  <p className="text-xs text-[rgb(var(--color-muted))] uppercase tracking-wider mb-1">
+                    Email
+                  </p>
+                  <p className="font-semibold text-[rgb(var(--color-fg))]">
+                    {user?.email}
+                  </p>
+                  <p className="text-xs text-[rgb(var(--color-muted))] mt-1">
+                    El email no se puede modificar
+                  </p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <GlassInput label="Nombres" error={profileErrors.nombres?.message} {...registerProfile("nombres")} />
+                  <GlassInput
+                    label="Nombres"
+                    error={profileErrors.nombres?.message}
+                    {...registerProfile("nombres")}
+                  />
                   <GlassInput
                     label="Apellidos"
                     error={profileErrors.apellidos?.message}
@@ -171,15 +184,19 @@ export function ProfilePage() {
                   />
                 </div>
 
-                <GlassInput label="Teléfono" error={profileErrors.telefono?.message} {...registerProfile("telefono")} />
+                <GlassInput
+                  label="Telefono"
+                  error={profileErrors.telefono?.message}
+                  {...registerProfile("telefono")}
+                />
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <GlassSelect
                     label="Tipo de Documento"
                     options={[
                       { value: "", label: "Seleccionar..." },
-                      { value: DocumentType.CC, label: "Cédula de Ciudadanía" },
-                      { value: DocumentType.CE, label: "Cédula de Extranjería" },
+                      { value: DocumentType.CC, label: "Cedula de Ciudadania" },
+                      { value: DocumentType.CE, label: "Cedula de Extranjeria" },
                       { value: DocumentType.PASAPORTE, label: "Pasaporte" },
                     ]}
                     error={profileErrors.documentType?.message}
@@ -187,7 +204,7 @@ export function ProfilePage() {
                   />
 
                   <GlassInput
-                    label="Número de Documento"
+                    label="Numero de Documento"
                     error={profileErrors.documentNumber?.message}
                     {...registerProfile("documentNumber")}
                   />
@@ -198,7 +215,6 @@ export function ProfilePage() {
                     type="submit"
                     variant="primary"
                     loading={updateProfileMutation.isPending}
-                    className="hover-glow"
                   >
                     <Save className="w-4 h-4" />
                     Guardar Cambios
@@ -209,25 +225,29 @@ export function ProfilePage() {
           </GlassCard>
         )}
 
+        {/* Password Tab */}
         {activeTab === "password" && (
-          <GlassCard className="border border-white/5 animate-fade-in-up" style={{ animationDelay: "0.15s" }}>
+          <GlassCard className="animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
             <GlassCardHeader>
-              <GlassCardTitle>Cambiar Contraseña</GlassCardTitle>
+              <GlassCardTitle>Cambiar Contrasena</GlassCardTitle>
             </GlassCardHeader>
             <GlassCardContent>
-              <form onSubmit={handleSubmitPassword(onSubmitPassword)} className="space-y-5">
+              <form
+                onSubmit={handleSubmitPassword(onSubmitPassword)}
+                className="space-y-5"
+              >
                 <GlassInput
-                  label="Contraseña Actual"
+                  label="Contrasena Actual"
                   type="password"
                   error={passwordErrors.currentPassword?.message}
                   {...registerPassword("currentPassword")}
                 />
 
                 <GlassInput
-                  label="Nueva Contraseña"
+                  label="Nueva Contrasena"
                   type="password"
                   error={passwordErrors.newPassword?.message}
-                  helperText="Mínimo 8 caracteres con mayúscula, minúscula, número y símbolo"
+                  helperText="Minimo 8 caracteres con mayuscula, minuscula, numero y simbolo"
                   {...registerPassword("newPassword")}
                 />
 
@@ -236,10 +256,9 @@ export function ProfilePage() {
                     type="submit"
                     variant="primary"
                     loading={changePasswordMutation.isPending}
-                    className="hover-glow"
                   >
                     <Lock className="w-4 h-4" />
-                    Cambiar Contraseña
+                    Cambiar Contrasena
                   </GlassButton>
                 </div>
               </form>
@@ -247,6 +266,7 @@ export function ProfilePage() {
           </GlassCard>
         )}
 
+        {/* Sessions Tab */}
         {activeTab === "sessions" && <SessionsCard />}
       </div>
     </AppShell>

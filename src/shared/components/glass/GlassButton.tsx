@@ -3,7 +3,7 @@ import { Loader2 } from "lucide-react"
 
 interface GlassButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   children: ReactNode
-  variant?: "primary" | "glass" | "danger" | "ghost"
+  variant?: "primary" | "secondary" | "glass" | "danger" | "ghost" | "accent"
   size?: "sm" | "md" | "lg"
   loading?: boolean
   fullWidth?: boolean
@@ -20,21 +20,33 @@ export function GlassButton({
   ...props
 }: GlassButtonProps) {
   const baseClasses =
-    "rounded-xl font-medium transition-all focus-ring active:translate-y-[1px] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 relative overflow-hidden"
+    "rounded-xl font-semibold transition-all duration-200 focus-ring active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2 relative overflow-hidden"
 
   const variantClasses = {
+    // Verde CORPOTURISMO - Acciones principales
     primary:
-      "bg-gradient-to-r from-[rgb(var(--color-primary))] to-[rgb(var(--color-accent))] text-white shadow-lg hover:shadow-xl hover:brightness-110 border border-white/10",
-    glass: "glass border border-white/10 text-[rgb(var(--color-fg))] hover:bg-white/10 hover:border-white/20",
+      "bg-[rgb(var(--color-primary))] text-white shadow-md hover:shadow-lg hover:brightness-110 border border-[rgb(var(--color-primary))]",
+    // Dorado CORPOTURISMO - Acciones secundarias/destacadas
+    secondary:
+      "bg-[rgb(var(--color-accent))] text-white shadow-md hover:shadow-lg hover:brightness-110 border border-[rgb(var(--color-accent))]",
+    // Acento dorado con estilo glass
+    accent:
+      "glass border border-[rgb(var(--color-accent)/0.3)] text-[rgb(var(--color-accent))] hover:bg-[rgb(var(--color-accent)/0.1)] hover:border-[rgb(var(--color-accent)/0.5)]",
+    // Glass style
+    glass:
+      "glass border border-[rgb(var(--color-border)/0.08)] text-[rgb(var(--color-fg))] hover:bg-[rgb(var(--color-glass-hover)/0.5)] hover:border-[rgb(var(--color-border)/0.12)]",
+    // Rojo CORPOTURISMO - Acciones críticas/alertas
     danger:
-      "bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg hover:shadow-xl hover:brightness-110 border border-white/10",
-    ghost: "text-[rgb(var(--color-fg))] hover:bg-white/5",
+      "bg-[rgb(var(--color-danger))] text-white shadow-md hover:shadow-lg hover:brightness-110 border border-[rgb(var(--color-danger))]",
+    // Ghost - Sin fondo
+    ghost:
+      "text-[rgb(var(--color-fg)/0.8)] hover:bg-[rgb(var(--color-glass)/0.5)] hover:text-[rgb(var(--color-fg))]",
   }
 
   const sizeClasses = {
     sm: "px-3 py-2 text-sm",
-    md: "px-5 py-2.5",
-    lg: "px-6 py-3 text-lg",
+    md: "px-5 py-2.5 text-sm",
+    lg: "px-6 py-3 text-base",
   }
 
   const widthClass = fullWidth ? "w-full" : ""

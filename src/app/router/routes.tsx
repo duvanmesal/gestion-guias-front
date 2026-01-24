@@ -1,9 +1,14 @@
 import { createBrowserRouter, Navigate } from "react-router-dom"
+
 import { LoginPage } from "@/features/auth/LoginPage"
 import { DashboardPage } from "@/features/dashboard/DashboardPage"
 import { UsersListPage } from "@/features/users/UsersListPage"
 import { ProfilePage } from "@/features/profile/ProfilePage"
 import { InvitationsPage } from "@/features/invitations/InvitationsPage"
+
+import { PaisesPage } from "@/features/catalog/paises/PaisesPage"
+import { BuquesPage } from "@/features/catalog/buques/BuquesPage"
+
 import { ProtectedRoute, RequireRoles } from "./guards"
 import { Rol } from "@/core/models/auth"
 
@@ -51,5 +56,34 @@ export const router = createBrowserRouter([
         </RequireRoles>
       </ProtectedRoute>
     ),
+  },
+
+  /* =======================
+     📦 CATÁLOGOS
+     ======================= */
+
+  {
+    path: "/catalog/paises",
+    element: (
+      <ProtectedRoute>
+        <RequireRoles allowedRoles={[Rol.SUPER_ADMIN, Rol.SUPERVISOR]}>
+          <PaisesPage />
+        </RequireRoles>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/catalog/buques",
+    element: (
+      <ProtectedRoute>
+        <RequireRoles allowedRoles={[Rol.SUPER_ADMIN, Rol.SUPERVISOR]}>
+          <BuquesPage />
+        </RequireRoles>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "*",
+    element: <Navigate to="/dashboard" replace />,
   },
 ])
