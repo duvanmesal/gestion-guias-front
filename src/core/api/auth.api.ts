@@ -1,6 +1,18 @@
 import { http } from "./http"
 import type { ApiResponse } from "@/core/models/api"
-import type { LoginRequest, LoginResponse, RefreshResponse, LogoutAllRequest, User, Session } from "@/core/models/auth"
+import type {
+  LoginRequest,
+  LoginResponse,
+  RefreshResponse,
+  LogoutAllRequest,
+  User,
+  Session,
+  ChangePasswordRequest,
+  ForgotPasswordRequest,
+  ResetPasswordRequest,
+  VerifyEmailRequest,
+  VerifyEmailConfirmRequest,
+} from "@/core/models/auth"
 
 export const authApi = {
   // Login
@@ -46,5 +58,35 @@ export const authApi = {
   // Delete specific session
   async deleteSession(sessionId: string): Promise<void> {
     await http.delete(`/auth/sessions/${sessionId}`)
+  },
+
+  // Change password (authenticated user)
+  async changePassword(data: ChangePasswordRequest): Promise<ApiResponse<{ message: string }>> {
+    const response = await http.post<ApiResponse<{ message: string }>>("/auth/change-password", data)
+    return response.data
+  },
+
+  // Forgot password (request reset link)
+  async forgotPassword(data: ForgotPasswordRequest): Promise<ApiResponse<{ message: string }>> {
+    const response = await http.post<ApiResponse<{ message: string }>>("/auth/forgot-password", data)
+    return response.data
+  },
+
+  // Reset password (using token from email)
+  async resetPassword(data: ResetPasswordRequest): Promise<ApiResponse<{ message: string }>> {
+    const response = await http.post<ApiResponse<{ message: string }>>("/auth/reset-password", data)
+    return response.data
+  },
+
+  // Request email verification
+  async requestEmailVerification(data: VerifyEmailRequest): Promise<ApiResponse<{ message: string }>> {
+    const response = await http.post<ApiResponse<{ message: string }>>("/auth/verify-email/request", data)
+    return response.data
+  },
+
+  // Confirm email verification
+  async confirmEmailVerification(data: VerifyEmailConfirmRequest): Promise<ApiResponse<{ message: string }>> {
+    const response = await http.post<ApiResponse<{ message: string }>>("/auth/verify-email/confirm", data)
+    return response.data
   },
 }

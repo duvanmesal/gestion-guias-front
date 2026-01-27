@@ -5,14 +5,20 @@ import type { ReactNode } from "react"
 
 interface ProtectedRouteProps {
   children: ReactNode
+  requireEmailVerification?: boolean
 }
 
-export function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { isAuthenticated } = useAuthStore()
+export function ProtectedRoute({ children, requireEmailVerification = true }: ProtectedRouteProps) {
+  const { isAuthenticated, user } = useAuthStore()
   const location = useLocation()
 
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />
+  }
+
+  // Check email verification if required
+  if (requireEmailVerification && user && !user.emailVerifiedAt) {
+    return <Navigate to="/verify-needed" replace />
   }
 
   return <>{children}</>
@@ -35,6 +41,20 @@ export function RequireRoles({ children, allowedRoles }: RequireRolesProps) {
         </div>
       </div>
     )
+  }
+
+  return <>{children}</>
+}
+
+interface GuestRouteProps {
+  children: ReactNode
+}
+
+export function GuestRoute({ children }: GuestRouteProps) {
+  const { isAuthenticated } = useAuthStore()
+
+  if (isAuthenticated) {
+    return <Navigate to="/dashboard" replace />
   }
 
   return <>{children}</>

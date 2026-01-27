@@ -1,6 +1,10 @@
 import { createBrowserRouter, Navigate } from "react-router-dom"
 
 import { LoginPage } from "@/features/auth/LoginPage"
+import { ForgotPasswordPage } from "@/features/auth/ForgotPasswordPage"
+import { ResetPasswordPage } from "@/features/auth/ResetPasswordPage"
+import { VerifyEmailPage } from "@/features/auth/VerifyEmailPage"
+import { VerifyNeededPage } from "@/features/auth/VerifyNeededPage"
 import { DashboardPage } from "@/features/dashboard/DashboardPage"
 import { UsersListPage } from "@/features/users/UsersListPage"
 import { ProfilePage } from "@/features/profile/ProfilePage"
@@ -9,7 +13,7 @@ import { InvitationsPage } from "@/features/invitations/InvitationsPage"
 import { PaisesPage } from "@/features/catalog/paises/PaisesPage"
 import { BuquesPage } from "@/features/catalog/buques/BuquesPage"
 
-import { ProtectedRoute, RequireRoles } from "./guards"
+import { ProtectedRoute, RequireRoles, GuestRoute } from "./guards"
 import { Rol } from "@/core/models/auth"
 
 export const router = createBrowserRouter([
@@ -17,10 +21,54 @@ export const router = createBrowserRouter([
     path: "/",
     element: <Navigate to="/dashboard" replace />,
   },
+
+  /* =======================
+     🔓 PUBLIC AUTH ROUTES
+     ======================= */
   {
     path: "/login",
-    element: <LoginPage />,
+    element: (
+      <GuestRoute>
+        <LoginPage />
+      </GuestRoute>
+    ),
   },
+  {
+    path: "/forgot-password",
+    element: (
+      <GuestRoute>
+        <ForgotPasswordPage />
+      </GuestRoute>
+    ),
+  },
+  {
+    path: "/reset-password",
+    element: (
+      <GuestRoute>
+        <ResetPasswordPage />
+      </GuestRoute>
+    ),
+  },
+  {
+    path: "/verify-email",
+    element: <VerifyEmailPage />,
+  },
+
+  /* =======================
+     🔐 VERIFICATION GATE
+     ======================= */
+  {
+    path: "/verify-needed",
+    element: (
+      <ProtectedRoute requireEmailVerification={false}>
+        <VerifyNeededPage />
+      </ProtectedRoute>
+    ),
+  },
+
+  /* =======================
+     🏠 PROTECTED ROUTES
+     ======================= */
   {
     path: "/dashboard",
     element: (
@@ -61,7 +109,6 @@ export const router = createBrowserRouter([
   /* =======================
      📦 CATÁLOGOS
      ======================= */
-
   {
     path: "/catalog/paises",
     element: (
@@ -82,6 +129,10 @@ export const router = createBrowserRouter([
       </ProtectedRoute>
     ),
   },
+
+  /* =======================
+     🚫 FALLBACK
+     ======================= */
   {
     path: "*",
     element: <Navigate to="/dashboard" replace />,

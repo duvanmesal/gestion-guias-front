@@ -29,8 +29,36 @@ export interface User {
   telefono?: string | null
   documentType?: DocumentType | null
   documentNumber?: string | null
+  emailVerifiedAt?: string | null
   createdAt: string
   updatedAt: string
+}
+
+// Change Password Request
+export interface ChangePasswordRequest {
+  currentPassword: string
+  newPassword: string
+}
+
+// Forgot Password Request
+export interface ForgotPasswordRequest {
+  email: string
+}
+
+// Reset Password Request
+export interface ResetPasswordRequest {
+  token: string
+  newPassword: string
+}
+
+// Verify Email Request
+export interface VerifyEmailRequest {
+  email: string
+}
+
+// Verify Email Confirm Request
+export interface VerifyEmailConfirmRequest {
+  token: string
 }
 
 // Session Entity
@@ -77,4 +105,3 @@ export interface RefreshResponse {
 export interface LogoutAllRequest {
   verification: { method: "password"; password: string } | { method: "mfa"; code: string }
 }
-

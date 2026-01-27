@@ -15,7 +15,7 @@ import { GlassButton } from "@/shared/components/glass/GlassButton"
 import { useToast } from "@/shared/components/feedback/Toast"
 import { Compass, Mail, Lock } from "lucide-react"
 import { useEffect } from "react"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, Link } from "react-router-dom"
 import type { AxiosError } from "axios"
 import type { ApiResponse } from "@/core/models/api"
 
@@ -92,14 +92,24 @@ export function LoginPage() {
                 {...register("email")}
               />
 
-              <GlassInput
-                label="Contrasena"
-                type="password"
-                placeholder="********"
-                error={errors.password?.message}
-                leftIcon={<Lock className="w-4 h-4" />}
-                {...register("password")}
-              />
+              <div className="space-y-2">
+                <GlassInput
+                  label="Contrasena"
+                  type="password"
+                  placeholder="********"
+                  error={errors.password?.message}
+                  leftIcon={<Lock className="w-4 h-4" />}
+                  {...register("password")}
+                />
+                <div className="text-right">
+                  <Link
+                    to="/forgot-password"
+                    className="text-sm text-[rgb(var(--color-primary))] hover:text-[rgb(var(--color-primary)/0.8)] transition-colors"
+                  >
+                    ¿Olvidaste tu contrasena?
+                  </Link>
+                </div>
+              </div>
 
               {loginError && (
                 <div className="glass-subtle p-4 border border-[rgb(var(--color-danger)/0.3)] bg-[rgb(var(--color-danger)/0.1)] rounded-xl animate-fade-in-up">
