@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
@@ -17,6 +17,7 @@ import { GlassButton } from "@/shared/components/glass/GlassButton"
 import { useToast } from "@/shared/components/feedback/Toast"
 import { useAuthStore } from "@/app/stores/auth-store"
 import { usersApi } from "@/core/api"
+import { useMe } from "@/hooks/use-me"
 import {
   updateProfileSchema,
   changePasswordSchema,
@@ -26,7 +27,8 @@ import type {
   ChangePasswordFormData,
 } from "@/core/utils/validation"
 import { DocumentType } from "@/core/models/auth"
-import { User, Lock, Monitor, Save } from "lucide-react"
+import type { UpdateMeRequest } from "@/core/models/users"
+import { User, Lock, Monitor, Save, AlertCircle } from "lucide-react"
 import type { AxiosError } from "axios"
 import type { ApiResponse } from "@/core/models/api"
 import { SessionsCard } from "./SessionsCard"
@@ -35,16 +37,20 @@ export function ProfilePage() {
   const { user, updateUser } = useAuthStore()
   const { showToast } = useToast()
   const queryClient = useQueryClient()
+  const { me, isLoading: isLoadingMe } = useMe()
   const [activeTab, setActiveTab] = useState<"profile" | "password" | "sessions">(
     "profile"
   )
 
-  // Update profile mutation
-  const updateProfileMutation = useMutation({
-    mutationFn: (data: UpdateProfileFormData) => usersApi.updateProfile(data),
+  // Determine if user needs to complete onboarding
+  const isOnboarding = me?.profileStatus === "INCOMPLETE"
+
+  // Update basic profile mutation (PATCH /users/me for nombres, apellidos, telefono)
+  const updateMeMutation = useMutation({
+    mutationFn: (data: UpdateMeRequest) => usersApi.updateMe(data),
     onSuccess: (response) => {
       if (response.data) {
-        updateUser(response.data)
+        updateUser(response.data as any)
         queryClient.invalidateQueries({ queryKey: ["me"] })
         showToast("success", "Perfil actualizado exitosamente")
       }
@@ -52,6 +58,23 @@ export function ProfilePage() {
     onError: (error: AxiosError<ApiResponse<unknown>>) => {
       const errorMessage =
         error.response?.data?.error?.message || "Error al actualizar perfil"
+      showToast("error", errorMessage)
+    },
+  })
+
+  // Onboarding profile completion mutation (PATCH /users/me/profile)
+  const updateProfileMutation = useMutation({
+    mutationFn: (data: UpdateProfileFormData) => usersApi.updateProfile(data),
+    onSuccess: (response) => {
+      if (response.data) {
+        updateUser(response.data)
+        queryClient.invalidateQueries({ queryKey: ["me"] })
+        showToast("success", "Perfil completado exitosamente")
+      }
+    },
+    onError: (error: AxiosError<ApiResponse<unknown>>) => {
+      const errorMessage =
+        error.response?.data?.error?.message || "Error al completar perfil"
       showToast("error", errorMessage)
     },
   })
@@ -73,21 +96,35 @@ export function ProfilePage() {
     },
   })
 
-  // Profile form
+  // Profile form (use me data for defaults)
   const {
     register: registerProfile,
     handleSubmit: handleSubmitProfile,
     formState: { errors: profileErrors },
+    reset: resetProfileForm,
   } = useForm<UpdateProfileFormData>({
     resolver: zodResolver(updateProfileSchema),
     defaultValues: {
-      nombres: user?.nombres || "",
-      apellidos: user?.apellidos || "",
-      telefono: user?.telefono || "",
-      documentType: user?.documentType || undefined,
-      documentNumber: user?.documentNumber || "",
+      nombres: me?.nombres || user?.nombres || "",
+      apellidos: me?.apellidos || user?.apellidos || "",
+      telefono: me?.telefono || user?.telefono || "",
+      documentType: me?.documentType || user?.documentType || undefined,
+      documentNumber: me?.documentNumber || user?.documentNumber || "",
     },
   })
+
+  // Reset form when me data loads
+  useEffect(() => {
+    if (me) {
+      resetProfileForm({
+        nombres: me.nombres || "",
+        apellidos: me.apellidos || "",
+        telefono: me.telefono || "",
+        documentType: me.documentType || undefined,
+        documentNumber: me.documentNumber || "",
+      })
+    }
+  }, [me, resetProfileForm])
 
   // Password form
   const {
@@ -100,7 +137,21 @@ export function ProfilePage() {
   })
 
   const onSubmitProfile = (data: UpdateProfileFormData) => {
-    updateProfileMutation.mutate(data)
+    if (isOnboarding) {
+      // For onboarding, use the complete profile endpoint
+      updateProfileMutation.mutate(data)
+    } else {
+      // For regular profile updates, use PATCH /users/me with only basic fields
+      const basicData: UpdateMeRequest = {}
+      if (data.nombres) basicData.nombres = data.nombres
+      if (data.apellidos) basicData.apellidos = data.apellidos
+      if (data.telefono) basicData.telefono = data.telefono
+      
+      // Only send if there are changes
+      if (Object.keys(basicData).length > 0) {
+        updateMeMutation.mutate(basicData)
+      }
+    }
   }
 
   const onSubmitPassword = (data: ChangePasswordFormData) => {
@@ -214,10 +265,10 @@ export function ProfilePage() {
                   <GlassButton
                     type="submit"
                     variant="primary"
-                    loading={updateProfileMutation.isPending}
+                    loading={updateProfileMutation.isPending || updateMeMutation.isPending}
                   >
                     <Save className="w-4 h-4" />
-                    Guardar Cambios
+                    {isOnboarding ? "Completar Perfil" : "Guardar Cambios"}
                   </GlassButton>
                 </div>
               </form>

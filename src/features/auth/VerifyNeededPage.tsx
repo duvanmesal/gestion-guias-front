@@ -1,47 +1,135 @@
-'use client';
+"use client";
 
-import { useState } from "react"
-import { useNavigate } from "react-router-dom"
-import { Mail, LogOut, Ship, CheckCircle, AlertCircle } from "lucide-react"
-import { GlassCard, GlassButton } from "@/shared/components/glass"
-import { Spinner } from "@/shared/components/feedback"
-import { authApi } from "@/core/api"
-import { useAuthStore } from "@/app/stores/auth-store"
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Mail, LogOut, Ship, CheckCircle, AlertCircle } from "lucide-react";
+
+import { GlassCard, GlassButton } from "@/shared/components/glass";
+import { Spinner } from "@/shared/components/feedback";
+import { usersApi, authApi } from "@/core/api";
+import { useAuthStore } from "@/app/stores/auth-store";
 
 export function VerifyNeededPage() {
-  const navigate = useNavigate()
-  const { user, clearSession } = useAuthStore()
-  const [isLoading, setIsLoading] = useState(false)
-  const [isSuccess, setIsSuccess] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const navigate = useNavigate();
+  const { user, clearSession, updateUser } = useAuthStore();
 
+  const [isChecking, setIsChecking] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  /**
+   * =========================================================
+   * 🔑 HIDRATAR USUARIO REAL (SOLO /users/me)
+   * =========================================================
+   */
+  useEffect(() => {
+    let mounted = true;
+
+    const hydrate = async () => {
+      try {
+        const me = await usersApi.getMe();
+        if (mounted && me.data) {
+          updateUser(me.data);
+        }
+      } catch {
+        // silencio: el guard decidirá
+      } finally {
+        if (mounted) {
+          setIsChecking(false);
+        }
+      }
+    };
+
+    hydrate();
+
+    return () => {
+      mounted = false;
+    };
+  }, [updateUser]);
+
+  /**
+   * =========================================================
+   * 📩 REENVIAR VERIFICACIÓN
+   * =========================================================
+   */
   const handleResendVerification = async () => {
-    if (!user?.email) return
+    let email = user?.email;
 
-    setIsLoading(true)
-    setError(null)
+    // Si por alguna razón no hay email en store, rehidratamos con /users/me
+    if (!email) {
+      try {
+        const me = await usersApi.getMe();
+        if (me.data) {
+          updateUser(me.data);
+          email = me.data.email;
+        }
+      } catch {
+        // seguimos
+      }
+    }
+
+    if (!email) {
+      setError(
+        "No encontramos tu correo en la sesión. Cierra sesión e ingresa de nuevo."
+      );
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
 
     try {
-      await authApi.requestEmailVerification({ email: user.email })
-      setIsSuccess(true)
+      await authApi.requestEmailVerification({ email });
+      setIsSuccess(true);
     } catch {
-      setError("No pudimos enviar la solicitud. Intenta de nuevo más tarde.")
+      setError("No pudimos enviar la solicitud. Intenta de nuevo más tarde.");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
+  /**
+   * =========================================================
+   * 🚪 LOGOUT
+   * =========================================================
+   */
   const handleLogout = async () => {
     try {
-      await authApi.logout()
+      await authApi.logout();
     } catch {
-      // Ignore logout errors
+      // Ignorar errores
     } finally {
-      clearSession()
-      navigate("/login")
+      clearSession();
+      navigate("/login", { replace: true });
     }
+  };
+
+  /**
+   * =========================================================
+   * ⏳ LOADING INICIAL
+   * =========================================================
+   */
+  if (isChecking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4 bg-[rgb(var(--color-bg))]">
+        <GlassCard className="w-full max-w-md">
+          <div className="py-10 flex flex-col items-center justify-center gap-3">
+            <Spinner />
+            <p className="text-sm text-[rgb(var(--color-fg)/0.7)]">
+              Verificando estado de tu cuenta...
+            </p>
+          </div>
+        </GlassCard>
+      </div>
+    );
   }
 
+  /**
+   * =========================================================
+   * 🖼️ UI
+   * =========================================================
+   */
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-[rgb(var(--color-bg))]">
       {/* Background decoration */}
@@ -65,22 +153,23 @@ export function VerifyNeededPage() {
         </div>
 
         <div className="space-y-6">
-          {/* Info Box */}
+          {/* Info */}
           <div className="glass-subtle p-4 rounded-xl">
             <div className="flex items-start gap-3">
-              <Mail className="w-5 h-5 text-accent flex-shrink-0 mt-0.5" />
+              <Mail className="w-5 h-5 text-accent mt-0.5" />
               <div>
                 <h3 className="font-medium text-[rgb(var(--color-fg))] mb-1">
                   Verifica tu correo para continuar
                 </h3>
                 <p className="text-sm text-[rgb(var(--color-fg)/0.7)]">
-                  Por seguridad, necesitas verificar tu correo electrónico antes de acceder al sistema.
+                  Por seguridad, necesitas verificar tu correo electrónico antes
+                  de acceder al sistema.
                 </p>
               </div>
             </div>
           </div>
 
-          {user && (
+          {user?.email && (
             <div className="text-center py-2">
               <p className="text-sm text-[rgb(var(--color-fg)/0.7)]">
                 Correo registrado:
@@ -93,64 +182,43 @@ export function VerifyNeededPage() {
 
           {error && (
             <div className="flex items-center gap-3 p-4 rounded-xl bg-danger/10 border border-danger/20">
-              <AlertCircle className="w-5 h-5 text-danger flex-shrink-0" />
+              <AlertCircle className="w-5 h-5 text-danger" />
               <p className="text-sm text-danger">{error}</p>
             </div>
           )}
 
-          {isSuccess ? (
+          {isSuccess && (
             <div className="flex items-start gap-3 p-4 rounded-xl bg-primary/10 border border-primary/20">
-              <CheckCircle className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+              <CheckCircle className="w-5 h-5 text-primary mt-0.5" />
               <div>
                 <p className="text-sm text-primary font-medium">
                   Correo de verificación enviado
                 </p>
                 <p className="text-sm text-[rgb(var(--color-fg)/0.7)] mt-1">
-                  Revisa tu bandeja de entrada y haz clic en el enlace de verificación.
+                  Revisa tu bandeja de entrada y haz clic en el enlace.
                 </p>
               </div>
             </div>
-          ) : (
-            <GlassButton
-              variant="primary"
-              className="w-full"
-              onClick={handleResendVerification}
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <>
-                  <Spinner size="sm" className="mr-2" />
-                  Enviando...
-                </>
-              ) : (
-                <>
-                  <Mail className="w-4 h-4 mr-2" />
-                  {isSuccess ? "Reenviar Verificación" : "Enviar Verificación"}
-                </>
-              )}
-            </GlassButton>
           )}
 
-          {isSuccess && (
-            <GlassButton
-              variant="ghost"
-              className="w-full"
-              onClick={handleResendVerification}
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <>
-                  <Spinner size="sm" className="mr-2" />
-                  Enviando...
-                </>
-              ) : (
-                <>
-                  <Mail className="w-4 h-4 mr-2" />
-                  Reenviar Verificación
-                </>
-              )}
-            </GlassButton>
-          )}
+          <GlassButton
+            variant="primary"
+            className="w-full"
+            onClick={handleResendVerification}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <>
+                <Spinner size="sm" className="mr-2" />
+                Enviando...
+              </>
+            ) : (
+              <>
+                <Mail className="w-4 h-4 mr-2" />
+                {isSuccess ? "Reenviar Verificación" : "Enviar Verificación"}
+              </>
+            )}
+          </GlassButton>
 
           <div className="pt-4 border-t border-[rgb(var(--color-fg)/0.1)]">
             <GlassButton
@@ -162,12 +230,8 @@ export function VerifyNeededPage() {
               Cerrar Sesión
             </GlassButton>
           </div>
-
-          <p className="text-xs text-center text-[rgb(var(--color-fg)/0.5)]">
-            Si no recibes el correo, revisa tu carpeta de spam o solicita un nuevo enlace.
-          </p>
         </div>
       </GlassCard>
     </div>
-  )
+  );
 }

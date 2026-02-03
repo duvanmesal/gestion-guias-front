@@ -18,6 +18,9 @@ export enum Platform {
   MOBILE = "MOBILE",
 }
 
+// Profile Status
+export type ProfileStatus = "INCOMPLETE" | "COMPLETE"
+
 // User Entity
 export interface User {
   id: string
@@ -30,6 +33,10 @@ export interface User {
   documentType?: DocumentType | null
   documentNumber?: string | null
   emailVerifiedAt?: string | null
+  profileStatus?: ProfileStatus
+  // Operational IDs (populated by GET /users/me)
+  guiaId?: string | null
+  supervisorId?: string | null
   createdAt: string
   updatedAt: string
 }

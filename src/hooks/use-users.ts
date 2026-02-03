@@ -1,15 +1,15 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { usersApi } from "@/core/api"
-import type { UsersQueryParams, CreateUserRequest, UpdateUserRequest } from "@/core/models/users"
+import type { UsersSearchParams, CreateUserRequest, UpdateUserRequest } from "@/core/models/users"
 
-export function useUsers(params?: UsersQueryParams) {
+export function useUsers(params?: UsersSearchParams) {
   const queryClient = useQueryClient()
 
-  // Get users list query
-  const { data, isLoading, error } = useQuery({
+  // Search users with advanced filters (using /users/search endpoint)
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["users", params],
     queryFn: async () => {
-      const response = await usersApi.getUsers(params)
+      const response = await usersApi.searchUsers(params)
       return response
     },
     staleTime: 30000, // 30 seconds
@@ -44,6 +44,7 @@ export function useUsers(params?: UsersQueryParams) {
     meta: data?.meta,
     isLoading,
     error,
+    refetch,
     createUser: createUserMutation.mutate,
     updateUser: updateUserMutation.mutate,
     deleteUser: deleteUserMutation.mutate,

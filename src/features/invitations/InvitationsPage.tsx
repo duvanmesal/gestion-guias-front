@@ -32,6 +32,8 @@ import {
   XCircle,
   RefreshCw,
   Send,
+  Search,
+  AlertCircle,
 } from "lucide-react"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
@@ -47,8 +49,16 @@ export function InvitationsPage() {
     resendInvitation,
     isCreating,
     isResending,
+    getByEmail,
+    isSearchingByEmail,
+    resendByEmail,
+    isResendingByEmail,
   } = useInvitations()
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+  
+  // Email search state
+  const [searchEmail, setSearchEmail] = useState("")
+  const [foundInvitation, setFoundInvitation] = useState<Invitation | null | undefined>(undefined)
 
   const {
     register,
@@ -80,6 +90,47 @@ export function InvitationsPage() {
     resendInvitation(id, {
       onSuccess: () => {
         showToast("success", "Invitacion reenviada exitosamente")
+      },
+      onError: (error) => {
+        const axiosError = error as AxiosError<ApiResponse<unknown>>
+        const errorMessage =
+          axiosError.response?.data?.error?.message ||
+          "Error al reenviar invitacion"
+        showToast("error", errorMessage)
+      },
+    })
+  }
+
+  const handleSearchByEmail = async () => {
+    if (!searchEmail.trim()) {
+      showToast("error", "Ingresa un email para buscar")
+      return
+    }
+    try {
+      const result = await getByEmail(searchEmail.trim())
+      setFoundInvitation(result)
+      if (!result) {
+        showToast("info", "No se encontro invitacion para este email")
+      }
+    } catch (error) {
+      const axiosError = error as AxiosError<ApiResponse<unknown>>
+      const errorMessage =
+        axiosError.response?.data?.error?.message ||
+        "Error al buscar invitacion"
+      showToast("error", errorMessage)
+    }
+  }
+
+  const handleResendByEmail = () => {
+    if (!searchEmail.trim()) {
+      showToast("error", "Ingresa un email para reenviar")
+      return
+    }
+    resendByEmail(searchEmail.trim(), {
+      onSuccess: () => {
+        showToast("success", "Invitacion reenviada exitosamente")
+        setFoundInvitation(undefined)
+        setSearchEmail("")
       },
       onError: (error) => {
         const axiosError = error as AxiosError<ApiResponse<unknown>>
@@ -151,6 +202,98 @@ export function InvitationsPage() {
             Nueva Invitacion
           </GlassButton>
         </div>
+
+        {/* Email Search */}
+        <GlassCard className="animate-fade-in-up" style={{ animationDelay: "0.03s" }}>
+          <GlassCardContent>
+            <div className="flex items-center gap-2 mb-4">
+              <Search className="w-4 h-4 text-[rgb(var(--color-primary))]" />
+              <span className="text-sm font-medium text-[rgb(var(--color-muted))]">
+                Buscar por Email
+              </span>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex-1">
+                <GlassInput
+                  placeholder="correo@ejemplo.com"
+                  value={searchEmail}
+                  onChange={(e) => setSearchEmail(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSearchByEmail()}
+                />
+              </div>
+              <div className="flex gap-2">
+                <GlassButton
+                  variant="secondary"
+                  onClick={handleSearchByEmail}
+                  loading={isSearchingByEmail}
+                >
+                  <Search className="w-4 h-4" />
+                  Buscar
+                </GlassButton>
+                <GlassButton
+                  variant="ghost"
+                  onClick={handleResendByEmail}
+                  loading={isResendingByEmail}
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Reenviar por Email
+                </GlassButton>
+              </div>
+            </div>
+
+            {/* Search Result */}
+            {foundInvitation !== undefined && (
+              <div className="mt-4 pt-4 border-t border-[rgb(var(--color-border)/0.1)]">
+                {foundInvitation ? (
+                  <div className="glass-subtle p-4 rounded-xl">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="font-semibold text-[rgb(var(--color-fg))]">
+                          {foundInvitation.email}
+                        </p>
+                        <div className="flex items-center gap-3 mt-2 flex-wrap">
+                          {getStatusBadge(foundInvitation.status)}
+                          <span className="inline-block text-xs px-2.5 py-0.5 rounded bg-[rgb(var(--color-accent)/0.15)] text-[rgb(var(--color-accent))] font-semibold">
+                            {foundInvitation.role}
+                          </span>
+                          <p className="text-xs text-[rgb(var(--color-muted))] flex items-center gap-1.5">
+                            <Clock className="w-3.5 h-3.5" />
+                            Expira:{" "}
+                            {format(new Date(foundInvitation.expiresAt), "PPp", {
+                              locale: es,
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                      {(foundInvitation.status === InvitationStatus.PENDING ||
+                        foundInvitation.status === InvitationStatus.EXPIRED) && (
+                        <GlassButton
+                          variant="primary"
+                          size="sm"
+                          onClick={handleResendByEmail}
+                          loading={isResendingByEmail}
+                        >
+                          <RefreshCw className="w-4 h-4" />
+                          Reenviar
+                        </GlassButton>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-3 text-[rgb(var(--color-warning))]">
+                    <AlertCircle className="w-5 h-5" />
+                    <div>
+                      <p className="font-medium">No se encontro invitacion</p>
+                      <p className="text-sm text-[rgb(var(--color-muted))]">
+                        Puedes crear una nueva invitacion para este email
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </GlassCardContent>
+        </GlassCard>
 
         {/* Invitations List */}
         <GlassCard className="animate-fade-in-up" style={{ animationDelay: "0.05s" }}>

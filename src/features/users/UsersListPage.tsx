@@ -26,6 +26,7 @@ import { UserFormDialog } from "./UserFormDialog"
 import { DeleteUserDialog } from "./DeleteUserDialog"
 import { Rol } from "@/core/models/auth"
 import type { User } from "@/core/models/auth"
+import type { ProfileStatus } from "@/core/models/users"
 import {
   Plus,
   Search,
@@ -37,6 +38,9 @@ import {
   Filter,
   Mail,
   UserCircle,
+  ChevronDown,
+  ChevronUp,
+  ArrowUpDown,
 } from "lucide-react"
 import { useAuthStore } from "@/app/stores/auth-store"
 
@@ -44,9 +48,18 @@ export function UsersListPage() {
   const { user: currentUser } = useAuthStore()
   const { showToast } = useToast()
 
-  const [search, setSearch] = useState("")
-  const [rolFilter, setRolFilter] = useState<string>("")
+  // Basic filters
+  const [q, setQ] = useState("")
+  const [roleFilter, setRoleFilter] = useState<string>("")
   const [activoFilter, setActivoFilter] = useState<string>("")
+  const [profileStatusFilter, setProfileStatusFilter] = useState<string>("")
+  
+  // Advanced filters
+  const [showAdvanced, setShowAdvanced] = useState(false)
+  const [orderBy, setOrderBy] = useState<string>("createdAt")
+  const [orderDir, setOrderDir] = useState<string>("desc")
+  
+  // Pagination
   const [page, setPage] = useState(1)
   const pageSize = 10
 
@@ -55,20 +68,23 @@ export function UsersListPage() {
   const [deletingUser, setDeletingUser] = useState<User | null>(null)
 
   const { users, meta, isLoading } = useUsers({
-    search: search || undefined,
-    rol: rolFilter ? (rolFilter as Rol) : undefined,
+    q: q || undefined,
+    role: roleFilter ? (roleFilter as Rol) : undefined,
     activo: activoFilter ? activoFilter === "true" : undefined,
+    profileStatus: profileStatusFilter ? (profileStatusFilter as ProfileStatus) : undefined,
+    orderBy: orderBy as "createdAt" | "updatedAt" | "email",
+    orderDir: orderDir as "asc" | "desc",
     page,
     pageSize,
   })
 
   const handleSearch = (value: string) => {
-    setSearch(value)
+    setQ(value)
     setPage(1)
   }
 
-  const handleRolFilter = (value: string) => {
-    setRolFilter(value)
+  const handleRoleFilter = (value: string) => {
+    setRoleFilter(value)
     setPage(1)
   }
 
@@ -77,7 +93,30 @@ export function UsersListPage() {
     setPage(1)
   }
 
+  const handleProfileStatusFilter = (value: string) => {
+    setProfileStatusFilter(value)
+    setPage(1)
+  }
+
+  const handleOrderChange = (field: string) => {
+    if (orderBy === field) {
+      setOrderDir(orderDir === "asc" ? "desc" : "asc")
+    } else {
+      setOrderBy(field)
+      setOrderDir("desc")
+    }
+    setPage(1)
+  }
+
   const canCreateUser = currentUser?.rol === Rol.SUPER_ADMIN
+
+  const search = q; // Declare search variable
+  const rolFilter = roleFilter; // Declare rolFilter variable
+
+  const handleRolFilter = (value: string) => { // Declare handleRolFilter function
+    setRoleFilter(value)
+    setPage(1)
+  }
 
   return (
     <AppShell>
@@ -107,17 +146,33 @@ export function UsersListPage() {
         {/* Filters */}
         <GlassCard className="animate-fade-in-up" style={{ animationDelay: "0.05s" }}>
           <GlassCardContent>
-            <div className="flex items-center gap-2 mb-4">
-              <Filter className="w-4 h-4 text-[rgb(var(--color-primary))]" />
-              <span className="text-sm font-medium text-[rgb(var(--color-muted))]">
-                Filtros
-              </span>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Filter className="w-4 h-4 text-[rgb(var(--color-primary))]" />
+                <span className="text-sm font-medium text-[rgb(var(--color-muted))]">
+                  Filtros
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAdvanced(!showAdvanced)}
+                className="flex items-center gap-1 text-sm text-[rgb(var(--color-primary))] hover:underline"
+              >
+                {showAdvanced ? "Ocultar avanzados" : "Mostrar avanzados"}
+                {showAdvanced ? (
+                  <ChevronUp className="w-4 h-4" />
+                ) : (
+                  <ChevronDown className="w-4 h-4" />
+                )}
+              </button>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            
+            {/* Basic Filters */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="relative">
                 <GlassInput
                   placeholder="Buscar por email, nombre..."
-                  value={search}
+                  value={q}
                   onChange={(e) => handleSearch(e.target.value)}
                   leftIcon={<Search className="w-4 h-4" />}
                 />
@@ -130,8 +185,8 @@ export function UsersListPage() {
                   { value: Rol.SUPERVISOR, label: "Supervisor" },
                   { value: Rol.GUIA, label: "Guia" },
                 ]}
-                value={rolFilter}
-                onChange={(e) => handleRolFilter(e.target.value)}
+                value={roleFilter}
+                onChange={(e) => handleRoleFilter(e.target.value)}
               />
 
               <GlassSelect
@@ -143,7 +198,54 @@ export function UsersListPage() {
                 value={activoFilter}
                 onChange={(e) => handleActivoFilter(e.target.value)}
               />
+
+              <GlassSelect
+                options={[
+                  { value: "", label: "Estado perfil" },
+                  { value: "COMPLETE", label: "Completo" },
+                  { value: "INCOMPLETE", label: "Incompleto" },
+                ]}
+                value={profileStatusFilter}
+                onChange={(e) => handleProfileStatusFilter(e.target.value)}
+              />
             </div>
+
+            {/* Advanced Filters */}
+            {showAdvanced && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 pt-4 border-t border-[rgb(var(--color-border)/0.1)]">
+                <div>
+                  <label className="block text-xs text-[rgb(var(--color-muted))] mb-1.5">
+                    Ordenar por
+                  </label>
+                  <GlassSelect
+                    options={[
+                      { value: "createdAt", label: "Fecha de creacion" },
+                      { value: "updatedAt", label: "Ultima actualizacion" },
+                      { value: "email", label: "Email" },
+                    ]}
+                    value={orderBy}
+                    onChange={(e) => handleOrderChange(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs text-[rgb(var(--color-muted))] mb-1.5">
+                    Direccion
+                  </label>
+                  <GlassSelect
+                    options={[
+                      { value: "desc", label: "Descendente" },
+                      { value: "asc", label: "Ascendente" },
+                    ]}
+                    value={orderDir}
+                    onChange={(e) => {
+                      setOrderDir(e.target.value)
+                      setPage(1)
+                    }}
+                  />
+                </div>
+              </div>
+            )}
           </GlassCardContent>
         </GlassCard>
 

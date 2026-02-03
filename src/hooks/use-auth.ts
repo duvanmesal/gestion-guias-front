@@ -1,58 +1,128 @@
-"use client"
+"use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useNavigate } from "react-router-dom"
-import { authApi } from "@/core/api"
-import { useAuthStore } from "@/app/stores/auth-store"
-import type { LoginRequest, LogoutAllRequest } from "@/core/models/auth"
+import { useEffect } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
+import { authApi, usersApi } from "@/core/api";
+import { useAuthStore } from "@/app/stores/auth-store";
+import type { LoginRequest, LogoutAllRequest } from "@/core/models/auth";
 
 export function useAuth() {
-  const navigate = useNavigate()
-  const queryClient = useQueryClient()
-  const { user, isAuthenticated, setSession, clearSession } = useAuthStore()
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
-  // Login mutation
+  const {
+    user,
+    isAuthenticated,
+    setSession,
+    clearSession,
+    updateUser,
+  } = useAuthStore();
+
+  /**
+   * =========================
+   * LOGIN
+   * =========================
+   */
   const loginMutation = useMutation({
     mutationFn: (data: LoginRequest) => authApi.login(data),
-    onSuccess: (response) => {
-      if (response.data) {
-        setSession(response.data.user, response.data.tokens.accessToken)
-        navigate("/dashboard")
+
+    onSuccess: async (response) => {
+      if (!response.data) return;
+
+      // 1) Guardar sesión inicial (user parcial + token)
+      setSession(
+        response.data.user,
+        response.data.tokens.accessToken
+      );
+
+      // 2) Hidratar user real desde /auth/me (emailVerifiedAt + flags reales)
+      try {
+        const me = await authApi.me();
+
+        if (me.data) {
+          updateUser(me.data);
+
+          // 3) Decidir navegación con estado REAL
+          if (me.data.emailVerifiedAt) {
+            navigate("/dashboard", { replace: true });
+          } else {
+            navigate("/verify-needed", { replace: true });
+          }
+        } else {
+          navigate("/dashboard", { replace: true });
+        }
+      } catch {
+        // fallback seguro (evita loops)
+        navigate("/dashboard", { replace: true });
       }
     },
-  })
+  });
 
-  // Logout mutation
+  /**
+   * =========================
+   * LOGOUT
+   * =========================
+   */
   const logoutMutation = useMutation({
     mutationFn: () => authApi.logout(),
     onSuccess: () => {
-      clearSession()
-      queryClient.clear()
-      navigate("/login")
+      clearSession();
+      queryClient.clear();
+      navigate("/login", { replace: true });
     },
-  })
+  });
 
-  // Logout all mutation
   const logoutAllMutation = useMutation({
     mutationFn: (data: LogoutAllRequest) => authApi.logoutAll(data),
     onSuccess: () => {
-      clearSession()
-      queryClient.clear()
-      navigate("/login")
+      clearSession();
+      queryClient.clear();
+      navigate("/login", { replace: true });
     },
-  })
+  });
 
-  // Get current user query
-  const { data: meData, isLoading: isLoadingMe } = useQuery({
+  /**
+   * =========================
+   * GET /users/me
+   * (identidad real + IDs operativos)
+   * =========================
+   */
+  const {
+    data: meData,
+    isLoading: isLoadingMe,
+  } = useQuery({
     queryKey: ["me"],
     queryFn: async () => {
-      const response = await authApi.me()
-      return response.data
+      const response = await usersApi.getMe();
+      return response.data;
     },
     enabled: isAuthenticated,
-    staleTime: 60000, // 1 minute
-  })
+    staleTime: 60_000, // 1 minuto
+  });
 
+  /**
+   * =========================
+   * 🔑 SINCRONIZACIÓN CRÍTICA
+   * =========================
+   * Cada vez que /users/me cambia,
+   * actualizamos el auth-store.
+   * Esto evita:
+   * - loops de verificación
+   * - emailVerifiedAt desactualizado
+   * - roles/IDs operativos incorrectos
+   */
+  useEffect(() => {
+    if (meData) {
+      updateUser(meData);
+    }
+  }, [meData, updateUser]);
+
+  /**
+   * =========================
+   * API PÚBLICA DEL HOOK
+   * =========================
+   */
   return {
     user: meData || user,
     isAuthenticated,
@@ -62,5 +132,5 @@ export function useAuth() {
     logoutAll: logoutAllMutation.mutate,
     isLoggingIn: loginMutation.isPending,
     loginError: loginMutation.error,
-  }
+  };
 }

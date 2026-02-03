@@ -13,6 +13,10 @@ import { InvitationsPage } from "@/features/invitations/InvitationsPage"
 import { PaisesPage } from "@/features/catalog/paises/PaisesPage"
 import { BuquesPage } from "@/features/catalog/buques/BuquesPage"
 
+import { RecaladasPage } from "@/features/recaladas/RecaladasPage"
+import { RecaladaDetailPage } from "@/features/recaladas/RecaladaDetailPage"
+import { AtencionDetailPage } from "@/features/atenciones/AtencionDetailPage"
+
 import { ProtectedRoute, RequireRoles, GuestRoute } from "./guards"
 import { Rol } from "@/core/models/auth"
 
@@ -126,6 +130,34 @@ export const router = createBrowserRouter([
         <RequireRoles allowedRoles={[Rol.SUPER_ADMIN, Rol.SUPERVISOR]}>
           <BuquesPage />
         </RequireRoles>
+      </ProtectedRoute>
+    ),
+  },
+
+  /* =======================
+     🛳️ RECALADAS / ATENCIONES
+     ======================= */
+  {
+    path: "/recaladas",
+    element: (
+      <ProtectedRoute>
+        <RecaladasPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/recaladas/:id",
+    element: (
+      <ProtectedRoute>
+        <RecaladaDetailPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/atenciones/:id",
+    element: (
+      <ProtectedRoute>
+        <AtencionDetailPage />
       </ProtectedRoute>
     ),
   },

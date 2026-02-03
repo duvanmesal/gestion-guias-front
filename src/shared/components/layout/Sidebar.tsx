@@ -11,6 +11,7 @@ import {
   MapPin,
   Ship,
   Compass,
+  Anchor,
 } from "lucide-react"
 import { useAuthStore } from "@/app/stores/auth-store"
 import { Rol } from "@/core/models/auth"
@@ -28,6 +29,12 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       to: "/dashboard",
       icon: LayoutDashboard,
       label: "Dashboard",
+      roles: [Rol.SUPER_ADMIN, Rol.SUPERVISOR, Rol.GUIA],
+    },
+    {
+      to: "/recaladas",
+      icon: Anchor,
+      label: "Recaladas",
       roles: [Rol.SUPER_ADMIN, Rol.SUPERVISOR, Rol.GUIA],
     },
     {

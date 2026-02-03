@@ -2,17 +2,53 @@ import { http } from "./http"
 import type { ApiResponse, MetaPage } from "@/core/models/api"
 import type { User } from "@/core/models/auth"
 import type {
-  UsersQueryParams,
+  UsersSearchParams,
   CreateUserRequest,
   UpdateUserRequest,
+  UpdateMeRequest,
   ChangePasswordRequest,
   UpdateProfileRequest,
+  UserMeResponse,
 } from "@/core/models/users"
 
+type AnyParams = Record<string, unknown>
+
+function cleanParams<T extends object>(params?: T): Partial<T> | undefined {
+  if (!params) return undefined
+
+  const p = { ...(params as AnyParams) }
+
+  // Empty string "q" should not be sent
+  if (typeof p.q === "string" && p.q.trim().length === 0) {
+    delete p.q
+  }
+
+  // undefined values should not be sent
+  for (const [k, v] of Object.entries(p)) {
+    if (v === undefined) delete p[k]
+  }
+
+  return p as Partial<T>
+}
+
 export const usersApi = {
-  // Get users list with pagination and filters
-  async getUsers(params?: UsersQueryParams): Promise<ApiResponse<User[]> & { meta: MetaPage }> {
-    const response = await http.get<ApiResponse<User[]> & { meta: MetaPage }>("/users", { params })
+  // Get current user with operational IDs (guiaId, supervisorId)
+  async getMe(): Promise<ApiResponse<UserMeResponse>> {
+    const response = await http.get<ApiResponse<UserMeResponse>>("/users/me")
+    return response.data
+  },
+
+  // Update current user basic data (nombres, apellidos, telefono)
+  async updateMe(data: UpdateMeRequest): Promise<ApiResponse<UserMeResponse>> {
+    const response = await http.patch<ApiResponse<UserMeResponse>>("/users/me", data)
+    return response.data
+  },
+
+  // Search users with advanced filters and pagination (new endpoint)
+  async searchUsers(params?: UsersSearchParams): Promise<ApiResponse<User[]> & { meta: MetaPage }> {
+    const response = await http.get<ApiResponse<User[]> & { meta: MetaPage }>("/users/search", {
+      params: cleanParams(params),
+    })
     return response.data
   },
 
@@ -28,7 +64,7 @@ export const usersApi = {
     return response.data
   },
 
-  // Update user
+  // Update user (admin)
   async updateUser(id: string, data: UpdateUserRequest): Promise<ApiResponse<User>> {
     const response = await http.patch<ApiResponse<User>>(`/users/${id}`, data)
     return response.data
@@ -44,7 +80,7 @@ export const usersApi = {
     await http.patch(`/users/${id}/password`, data)
   },
 
-  // Update own profile
+  // Update own profile (for onboarding - completeProfile)
   async updateProfile(data: UpdateProfileRequest): Promise<ApiResponse<User>> {
     const response = await http.patch<ApiResponse<User>>("/users/me/profile", data)
     return response.data
