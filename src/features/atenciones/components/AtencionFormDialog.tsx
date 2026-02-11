@@ -99,13 +99,15 @@ export function AtencionFormDialog({
         }
         await updateAtencionAsync({ id: atencion.id, data: updateData })
       } else if (recaladaId) {
-        const createData: CreateAtencionRequest = {
-          recaladaId,
-          fechaInicio: new Date(formData.fechaInicio).toISOString(),
-          fechaFin: new Date(formData.fechaFin).toISOString(),
-          turnosTotal: Number(formData.turnosTotal),
-          descripcion: formData.descripcion || null,
-        }
+          const desc = formData.descripcion.trim()
+
+          const createData: CreateAtencionRequest = {
+            recaladaId,
+            fechaInicio: new Date(formData.fechaInicio).toISOString(),
+            fechaFin: new Date(formData.fechaFin).toISOString(),
+            turnosTotal: Number(formData.turnosTotal),
+            ...(desc ? { descripcion: desc } : {}), // 👈 si está vacío, NO lo envía
+          }
         await createAtencionAsync(createData)
       }
       onSuccess?.()

@@ -35,7 +35,7 @@ export function LoginPage() {
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
-      navigate("/dashboard")
+      navigate("/dashboard", { replace: true })
     }
   }, [isAuthenticated, navigate])
 

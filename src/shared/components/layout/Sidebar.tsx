@@ -12,6 +12,7 @@ import {
   Ship,
   Compass,
   Anchor,
+  Clock,
 } from "lucide-react"
 import { useAuthStore } from "@/app/stores/auth-store"
 import { Rol } from "@/core/models/auth"
@@ -35,6 +36,12 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       to: "/recaladas",
       icon: Anchor,
       label: "Recaladas",
+      roles: [Rol.SUPER_ADMIN, Rol.SUPERVISOR, Rol.GUIA],
+    },
+    {
+      to: "/turnos",
+      icon: Clock,
+      label: "Turnos",
       roles: [Rol.SUPER_ADMIN, Rol.SUPERVISOR, Rol.GUIA],
     },
     {

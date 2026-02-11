@@ -1,3 +1,4 @@
+// src/features/catalog/buques/components/ShipCard.tsx
 "use client"
 
 import { Ship, MapPin, Edit, Power } from "lucide-react"
@@ -40,7 +41,9 @@ export function ShipCard({
               <h3 className="font-semibold text-[rgb(var(--color-fg))] group-hover:text-[rgb(var(--color-accent))] transition-colors">
                 {buque.nombre}
               </h3>
-              {buque.pais && (
+
+              {/* Mostrar país solo si hay nombre (porque el lookup puede traerlo sin nombre) */}
+              {buque.pais?.nombre && (
                 <div className="flex items-center gap-1.5 mt-1">
                   <MapPin className="w-3 h-3 text-[rgb(var(--color-muted))]" />
                   <span className="text-xs text-[rgb(var(--color-muted))]">

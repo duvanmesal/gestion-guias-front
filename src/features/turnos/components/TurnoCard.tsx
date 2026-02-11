@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { User, Play, Square, UserX, UserPlus, UserMinus } from "lucide-react"
+import { User, Play, Square, UserX, UserPlus, UserMinus, Hand } from "lucide-react"
 import { GlassCard } from "@/shared/components/glass/GlassCard"
 import { GlassButton } from "@/shared/components/glass/GlassButton"
 import { useToast } from "@/shared/components/feedback/Toast"
@@ -36,10 +36,12 @@ export function TurnoCard({ turno, index = 0, canOperate = false, onRefresh }: T
     checkOutTurnoAsync,
     unassignTurnoAsync,
     noShowTurnoAsync,
+    claimTurnoAsync,
     isCheckingIn,
     isCheckingOut,
     isUnassigning,
     isMarkingNoShow,
+    isClaiming,
   } = useTurno(turno.id)
 
   const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false)
@@ -88,8 +90,19 @@ export function TurnoCard({ turno, index = 0, canOperate = false, onRefresh }: T
     }
   }
 
+  const handleClaim = async () => {
+    try {
+      await claimTurnoAsync()
+      showToast("success", "Turno reclamado exitosamente")
+      onRefresh?.()
+    } catch (error) {
+      showToast("error", "Error al reclamar turno")
+    }
+  }
+
   const canCheckIn = isGuia && isMyTurno && turno.status === "ASSIGNED"
   const canCheckOut = isGuia && isMyTurno && turno.status === "IN_PROGRESS"
+  const canClaim = isGuia && turno.status === "AVAILABLE"
   const canAssign = isSupervisor && turno.status === "AVAILABLE"
   const canUnassign = isSupervisor && turno.status === "ASSIGNED"
   const canMarkNoShow = isSupervisor && turno.status === "ASSIGNED"
@@ -153,6 +166,18 @@ export function TurnoCard({ turno, index = 0, canOperate = false, onRefresh }: T
               >
                 <Square className="w-3 h-3" />
                 Finalizar
+              </GlassButton>
+            )}
+            {canClaim && (
+              <GlassButton
+                variant="primary"
+                size="sm"
+                onClick={handleClaim}
+                loading={isClaiming}
+                className="flex-1"
+              >
+                <Hand className="w-3 h-3" />
+                Reclamar
               </GlassButton>
             )}
             {canAssign && (

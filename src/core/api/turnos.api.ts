@@ -84,4 +84,24 @@ export const turnosApi = {
     );
     return response.data;
   },
+
+  // Cancel turno (supervisor mode)
+  async cancelTurno(
+    id: number,
+    data?: { reason?: string },
+  ): Promise<ApiResponse<Turno>> {
+    const response = await http.patch<ApiResponse<Turno>>(
+      `/turnos/${id}/cancel`,
+      data,
+    );
+    return response.data;
+  },
+
+  // Claim turno (guia mode) - guia claims an available turno
+  async claimTurno(id: number): Promise<ApiResponse<Turno>> {
+    const response = await http.patch<ApiResponse<Turno>>(
+      `/turnos/${id}/claim`,
+    );
+    return response.data;
+  },
 };

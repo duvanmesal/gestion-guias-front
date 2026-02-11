@@ -1,3 +1,4 @@
+// src/core/models/recaladas.ts
 import type { StatusType, Buque, PaisMini } from "./catalog"
 
 // Recalada Operative Status
@@ -19,35 +20,46 @@ export interface SupervisorMini {
 
 // Recalada Entity
 export interface Recalada {
-  id: number
+  id: string
   codigoRecalada: string
-  buqueId: number
+
+  buqueId: string
   buque?: Buque | null
-  paisOrigenId: number
+
+  paisOrigenId: string
   paisOrigen?: PaisMini | null
+
   supervisorId?: string | null
   supervisor?: SupervisorMini | null
+
   fechaLlegada: string
   fechaSalida?: string | null
+
   arrivedAt?: string | null
   departedAt?: string | null
+
   terminal?: string | null
   muelle?: string | null
+
   pasajerosEstimados?: number | null
   tripulacionEstimada?: number | null
+
   observaciones?: string | null
   fuente: RecaladaSource
+
   status: StatusType
   operationalStatus: RecaladaOperativeStatus
+
   canceledAt?: string | null
   cancelReason?: string | null
+
   createdAt: string
   updatedAt: string
 }
 
 // Recalada List Item (lighter for lists)
 export interface RecaladaListItem {
-  id: number
+  id: string
   codigoRecalada: string
   fechaLlegada: string
   fechaSalida?: string | null
@@ -57,13 +69,13 @@ export interface RecaladaListItem {
   muelle?: string | null
   observaciones?: string | null
   buque: {
-    id: number
+    id: string
     nombre: string
   }
   paisOrigen: {
-    id: number
+    id: string
     codigo: string
-    nombre: string
+    nombre?: string
   }
 }
 
@@ -75,36 +87,36 @@ export interface RecaladasQueryParams {
   from?: string
   to?: string
   operationalStatus?: RecaladaOperativeStatus
-  buqueId?: number
-  paisOrigenId?: number
+  buqueId?: string
+  paisOrigenId?: string
   status?: StatusType
 }
 
 // Create Recalada Request
 export interface CreateRecaladaRequest {
-  buqueId: number
-  paisOrigenId: number
+  buqueId: string
+  paisOrigenId: string
   fechaLlegada: string
-  fechaSalida?: string | null
-  terminal?: string | null
-  muelle?: string | null
-  pasajerosEstimados?: number | null
-  tripulacionEstimada?: number | null
-  observaciones?: string | null
+  fechaSalida?: string
+  terminal?: string
+  muelle?: string
+  pasajerosEstimados?: number
+  tripulacionEstimada?: number
+  observaciones?: string
   fuente?: RecaladaSource
 }
 
 // Update Recalada Request
 export interface UpdateRecaladaRequest {
-  buqueId?: number
-  paisOrigenId?: number
+  buqueId?: string
+  paisOrigenId?: string
   fechaLlegada?: string
-  fechaSalida?: string | null
-  terminal?: string | null
-  muelle?: string | null
-  pasajerosEstimados?: number | null
-  tripulacionEstimada?: number | null
-  observaciones?: string | null
+  fechaSalida?: string
+  terminal?: string
+  muelle?: string
+  pasajerosEstimados?: number
+  tripulacionEstimada?: number
+  observaciones?: string
   fuente?: RecaladaSource
 }
 

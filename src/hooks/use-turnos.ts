@@ -59,6 +59,23 @@ export function useTurnos(params?: TurnosQueryParams) {
     },
   })
 
+  const cancelMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data?: { reason?: string } }) =>
+      turnosApi.cancelTurno(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["turnos"] })
+      queryClient.invalidateQueries({ queryKey: ["atencion-turnos"] })
+    },
+  })
+
+  const claimMutation = useMutation({
+    mutationFn: (id: number) => turnosApi.claimTurno(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["turnos"] })
+      queryClient.invalidateQueries({ queryKey: ["atencion-turnos"] })
+    },
+  })
+
   const meta = data?.meta
     ? {
         ...data.meta,
@@ -92,6 +109,14 @@ export function useTurnos(params?: TurnosQueryParams) {
     noShowTurno: noShowMutation.mutate,
     noShowTurnoAsync: noShowMutation.mutateAsync,
     isMarkingNoShow: noShowMutation.isPending,
+    // Cancel
+    cancelTurno: cancelMutation.mutate,
+    cancelTurnoAsync: cancelMutation.mutateAsync,
+    isCanceling: cancelMutation.isPending,
+    // Claim
+    claimTurno: claimMutation.mutate,
+    claimTurnoAsync: claimMutation.mutateAsync,
+    isClaiming: claimMutation.isPending,
   }
 }
 
@@ -153,6 +178,25 @@ export function useTurno(id: number | null) {
     },
   })
 
+  const cancelMutation = useMutation({
+    mutationFn: (payload?: { reason?: string }) =>
+      id ? turnosApi.cancelTurno(id, payload) : Promise.reject("No ID"),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["turno", id] })
+      queryClient.invalidateQueries({ queryKey: ["turnos"] })
+      queryClient.invalidateQueries({ queryKey: ["atencion-turnos"] })
+    },
+  })
+
+  const claimMutation = useMutation({
+    mutationFn: () => (id ? turnosApi.claimTurno(id) : Promise.reject("No ID")),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["turno", id] })
+      queryClient.invalidateQueries({ queryKey: ["turnos"] })
+      queryClient.invalidateQueries({ queryKey: ["atencion-turnos"] })
+    },
+  })
+
   return {
     turno: data?.data ?? null,
     isLoading,
@@ -178,5 +222,13 @@ export function useTurno(id: number | null) {
     noShowTurno: noShowMutation.mutate,
     noShowTurnoAsync: noShowMutation.mutateAsync,
     isMarkingNoShow: noShowMutation.isPending,
+    // Cancel
+    cancelTurno: cancelMutation.mutate,
+    cancelTurnoAsync: cancelMutation.mutateAsync,
+    isCanceling: cancelMutation.isPending,
+    // Claim
+    claimTurno: claimMutation.mutate,
+    claimTurnoAsync: claimMutation.mutateAsync,
+    isClaiming: claimMutation.isPending,
   }
 }

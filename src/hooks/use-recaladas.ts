@@ -1,3 +1,4 @@
+// src/hooks/use-recaladas.ts
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { recaladasApi } from "@/core/api"
 import type {
@@ -22,28 +23,28 @@ export function useRecaladas(params?: RecaladasQueryParams) {
   })
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: UpdateRecaladaRequest }) =>
+    mutationFn: ({ id, data }: { id: string; data: UpdateRecaladaRequest }) =>
       recaladasApi.updateRecalada(id, data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["recaladas"] }),
   })
 
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => recaladasApi.deleteRecalada(id),
+    mutationFn: (id: string) => recaladasApi.deleteRecalada(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["recaladas"] }),
   })
 
   const arriveMutation = useMutation({
-    mutationFn: (id: number) => recaladasApi.arriveRecalada(id),
+    mutationFn: (id: string) => recaladasApi.arriveRecalada(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["recaladas"] }),
   })
 
   const departMutation = useMutation({
-    mutationFn: (id: number) => recaladasApi.departRecalada(id),
+    mutationFn: (id: string) => recaladasApi.departRecalada(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["recaladas"] }),
   })
 
   const cancelMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: CancelRecaladaRequest }) =>
+    mutationFn: ({ id, data }: { id: string; data: CancelRecaladaRequest }) =>
       recaladasApi.cancelRecalada(id, data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["recaladas"] }),
   })
@@ -91,7 +92,7 @@ export function useRecaladas(params?: RecaladasQueryParams) {
   }
 }
 
-export function useRecalada(id: number | null) {
+export function useRecalada(id: string | null) {
   const queryClient = useQueryClient()
 
   const { data, isLoading, error, refetch } = useQuery({

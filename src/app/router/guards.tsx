@@ -1,7 +1,25 @@
+'use client';
+
 import { Navigate, useLocation } from "react-router-dom";
 import type { ReactNode } from "react";
 import type { Rol } from "@/core/models/auth";
 import { useAuth } from "@/hooks/use-auth";
+import { Spinner } from "@/shared/components/feedback/Spinner";
+
+/* =========================================================
+ * FULL PAGE LOADER (guards)
+ * ========================================================= */
+
+function FullPageLoader() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-[rgb(var(--color-bg))]">
+      <div className="flex flex-col items-center gap-4">
+        <Spinner size="lg" />
+        <p className="text-[rgb(var(--color-muted))] text-sm">Verificando sesion...</p>
+      </div>
+    </div>
+  );
+}
 
 /* =========================================================
  * PROTECTED ROUTE
@@ -19,9 +37,9 @@ export function ProtectedRoute({
   const { isAuthenticated, user, isLoading } = useAuth();
   const location = useLocation();
 
-  // 1️⃣ Esperar a que el estado de auth sea confiable
+  // 1️⃣ Esperar a que el estado de auth sea confiable - MOSTRAR LOADER
   if (isLoading) {
-    return null; // o un spinner global si prefieres
+    return <FullPageLoader />;
   }
 
   // 2️⃣ No autenticado → login
@@ -53,9 +71,9 @@ export function RequireRoles({
 }: RequireRolesProps) {
   const { user, isLoading } = useAuth();
 
-  // Esperar identidad
+  // Esperar identidad - MOSTRAR LOADER
   if (isLoading) {
-    return null;
+    return <FullPageLoader />;
   }
 
   // Sin usuario o rol no permitido
@@ -88,9 +106,9 @@ interface GuestRouteProps {
 export function GuestRoute({ children }: GuestRouteProps) {
   const { isAuthenticated, isLoading } = useAuth();
 
-  // Esperar a que auth esté listo
+  // Esperar a que auth esté listo - MOSTRAR LOADER
   if (isLoading) {
-    return null;
+    return <FullPageLoader />;
   }
 
   // Si ya está autenticado → dashboard

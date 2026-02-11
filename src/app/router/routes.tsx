@@ -16,6 +16,7 @@ import { BuquesPage } from "@/features/catalog/buques/BuquesPage"
 import { RecaladasPage } from "@/features/recaladas/RecaladasPage"
 import { RecaladaDetailPage } from "@/features/recaladas/RecaladaDetailPage"
 import { AtencionDetailPage } from "@/features/atenciones/AtencionDetailPage"
+import { TurnosPage } from "@/features/turnos/TurnosPage"
 
 import { ProtectedRoute, RequireRoles, GuestRoute } from "./guards"
 import { Rol } from "@/core/models/auth"
@@ -158,6 +159,18 @@ export const router = createBrowserRouter([
     element: (
       <ProtectedRoute>
         <AtencionDetailPage />
+      </ProtectedRoute>
+    ),
+  },
+
+  /* =======================
+     ⏰ TURNOS
+     ======================= */
+  {
+    path: "/turnos",
+    element: (
+      <ProtectedRoute>
+        <TurnosPage />
       </ProtectedRoute>
     ),
   },

@@ -1,8 +1,7 @@
+// src/features/catalog/buques/components/BuqueFormDialog.tsx
 "use client"
 
-import React from "react"
-
-import { useState, useEffect } from "react"
+import React, { useEffect, useMemo, useState } from "react"
 import { GlassModal, GlassModalFooter } from "@/shared/components/glass/GlassModal"
 import { GlassInput } from "@/shared/components/glass/GlassInput"
 import { GlassSelect } from "@/shared/components/glass/GlassSelect"
@@ -19,40 +18,85 @@ interface BuqueFormDialogProps {
   defaultPaisId?: string
 }
 
-export function BuqueFormDialog({ isOpen, onClose, buque, onSuccess, defaultPaisId }: BuqueFormDialogProps) {
+type FormState = {
+  codigo: string
+  nombre: string
+  paisId: string
+  naviera: string
+  capacidad: string
+  status: StatusType
+}
+
+export function BuqueFormDialog({
+  isOpen,
+  onClose,
+  buque,
+  onSuccess,
+  defaultPaisId,
+}: BuqueFormDialogProps) {
   const { createBuqueAsync, updateBuqueAsync, isCreating, isUpdating } = useBuques()
   const { paises: paisesLookup, isLoading: loadingPaises } = usePaisesLookup()
   const isEditing = !!buque
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormState>({
+    codigo: "",
     nombre: "",
     paisId: "",
-    status: "ACTIVO" as StatusType,
+    naviera: "",
+    capacidad: "",
+    status: "ACTIVO",
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
 
   useEffect(() => {
+    if (!isOpen) return
+
     if (buque) {
       setFormData({
-        nombre: buque.nombre,
-        paisId: buque.paisId || "",
-        status: buque.status,
+        codigo: buque.codigo ?? "",
+        nombre: buque.nombre ?? "",
+        paisId: buque.paisId ?? "",
+        naviera: buque.naviera ?? "",
+        capacidad: buque.capacidad != null ? String(buque.capacidad) : "",
+        status: (buque.status ?? "ACTIVO") as StatusType,
       })
     } else {
       setFormData({
+        codigo: "",
         nombre: "",
-        paisId: defaultPaisId || "",
+        paisId: defaultPaisId ?? "",
+        naviera: "",
+        capacidad: "",
         status: "ACTIVO",
       })
     }
+
     setErrors({})
   }, [buque, isOpen, defaultPaisId])
 
   const validate = () => {
     const newErrors: Record<string, string> = {}
 
+    const codigo = formData.codigo.trim()
+    if (!codigo) {
+      newErrors.codigo = "El código es requerido"
+    } else if (codigo.length < 2) {
+      newErrors.codigo = "El código debe tener mínimo 2 caracteres"
+    } else if (codigo.length > 20) {
+      newErrors.codigo = "El código debe tener máximo 20 caracteres"
+    }
+
     if (!formData.nombre.trim()) {
       newErrors.nombre = "El nombre es requerido"
+    }
+
+    if (formData.capacidad.trim() !== "") {
+      const n = Number(formData.capacidad)
+      if (Number.isNaN(n) || !Number.isFinite(n)) {
+        newErrors.capacidad = "Capacidad inválida"
+      } else if (n <= 0) {
+        newErrors.capacidad = "Capacidad debe ser mayor a 0"
+      }
     }
 
     setErrors(newErrors)
@@ -61,25 +105,26 @@ export function BuqueFormDialog({ isOpen, onClose, buque, onSuccess, defaultPais
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-
     if (!validate()) return
+
+    const payload = {
+      codigo: formData.codigo.trim(),
+      nombre: formData.nombre.trim(),
+      // IMPORTANT: no mandar null, sino undefined cuando esté vacío
+      paisId: formData.paisId ? formData.paisId : undefined,
+      naviera: formData.naviera.trim() ? formData.naviera.trim() : undefined,
+      capacidad: formData.capacidad.trim() ? Number(formData.capacidad) : undefined,
+      status: formData.status,
+    }
 
     try {
       if (isEditing && buque) {
         await updateBuqueAsync({
           id: buque.id,
-          data: {
-            nombre: formData.nombre,
-            paisId: formData.paisId || null,
-            status: formData.status,
-          },
+          data: payload,
         })
       } else {
-        await createBuqueAsync({
-          nombre: formData.nombre,
-          paisId: formData.paisId || null,
-          status: formData.status,
-        })
+        await createBuqueAsync(payload)
       }
       onSuccess()
     } catch (error) {
@@ -89,20 +134,29 @@ export function BuqueFormDialog({ isOpen, onClose, buque, onSuccess, defaultPais
 
   const isLoading = isCreating || isUpdating
 
-  const paisOptions = [
-    { value: "", label: "Sin pais asignado" },
-    ...paisesLookup
-      .filter((p) => p.status === "ACTIVO")
-      .map((p) => ({
-        value: p.id,
+  const paisOptions = useMemo(
+    () => [
+      { value: "", label: "Sin país asignado" },
+      ...paisesLookup.map((p) => ({
+        value: String(p.id),
         label: `${p.nombre} (${p.codigo})`,
       })),
-  ]
+    ],
+    [paisesLookup]
+  )
 
   return (
     <GlassModal isOpen={isOpen} onClose={onClose} title={isEditing ? "Editar Buque" : "Nuevo Buque"} size="md">
       <form onSubmit={handleSubmit}>
         <div className="space-y-5">
+          <GlassInput
+            label="Código"
+            placeholder="Ej: MSC-2026"
+            value={formData.codigo}
+            onChange={(e) => setFormData({ ...formData, codigo: e.target.value })}
+            error={errors.codigo}
+          />
+
           <GlassInput
             label="Nombre"
             placeholder="Nombre del buque"
@@ -111,8 +165,23 @@ export function BuqueFormDialog({ isOpen, onClose, buque, onSuccess, defaultPais
             error={errors.nombre}
           />
 
+          <GlassInput
+            label="Naviera (opcional)"
+            placeholder="Ej: MSC Cruises"
+            value={formData.naviera}
+            onChange={(e) => setFormData({ ...formData, naviera: e.target.value })}
+          />
+
+          <GlassInput
+            label="Capacidad (opcional)"
+            placeholder="Ej: 2800"
+            value={formData.capacidad}
+            onChange={(e) => setFormData({ ...formData, capacidad: e.target.value })}
+            error={errors.capacidad}
+          />
+
           <GlassSelect
-            label="Pais"
+            label="País"
             options={paisOptions}
             value={formData.paisId}
             onChange={(e) => setFormData({ ...formData, paisId: e.target.value })}

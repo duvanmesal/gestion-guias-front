@@ -1,8 +1,6 @@
 "use client"
 
-import React from "react"
-
-import { useState, useEffect } from "react"
+import React, { useState, useEffect, useMemo } from "react"
 import { GlassModal } from "@/shared/components/glass/GlassModal"
 import { GlassSelect } from "@/shared/components/glass/GlassSelect"
 import { GlassButton } from "@/shared/components/glass/GlassButton"
@@ -28,7 +26,12 @@ export function AssignTurnoDialog({
 }: AssignTurnoDialogProps) {
   const { showToast } = useToast()
   const { assignTurnoAsync, isAssigning } = useTurno(turnoId)
-  const { users, isLoading: loadingUsers } = useUsers({ rol: Rol.GUIA, activo: true })
+
+  // Traemos usuarios con rol GUIA
+  const { users = [], isLoading: loadingUsers } = useUsers({
+    rol: Rol.GUIA,
+    activo: true,
+  })
 
   const [selectedGuia, setSelectedGuia] = useState("")
   const [error, setError] = useState("")
@@ -45,48 +48,87 @@ export function AssignTurnoDialog({
     setError("")
 
     if (!selectedGuia) {
-      setError("Selecciona un guia")
+      setError("Selecciona un guía")
       return
     }
 
     try {
       await assignTurnoAsync({ guiaId: selectedGuia })
+
       showToast("success", `Turno #${turnoNumero} asignado exitosamente`)
+
       onSuccess?.()
-    } catch (err) {
-      setError("Error al asignar el turno")
+      onClose()
+    } catch (err: any) {
+      const backendMessage =
+        err?.response?.data?.error?.message ||
+        err?.response?.data?.message ||
+        "Error al asignar el turno"
+
+      setError(backendMessage)
     }
   }
 
-  const guiaOptions = [
-    { value: "", label: "Seleccionar guia" },
-    ...users.map((u) => ({
-      value: u.id,
-      label: `${u.nombres || ""} ${u.apellidos || ""} (${u.email})`.trim(),
-    })),
-  ]
+  /**
+   * 🔥 IMPORTANTE:
+   * La API exige guiaId (tabla Guia),
+   * NO user.id
+   */
+  const guiaOptions = useMemo(() => {
+    return [
+      { value: "", label: "Seleccionar guía" },
+      ...users
+        .filter((u) => !!u.guiaId) // Solo usuarios que realmente estén vinculados a Guía
+        .map((u) => ({
+          value: u.guiaId as string, // 👈 ESTE es el ID correcto
+          label: `${u.nombres ?? ""} ${u.apellidos ?? ""} (${u.email})`.trim(),
+        })),
+    ]
+  }, [users])
 
   return (
-    <GlassModal isOpen={isOpen} onClose={onClose} title={`Asignar Turno #${turnoNumero}`} size="sm">
+    <GlassModal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={`Asignar Turno #${turnoNumero}`}
+      size="sm"
+    >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-[rgb(var(--color-fg))] mb-1">
-            Guia *
+            Guía *
           </label>
+
           <GlassSelect
             options={guiaOptions}
             value={selectedGuia}
-            onChange={(e) => setSelectedGuia(e.target.value)}
-            disabled={loadingUsers}
+            onChange={(e: any) => setSelectedGuia(e.target.value)}
+            disabled={loadingUsers || isAssigning}
           />
-          {error && <p className="text-xs text-[rgb(var(--color-danger))] mt-1">{error}</p>}
+
+          {error && (
+            <p className="text-xs text-[rgb(var(--color-danger))] mt-1">
+              {error}
+            </p>
+          )}
         </div>
 
         <div className="flex justify-end gap-3 pt-4">
-          <GlassButton type="button" variant="ghost" onClick={onClose}>
+          <GlassButton
+            type="button"
+            variant="ghost"
+            onClick={onClose}
+            disabled={isAssigning}
+          >
             Cancelar
           </GlassButton>
-          <GlassButton type="submit" variant="primary" loading={isAssigning}>
+
+          <GlassButton
+            type="submit"
+            variant="primary"
+            loading={isAssigning}
+            disabled={!selectedGuia}
+          >
             Asignar
           </GlassButton>
         </div>

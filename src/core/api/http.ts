@@ -5,6 +5,7 @@ import { useAuthStore } from "@/app/stores/auth-store"
 // Create axios instance
 export const http = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "http://localhost:3000/api/v1",
+  withCredentials: true,
   headers: {
     "Accept": "application/json",
     "Content-Type": "application/json",
@@ -95,6 +96,10 @@ http.interceptors.response.use(
         if (newToken) {
           originalRequest.headers.Authorization = `Bearer ${newToken}`
         }
+        const method = (originalRequest.method || "get").toLowerCase()
+        if (method === "get" || method === "head") {
+          delete (originalRequest as any).data
+        }
         return http(originalRequest)
       } catch (refreshError) {
         processQueue(refreshError as Error)
@@ -111,12 +116,13 @@ http.interceptors.response.use(
 )
 
 async function refreshAccessToken(): Promise<void> {
-  // Call refresh endpoint (WEB: uses httpOnly cookie)
-  const response = await axios.post(
-    `${import.meta.env.VITE_API_URL || "http://localhost:3000/api/v1"}/auth/refresh`,
+  // Call refresh endpoint using http instance (WEB: uses httpOnly cookie)
+  // IMPORTANT: Must use the http instance to ensure X-Client-Platform: WEB header is sent
+  const response = await http.post(
+    "/auth/refresh",
     {},
     {
-      withCredentials: true, // Important for cookie-based refresh
+      withCredentials: true,
     },
   )
 

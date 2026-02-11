@@ -69,8 +69,9 @@ export interface CreateAtencionRequest {
   fechaInicio: string
   fechaFin: string
   turnosTotal: number
-  descripcion?: string | null
+  descripcion?: string
 }
+
 
 // Update Atencion Request
 export interface UpdateAtencionRequest {
