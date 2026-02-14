@@ -1,3 +1,4 @@
+// src/core/api/users.api.ts
 import { http } from "./http";
 import type { ApiResponse, MetaPage } from "@/core/models/api";
 import type { User } from "@/core/models/auth";
@@ -31,6 +32,21 @@ function cleanParams<T extends object>(params?: T): Partial<T> | undefined {
   return p as Partial<T>;
 }
 
+export type GuidesLookupParams = {
+  search?: string;
+  activo?: boolean;
+  page?: number;
+  pageSize?: number;
+};
+
+export type GuideLookupItem = {
+  guiaId: number;
+  nombres: string;
+  apellidos: string;
+  email: string;
+  activo: boolean;
+};
+
 export const usersApi = {
   // Get current user with operational IDs (guiaId, supervisorId)
   async getMe(): Promise<ApiResponse<UserMeResponse>> {
@@ -47,7 +63,7 @@ export const usersApi = {
     return response.data;
   },
 
-  // Search users with advanced filters and pagination (new endpoint)
+  // Search users with advanced filters and pagination (admin)
   async searchUsers(
     params?: UsersSearchParams,
   ): Promise<ApiResponse<User[]> & { meta: MetaPage }> {
@@ -55,8 +71,8 @@ export const usersApi = {
       ? {
           ...params,
           // ✅ map a lo que espera el back
-          search: (params as any).search ?? params.q,
-          rol: (params as any).rol ?? params.role,
+          search: (params as any).search ?? (params as any).q,
+          rol: (params as any).rol ?? (params as any).role,
 
           // ❌ no mandes los aliases
           q: undefined,
@@ -70,6 +86,18 @@ export const usersApi = {
         params: cleanParams(apiParams),
       },
     );
+    return response.data;
+  },
+
+  // ✅ Safe lookup for supervisors: guides only, minimal fields
+  async getGuidesLookup(
+    params?: GuidesLookupParams,
+  ): Promise<ApiResponse<GuideLookupItem[]> & { meta?: MetaPage }> {
+    const response = await http.get<
+      ApiResponse<GuideLookupItem[]> & { meta?: MetaPage }
+    >("/users/guides", {
+      params: cleanParams(params),
+    });
     return response.data;
   },
 

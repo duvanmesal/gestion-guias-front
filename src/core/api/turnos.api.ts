@@ -1,3 +1,4 @@
+// src/core/api/turnos.api.ts
 import { http } from "./http";
 import type { ApiResponse, MetaPage } from "@/core/models/api";
 import type {
@@ -15,7 +16,7 @@ function cleanParams<T extends object>(params?: T): T | undefined {
 }
 
 export const turnosApi = {
-  // List turnos with filters and pagination
+  // List turnos with filters and pagination (supervisor/admin)
   async getTurnos(
     params?: TurnosQueryParams,
   ): Promise<ApiResponse<TurnoListItem[]> & { meta: MetaPage }> {
@@ -24,6 +25,34 @@ export const turnosApi = {
     >("/turnos", {
       params: cleanParams(params),
     });
+    return response.data;
+  },
+
+  // ✅ List my turnos (guia)
+  async getMyTurnos(
+    params?: TurnosQueryParams,
+  ): Promise<ApiResponse<TurnoListItem[]> & { meta: MetaPage }> {
+    const response = await http.get<
+      ApiResponse<TurnoListItem[]> & { meta: MetaPage }
+    >("/turnos/me", {
+      params: cleanParams(params),
+    });
+    return response.data;
+  },
+
+  // ✅ Get my next turno (guia)
+  async getMyNextTurno(): Promise<ApiResponse<Turno | TurnoListItem | null>> {
+    const response = await http.get<ApiResponse<Turno | TurnoListItem | null>>(
+      "/turnos/me/next",
+    );
+    return response.data;
+  },
+
+  // ✅ Get my active turno (guia)
+  async getMyActiveTurno(): Promise<ApiResponse<Turno | TurnoListItem | null>> {
+    const response = await http.get<ApiResponse<Turno | TurnoListItem | null>>(
+      "/turnos/me/active",
+    );
     return response.data;
   },
 
@@ -98,10 +127,12 @@ export const turnosApi = {
   },
 
   // Claim turno (guia mode) - guia claims an available turno
+  // por defecto POST (más típico para "acciones")
   async claimTurno(id: number): Promise<ApiResponse<Turno>> {
-    const response = await http.patch<ApiResponse<Turno>>(
+    const response = await http.post<ApiResponse<Turno>>(
       `/turnos/${id}/claim`,
     );
     return response.data;
   },
+
 };

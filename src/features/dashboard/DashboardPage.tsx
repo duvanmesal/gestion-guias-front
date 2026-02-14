@@ -1,3 +1,4 @@
+// src/features/dashboard/DashboardPage.tsx
 "use client"
 
 import { useMemo } from "react"
@@ -14,6 +15,8 @@ import {
   Ship,
   UserPlus,
   CalendarClock,
+  Clock,
+  PlayCircle,
 } from "lucide-react"
 
 import { AppShell } from "@/shared/components/layout/AppShell"
@@ -26,24 +29,10 @@ import {
 import { GlassButton } from "@/shared/components/glass/GlassButton"
 import { Skeleton } from "@/shared/components/feedback/Skeleton"
 
-import { healthApi, usersApi } from "@/core/api"
+import { healthApi } from "@/core/api"
+import { useDashboardOverview } from "@/hooks/use-dashboard"
 import { useAuthStore } from "@/app/stores/auth-store"
 import { Rol } from "@/core/models/auth"
-
-// ✅ ya existe en tu proyecto según lo que dijiste
-import { useAtenciones } from "@/hooks/use-atenciones"
-
-function startOfTodayISO() {
-  const d = new Date()
-  d.setHours(0, 0, 0, 0)
-  return d.toISOString()
-}
-
-function endOfTodayISO() {
-  const d = new Date()
-  d.setHours(23, 59, 59, 999)
-  return d.toISOString()
-}
 
 function formatRange(fechaInicio: string, fechaFin: string) {
   const start = new Date(fechaInicio)
@@ -63,49 +52,27 @@ export function DashboardPage() {
   const navigate = useNavigate()
   const { user } = useAuthStore()
 
-  // Health
+  const isSupervisor = user?.rol === Rol.SUPER_ADMIN || user?.rol === Rol.SUPERVISOR
+  const isGuia = user?.rol === Rol.GUIA
+
+  // Health (se mantiene)
   const { data: healthData, isLoading: isLoadingHealth } = useQuery({
     queryKey: ["health"],
     queryFn: async () => {
       const response = await healthApi.check()
       return response.data
     },
-    refetchInterval: 30000,
+    refetchInterval: 30_000,
   })
 
-  // Users (solo admin/supervisor)
-  const canViewUsers = user?.rol === Rol.SUPER_ADMIN || user?.rol === Rol.SUPERVISOR
-
-  const { data: usersData, isLoading: isLoadingUsers } = useQuery({
-    queryKey: ["users", { activo: true, pageSize: 1 }],
-    queryFn: async () => {
-      const response = await usersApi.searchUsers({ activo: true, pageSize: 1 })
-      return response
-    },
-    enabled: canViewUsers,
+  // ✅ Dashboard overview (1 sola llamada)
+  const { overview, isLoading: isLoadingOverview } = useDashboardOverview({
+    enabled: !!user,
   })
 
-  // ✅ Atenciones de hoy (usa el módulo existente)
-  const {
-    atenciones,
-    isLoading: isLoadingAtenciones,
-  } = useAtenciones({
-    from: startOfTodayISO(),
-    to: endOfTodayISO(),
-    page: 1,
-    pageSize: 6,
-  })
+  const apiOk = !!healthData
 
-  const orderedAtenciones = useMemo(() => {
-    return [...(atenciones ?? [])].sort(
-      (a: any, b: any) => new Date(a.fechaInicio).getTime() - new Date(b.fechaInicio).getTime()
-    )
-  }, [atenciones])
-
-  const openCount = useMemo(() => {
-    return orderedAtenciones.filter((a: any) => a.operationalStatus === "OPEN").length
-  }, [orderedAtenciones])
-
+  // Links por rol (se mantienen)
   const quickLinks = [
     {
       to: "/profile",
@@ -144,8 +111,18 @@ export function DashboardPage() {
     },
   ].filter((link) => user && link.roles.includes(user.rol))
 
-  const apiOk = !!healthData
-  const activeUsersTotal = usersData?.meta?.total ?? 0
+  // ✅ Intentamos leer campos de overview de forma defensiva (sin asumir shape rígida)
+  const supervisorCounts = (overview as any)?.counts ?? (overview as any)?.supervisor?.counts
+  const guiaNextTurno = (overview as any)?.nextTurno ?? (overview as any)?.guia?.nextTurno
+  const guiaActiveTurno = (overview as any)?.activeTurno ?? (overview as any)?.guia?.activeTurno
+  const guiaDisponibles = (overview as any)?.atencionesDisponibles ?? (overview as any)?.guia?.atencionesDisponibles
+
+  const disponiblesOrdered = useMemo(() => {
+    const list = Array.isArray(guiaDisponibles) ? guiaDisponibles : []
+    return [...list].sort(
+      (a: any, b: any) => new Date(a.fechaInicio).getTime() - new Date(b.fechaInicio).getTime()
+    )
+  }, [guiaDisponibles])
 
   return (
     <AppShell>
@@ -189,35 +166,83 @@ export function DashboardPage() {
             </GlassCardContent>
           </GlassCard>
 
-          {/* Users */}
+          {/* Overview card (por rol) */}
           <GlassCard className="animate-fade-in-up" style={{ animationDelay: "0.10s" }}>
             <GlassCardHeader>
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-[rgb(var(--color-accent)/0.15)] flex items-center justify-center">
-                  <Users className="w-5 h-5 text-[rgb(var(--color-accent))]" />
+                  {isGuia ? (
+                    <Clock className="w-5 h-5 text-[rgb(var(--color-accent))]" />
+                  ) : (
+                    <Users className="w-5 h-5 text-[rgb(var(--color-accent))]" />
+                  )}
                 </div>
                 <div>
-                  <GlassCardTitle>Usuarios activos</GlassCardTitle>
-                  <p className="text-xs text-[rgb(var(--color-muted))] mt-0.5">Visión general</p>
+                  <GlassCardTitle>{isGuia ? "Tu jornada" : "Resumen de hoy"}</GlassCardTitle>
+                  <p className="text-xs text-[rgb(var(--color-muted))] mt-0.5">
+                    {isGuia ? "Siguiente / Activo" : "Conteos operativos"}
+                  </p>
                 </div>
               </div>
             </GlassCardHeader>
 
             <GlassCardContent>
-              {!canViewUsers ? (
-                <div className="glass-subtle rounded-xl p-4">
-                  <p className="text-sm text-[rgb(var(--color-muted))]">
-                    No tienes permisos para ver usuarios.
-                  </p>
-                </div>
-              ) : isLoadingUsers ? (
+              {isLoadingOverview ? (
                 <Skeleton height="3.5rem" />
+              ) : isGuia ? (
+                <div className="space-y-2">
+                  <div className="glass-subtle rounded-xl p-4 flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-xs text-[rgb(var(--color-muted))]">Turno activo</p>
+                      <p className="text-sm font-semibold text-[rgb(var(--color-fg))] truncate">
+                        {guiaActiveTurno
+                          ? `#${(guiaActiveTurno as any).numero ?? (guiaActiveTurno as any).id ?? "—"} · ${(guiaActiveTurno as any).status ?? "IN_PROGRESS"}`
+                          : "No tienes turno en curso"}
+                      </p>
+                    </div>
+                    {guiaActiveTurno && (
+                      <GlassButton variant="ghost" size="sm" onClick={() => navigate("/turnos")}>
+                        Continuar
+                        <PlayCircle className="w-4 h-4" />
+                      </GlassButton>
+                    )}
+                  </div>
+
+                  <div className="glass-subtle rounded-xl p-4">
+                    <p className="text-xs text-[rgb(var(--color-muted))]">Siguiente turno</p>
+                    <p className="text-sm font-semibold text-[rgb(var(--color-fg))]">
+                      {guiaNextTurno
+                        ? `#${(guiaNextTurno as any).numero ?? (guiaNextTurno as any).id ?? "—"} · ${(guiaNextTurno as any).status ?? "ASSIGNED"}`
+                        : "No tienes un turno próximo"}
+                    </p>
+                  </div>
+                </div>
               ) : (
-                <div className="flex items-center justify-between glass-subtle rounded-xl p-4">
-                  <span className="text-sm text-[rgb(var(--color-fg))]">Total</span>
-                  <span className="text-sm font-semibold text-[rgb(var(--color-fg))]">
-                    {activeUsersTotal}
-                  </span>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="glass-subtle rounded-xl p-4">
+                    <p className="text-xs text-[rgb(var(--color-muted))]">Recaladas</p>
+                    <p className="text-lg font-bold text-[rgb(var(--color-fg))]">
+                      {supervisorCounts?.recaladas ?? "—"}
+                    </p>
+                  </div>
+                  <div className="glass-subtle rounded-xl p-4">
+                    <p className="text-xs text-[rgb(var(--color-muted))]">Atenciones</p>
+                    <p className="text-lg font-bold text-[rgb(var(--color-fg))]">
+                      {supervisorCounts?.atenciones ?? "—"}
+                    </p>
+                  </div>
+                  <div className="glass-subtle rounded-xl p-4">
+                    <p className="text-xs text-[rgb(var(--color-muted))]">Turnos</p>
+                    <p className="text-lg font-bold text-[rgb(var(--color-fg))]">
+                      {supervisorCounts?.turnos ?? "—"}
+                    </p>
+                  </div>
+                  <div className="glass-subtle rounded-xl p-4">
+                    <p className="text-xs text-[rgb(var(--color-muted))]">En curso</p>
+                    <p className="text-lg font-bold text-[rgb(var(--color-fg))]">
+                      {supervisorCounts?.inProgress ?? supervisorCounts?.turnosInProgress ?? "—"}
+                    </p>
+                  </div>
                 </div>
               )}
             </GlassCardContent>
@@ -253,12 +278,8 @@ export function DashboardPage() {
                           <Icon className="w-4 h-4 text-[rgb(var(--color-accent))]" />
                         </div>
                         <div className="min-w-0">
-                          <p className="text-sm font-medium text-[rgb(var(--color-fg))] truncate">
-                            {l.label}
-                          </p>
-                          <p className="text-xs text-[rgb(var(--color-muted))] truncate">
-                            {l.description}
-                          </p>
+                          <p className="text-sm font-medium text-[rgb(var(--color-fg))] truncate">{l.label}</p>
+                          <p className="text-xs text-[rgb(var(--color-muted))] truncate">{l.description}</p>
                         </div>
                       </div>
                     </Link>
@@ -269,83 +290,72 @@ export function DashboardPage() {
           </GlassCard>
         </div>
 
-        {/* ✅ ATENCIONES EN DASHBOARD (sin archivos nuevos) */}
-        <GlassCard className="animate-fade-in-up" style={{ animationDelay: "0.20s" }}>
-          <GlassCardHeader>
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-[rgb(var(--color-accent)/0.15)] flex items-center justify-center">
-                  <CalendarClock className="w-5 h-5 text-[rgb(var(--color-accent))]" />
+        {/* GUIA: atenciones disponibles (si el overview las trae) */}
+        {isGuia && (
+          <GlassCard className="animate-fade-in-up" style={{ animationDelay: "0.20s" }}>
+            <GlassCardHeader>
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-[rgb(var(--color-accent)/0.15)] flex items-center justify-center">
+                    <CalendarClock className="w-5 h-5 text-[rgb(var(--color-accent))]" />
+                  </div>
+                  <div>
+                    <GlassCardTitle>Atenciones disponibles</GlassCardTitle>
+                    <p className="text-xs text-[rgb(var(--color-muted))] mt-0.5">
+                      {Array.isArray(disponiblesOrdered) ? `${disponiblesOrdered.length} disponibles` : "—"}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <GlassCardTitle>Atenciones de hoy</GlassCardTitle>
-                  <p className="text-xs text-[rgb(var(--color-muted))] mt-0.5">
-                    {isLoadingAtenciones
-                      ? "Cargando..."
-                      : `${orderedAtenciones.length} programadas · ${openCount} abiertas`}
-                  </p>
-                </div>
-              </div>
 
-              <div className="flex items-center gap-2">
-                {/* si tienes ruta /atenciones úsala; si no, quítala */}
                 <Link to="/atenciones">
                   <GlassButton variant="ghost" size="sm">
-                    Ver todas
+                    Ver atenciones
                     <ArrowRight className="w-4 h-4" />
                   </GlassButton>
                 </Link>
               </div>
-            </div>
-          </GlassCardHeader>
+            </GlassCardHeader>
 
-          <GlassCardContent>
-            {isLoadingAtenciones ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Skeleton height="6.5rem" />
-                <Skeleton height="6.5rem" />
-                <Skeleton height="6.5rem" />
-                <Skeleton height="6.5rem" />
-              </div>
-            ) : orderedAtenciones.length === 0 ? (
-              <div className="glass-subtle rounded-xl p-5">
-                <p className="text-sm text-[rgb(var(--color-muted))]">
-                  No hay atenciones para hoy. Crea una desde la recalada correspondiente.
-                </p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {orderedAtenciones.map((a: any, idx: number) => (
-                  <button
-                    key={a.id}
-                    type="button"
-                    onClick={() => navigate(`/atenciones/${a.id}`)}
-                    className="text-left glass-subtle p-4 rounded-xl hover:bg-[rgb(var(--color-glass-hover)/0.5)] transition-all duration-200 focus-ring"
-                    style={{ animationDelay: `${0.22 + idx * 0.03}s` }}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold text-[rgb(var(--color-fg))]">
-                          {formatRange(a.fechaInicio, a.fechaFin)}
-                        </p>
-                        <p className="text-xs text-[rgb(var(--color-muted))] mt-1">
-                          {a.turnosTotal != null ? `${a.turnosTotal} turnos · ` : ""}
-                          Estado: {a.operationalStatus ?? "—"}
-                        </p>
-                        {a.descripcion && (
-                          <p className="text-xs text-[rgb(var(--color-muted))] mt-2 line-clamp-2">
-                            {a.descripcion}
+            <GlassCardContent>
+              {isLoadingOverview ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Skeleton height="6.5rem" />
+                  <Skeleton height="6.5rem" />
+                </div>
+              ) : disponiblesOrdered.length === 0 ? (
+                <div className="glass-subtle rounded-xl p-5">
+                  <p className="text-sm text-[rgb(var(--color-muted))]">
+                    No hay atenciones disponibles en este momento.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {disponiblesOrdered.slice(0, 6).map((a: any, idx: number) => (
+                    <button
+                      key={a.id}
+                      type="button"
+                      onClick={() => navigate(`/atenciones/${a.id}`)}
+                      className="text-left glass-subtle p-4 rounded-xl hover:bg-[rgb(var(--color-glass-hover)/0.5)] transition-all duration-200 focus-ring"
+                      style={{ animationDelay: `${0.22 + idx * 0.03}s` }}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-[rgb(var(--color-fg))]">
+                            {a.fechaInicio && a.fechaFin ? formatRange(a.fechaInicio, a.fechaFin) : `Atención #${a.id}`}
                           </p>
-                        )}
+                          <p className="text-xs text-[rgb(var(--color-muted))] mt-1">
+                            {a.operationalStatus ? `Estado: ${a.operationalStatus}` : ""}
+                          </p>
+                        </div>
+                        <ArrowRight className="w-4 h-4 text-[rgb(var(--color-muted))] mt-0.5 shrink-0" />
                       </div>
-                      <ArrowRight className="w-4 h-4 text-[rgb(var(--color-muted))] mt-0.5 shrink-0" />
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </GlassCardContent>
-        </GlassCard>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </GlassCardContent>
+          </GlassCard>
+        )}
       </div>
     </AppShell>
   )

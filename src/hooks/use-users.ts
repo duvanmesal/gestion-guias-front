@@ -1,3 +1,4 @@
+// src/hooks/use-users.ts
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { usersApi } from "@/core/api"
 import type { UsersSearchParams, CreateUserRequest, UpdateUserRequest } from "@/core/models/users"
@@ -12,7 +13,7 @@ export function useUsers(params?: UsersSearchParams) {
       const response = await usersApi.searchUsers(params)
       return response
     },
-    staleTime: 30000, // 30 seconds
+    staleTime: 30_000, // 30 seconds
   })
 
   // Create user mutation
@@ -45,12 +46,18 @@ export function useUsers(params?: UsersSearchParams) {
     isLoading,
     error,
     refetch,
+
+    // mutations
     createUser: createUserMutation.mutate,
     updateUser: updateUserMutation.mutate,
     deleteUser: deleteUserMutation.mutate,
+
+    // states
     isCreating: createUserMutation.isPending,
     isUpdating: updateUserMutation.isPending,
     isDeleting: deleteUserMutation.isPending,
+
+    // errors
     createError: createUserMutation.error,
     updateError: updateUserMutation.error,
   }

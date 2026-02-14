@@ -1,3 +1,4 @@
+// src/features/turnos/components/AssignTurnoDialog.tsx
 "use client"
 
 import React, { useState, useEffect, useMemo } from "react"
@@ -6,8 +7,7 @@ import { GlassSelect } from "@/shared/components/glass/GlassSelect"
 import { GlassButton } from "@/shared/components/glass/GlassButton"
 import { useToast } from "@/shared/components/feedback/Toast"
 import { useTurno } from "@/hooks/use-turnos"
-import { useUsers } from "@/hooks/use-users"
-import { Rol } from "@/core/models/auth"
+import { useGuidesLookup } from "@/hooks/use-guides"
 
 interface AssignTurnoDialogProps {
   isOpen: boolean
@@ -27,10 +27,9 @@ export function AssignTurnoDialog({
   const { showToast } = useToast()
   const { assignTurnoAsync, isAssigning } = useTurno(turnoId)
 
-  // Traemos usuarios con rol GUIA
-  const { users = [], isLoading: loadingUsers } = useUsers({
-    rol: Rol.GUIA,
+  const { guides = [], isLoading: loadingGuides } = useGuidesLookup({
     activo: true,
+    pageSize: 200,
   })
 
   const [selectedGuia, setSelectedGuia] = useState("")
@@ -69,30 +68,18 @@ export function AssignTurnoDialog({
     }
   }
 
-  /**
-   * 🔥 IMPORTANTE:
-   * La API exige guiaId (tabla Guia),
-   * NO user.id
-   */
   const guiaOptions = useMemo(() => {
     return [
       { value: "", label: "Seleccionar guía" },
-      ...users
-        .filter((u) => !!u.guiaId) // Solo usuarios que realmente estén vinculados a Guía
-        .map((u) => ({
-          value: u.guiaId as string, // 👈 ESTE es el ID correcto
-          label: `${u.nombres ?? ""} ${u.apellidos ?? ""} (${u.email})`.trim(),
-        })),
+      ...guides.map((g) => ({
+        value: String(g.guiaId),
+        label: `${g.nombres ?? ""} ${g.apellidos ?? ""} (${g.email})`.trim(),
+      })),
     ]
-  }, [users])
+  }, [guides])
 
   return (
-    <GlassModal
-      isOpen={isOpen}
-      onClose={onClose}
-      title={`Asignar Turno #${turnoNumero}`}
-      size="sm"
-    >
+    <GlassModal isOpen={isOpen} onClose={onClose} title={`Asignar Turno #${turnoNumero}`} size="sm">
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-[rgb(var(--color-fg))] mb-1">
@@ -103,32 +90,20 @@ export function AssignTurnoDialog({
             options={guiaOptions}
             value={selectedGuia}
             onChange={(e: any) => setSelectedGuia(e.target.value)}
-            disabled={loadingUsers || isAssigning}
+            disabled={loadingGuides || isAssigning}
           />
 
           {error && (
-            <p className="text-xs text-[rgb(var(--color-danger))] mt-1">
-              {error}
-            </p>
+            <p className="text-xs text-[rgb(var(--color-danger))] mt-1">{error}</p>
           )}
         </div>
 
         <div className="flex justify-end gap-3 pt-4">
-          <GlassButton
-            type="button"
-            variant="ghost"
-            onClick={onClose}
-            disabled={isAssigning}
-          >
+          <GlassButton type="button" variant="ghost" onClick={onClose} disabled={isAssigning}>
             Cancelar
           </GlassButton>
 
-          <GlassButton
-            type="submit"
-            variant="primary"
-            loading={isAssigning}
-            disabled={!selectedGuia}
-          >
+          <GlassButton type="submit" variant="primary" loading={isAssigning} disabled={!selectedGuia}>
             Asignar
           </GlassButton>
         </div>

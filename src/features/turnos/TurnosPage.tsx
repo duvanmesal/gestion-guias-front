@@ -1,20 +1,24 @@
+// src/features/turnos/TurnosPage.tsx
 "use client"
 
-import { useState } from "react"
-import { Clock, Search, Filter, Calendar, Users } from "lucide-react"
+import { useMemo, useState } from "react"
+import { Clock, Filter, Users } from "lucide-react"
+import { useQuery } from "@tanstack/react-query"
+
 import { AppShell } from "@/shared/components/layout/AppShell"
 import { GlassCard, GlassCardContent } from "@/shared/components/glass/GlassCard"
-import { GlassInput } from "@/shared/components/glass/GlassInput"
 import { GlassSelect } from "@/shared/components/glass/GlassSelect"
 import { GlassButton } from "@/shared/components/glass/GlassButton"
 import { Skeleton } from "@/shared/components/feedback/Skeleton"
+
 import { useTurnos } from "@/hooks/use-turnos"
-import { useAtenciones } from "@/hooks/use-atenciones"
+import { atencionesApi } from "@/core/api"
+
 import { useAuthStore } from "@/app/stores/auth-store"
 import { Rol } from "@/core/models/auth"
 import type { TurnoStatus } from "@/core/models/turnos"
+
 import { TurnoCard } from "./components/TurnoCard"
-import { TurnoStatusBadge } from "./components/TurnoStatusBadge"
 
 export function TurnosPage() {
   const { user } = useAuthStore()
@@ -24,18 +28,33 @@ export function TurnosPage() {
   const [page, setPage] = useState(1)
   const pageSize = 24
 
-  // Fetch atenciones for filter dropdown
-  const { atenciones, isLoading: loadingAtenciones } = useAtenciones({
-    pageSize: 100, // Get many for dropdown
+  const isSupervisor = user?.rol === Rol.SUPER_ADMIN || user?.rol === Rol.SUPERVISOR
+  const isGuia = user?.rol === Rol.GUIA
+
+  // ✅ Solo supervisor/admin trae atenciones para el dropdown (evita 403 en GUIA)
+  const { data: atencionesResp, isLoading: loadingAtenciones } = useQuery({
+    queryKey: ["atenciones", { pageSize: 100 }],
+    queryFn: () => atencionesApi.getAtenciones({ pageSize: 100 }),
+    staleTime: 30_000,
+    enabled: isSupervisor,
   })
 
-  // Fetch turnos with filters
-  const { turnos, meta, isLoading, refetch } = useTurnos({
-    status: statusFilter ? (statusFilter as TurnoStatus) : undefined,
-    atencionId: atencionFilter ? Number(atencionFilter) : undefined,
-    page,
-    pageSize,
-  })
+  const atenciones = atencionesResp?.data ?? []
+
+  // ✅ Turnos: GUIA -> /turnos/me ; Supervisor/Admin -> /turnos
+  const { turnos, meta, isLoading, refetch } = useTurnos(
+    {
+      status: statusFilter ? (statusFilter as TurnoStatus) : undefined,
+      // Solo aplica filtro de atencion si supervisor (GUIA puede seguir filtrando por status)
+      atencionId: isSupervisor && atencionFilter ? Number(atencionFilter) : undefined,
+      page,
+      pageSize,
+    },
+    {
+      mode: isGuia ? "me" : "all",
+      rolOverride: user?.rol ?? null,
+    },
+  )
 
   const handleStatusFilter = (value: string) => {
     setStatusFilter(value)
@@ -47,9 +66,6 @@ export function TurnosPage() {
     setPage(1)
   }
 
-  const isSupervisor = user?.rol === Rol.SUPER_ADMIN || user?.rol === Rol.SUPERVISOR
-  const isGuia = user?.rol === Rol.GUIA
-
   const statusOptions = [
     { value: "", label: "Todos los estados" },
     { value: "AVAILABLE", label: "Libre" },
@@ -60,22 +76,28 @@ export function TurnosPage() {
     { value: "NO_SHOW", label: "No-show" },
   ]
 
-  const atencionOptions = [
-    { value: "", label: "Todas las atenciones" },
-    ...atenciones.map((a) => ({
-      value: String(a.id),
-      label: `Atencion #${a.id} - ${new Date(a.fechaInicio).toLocaleDateString("es-CO")}`,
-    })),
-  ]
+  const atencionOptions = useMemo(() => {
+    if (!isSupervisor) return [{ value: "", label: "Todas las atenciones" }]
 
-  // Stats summary
-  const stats = {
-    total: turnos.length,
-    available: turnos.filter((t) => t.status === "AVAILABLE").length,
-    assigned: turnos.filter((t) => t.status === "ASSIGNED").length,
-    inProgress: turnos.filter((t) => t.status === "IN_PROGRESS").length,
-    completed: turnos.filter((t) => t.status === "COMPLETED").length,
-  }
+    return [
+      { value: "", label: "Todas las atenciones" },
+      ...atenciones.map((a: any) => ({
+        value: String(a.id),
+        label: `Atención #${a.id} · ${new Date(a.fechaInicio).toLocaleDateString("es-CO")}`,
+      })),
+    ]
+  }, [atenciones, isSupervisor])
+
+  // Stats summary (solo supervisor)
+  const stats = useMemo(() => {
+    return {
+      total: turnos.length,
+      available: turnos.filter((t) => t.status === "AVAILABLE").length,
+      assigned: turnos.filter((t) => t.status === "ASSIGNED").length,
+      inProgress: turnos.filter((t) => t.status === "IN_PROGRESS").length,
+      completed: turnos.filter((t) => t.status === "COMPLETED").length,
+    }
+  }, [turnos])
 
   return (
     <AppShell>
@@ -90,10 +112,7 @@ export function TurnosPage() {
               <div>
                 <h1 className="text-3xl font-bold text-[rgb(var(--color-fg))]">Turnos</h1>
                 <p className="text-[rgb(var(--color-muted))]">
-                  {isSupervisor 
-                    ? "Gestion de turnos y asignaciones de guias"
-                    : "Mis turnos asignados"
-                  }
+                  {isSupervisor ? "Gestión de turnos y asignaciones de guías" : "Mis turnos asignados"}
                 </p>
               </div>
             </div>
@@ -102,7 +121,10 @@ export function TurnosPage() {
 
         {/* Stats Cards */}
         {isSupervisor && (
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 animate-fade-in-up" style={{ animationDelay: "0.03s" }}>
+          <div
+            className="grid grid-cols-2 md:grid-cols-5 gap-3 animate-fade-in-up"
+            style={{ animationDelay: "0.03s" }}
+          >
             <GlassCard variant="subtle" className="p-3">
               <div className="text-center">
                 <p className="text-2xl font-bold text-[rgb(var(--color-fg))]">{stats.total}</p>
@@ -144,18 +166,24 @@ export function TurnosPage() {
                 <Filter className="w-4 h-4" />
                 <span className="text-sm font-medium">Filtros:</span>
               </div>
+
+              {/* ✅ GUIA: filtros simples (status). SUPERVISOR: status + atencion */}
               <GlassSelect
                 options={statusOptions}
                 value={statusFilter}
                 onChange={(e) => handleStatusFilter(e.target.value)}
               />
-              <GlassSelect
-                options={atencionOptions}
-                value={atencionFilter}
-                onChange={(e) => handleAtencionFilter(e.target.value)}
-                disabled={loadingAtenciones}
-              />
-              {(statusFilter || atencionFilter) && (
+
+              {isSupervisor && (
+                <GlassSelect
+                  options={atencionOptions}
+                  value={atencionFilter}
+                  onChange={(e) => handleAtencionFilter(e.target.value)}
+                  disabled={loadingAtenciones}
+                />
+              )}
+
+              {(statusFilter || (isSupervisor && atencionFilter)) && (
                 <GlassButton
                   variant="ghost"
                   size="sm"
@@ -198,14 +226,13 @@ export function TurnosPage() {
                 <div className="w-16 h-16 rounded-2xl bg-[rgb(var(--color-primary)/0.1)] flex items-center justify-center mx-auto mb-4">
                   <Users className="w-8 h-8 text-[rgb(var(--color-primary))]" />
                 </div>
-                <p className="text-[rgb(var(--color-fg))] font-medium mb-1">
-                  No hay turnos disponibles
-                </p>
+                <p className="text-[rgb(var(--color-fg))] font-medium mb-1">No hay turnos disponibles</p>
                 <p className="text-sm text-[rgb(var(--color-muted))]">
-                  {statusFilter || atencionFilter
-                    ? "Prueba ajustando los filtros de busqueda"
-                    : "Los turnos se crean automaticamente al crear atenciones"
-                  }
+                  {statusFilter || (isSupervisor && atencionFilter)
+                    ? "Prueba ajustando los filtros de búsqueda"
+                    : isGuia
+                      ? "Aún no tienes turnos asignados"
+                      : "Los turnos se crean automáticamente al crear atenciones"}
                 </p>
               </div>
             </GlassCardContent>
@@ -228,15 +255,10 @@ export function TurnosPage() {
             {meta && meta.totalPages > 1 && (
               <div className="flex items-center justify-between p-4 glass-subtle rounded-xl animate-fade-in-up">
                 <p className="text-sm text-[rgb(var(--color-muted))]">
-                  Pagina {meta.page} de {meta.totalPages} ({meta.total} turnos)
+                  Página {meta.page} de {meta.totalPages} ({meta.total} turnos)
                 </p>
                 <div className="flex gap-2">
-                  <GlassButton
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setPage(page - 1)}
-                    disabled={page === 1}
-                  >
+                  <GlassButton variant="ghost" size="sm" onClick={() => setPage(page - 1)} disabled={page === 1}>
                     Anterior
                   </GlassButton>
                   <GlassButton
