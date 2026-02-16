@@ -48,7 +48,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       to: "/users",
       icon: Users,
       label: "Usuarios",
-      roles: [Rol.SUPER_ADMIN, Rol.SUPERVISOR],
+      roles: [Rol.SUPER_ADMIN],
     },
     {
       to: "/catalog/paises",

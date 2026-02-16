@@ -86,7 +86,7 @@ export const router = createBrowserRouter([
     path: "/users",
     element: (
       <ProtectedRoute>
-        <RequireRoles allowedRoles={[Rol.SUPER_ADMIN, Rol.SUPERVISOR]}>
+        <RequireRoles allowedRoles={[Rol.SUPER_ADMIN]}>
           <UsersListPage />
         </RequireRoles>
       </ProtectedRoute>

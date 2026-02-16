@@ -86,7 +86,7 @@ export function DashboardPage() {
       icon: Users,
       label: "Usuarios",
       description: "Gestionar usuarios",
-      roles: [Rol.SUPER_ADMIN, Rol.SUPERVISOR],
+      roles: [Rol.SUPER_ADMIN],
     },
     {
       to: "/catalog/paises",
