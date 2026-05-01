@@ -42,6 +42,7 @@ export function useAuth() {
 
         if (me.data) {
           updateUser(me.data);
+          queryClient.setQueryData(["me"], me.data);
 
           // 3) Decidir navegación con estado REAL
           if (me.data.emailVerifiedAt) {
@@ -131,6 +132,7 @@ export function useAuth() {
     logout: logoutMutation.mutate,
     logoutAll: logoutAllMutation.mutate,
     isLoggingIn: loginMutation.isPending,
+    isLoggingOutAll: logoutAllMutation.isPending,
     loginError: loginMutation.error,
   };
 }

@@ -1,5 +1,14 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { authApi } from "@/core/api"
+import type { Session } from "@/core/models/auth"
+
+function normalizeSessions(
+  payload: Session[] | { sessions?: Session[] } | null | undefined,
+): Session[] {
+  if (Array.isArray(payload)) return payload
+  if (Array.isArray(payload?.sessions)) return payload.sessions
+  return []
+}
 
 export function useSessions() {
   const queryClient = useQueryClient()
@@ -9,7 +18,7 @@ export function useSessions() {
     queryKey: ["sessions"],
     queryFn: async () => {
       const response = await authApi.getSessions()
-      return response.data
+      return normalizeSessions(response.data)
     },
     staleTime: 60000, // 1 minute
   })
@@ -23,7 +32,7 @@ export function useSessions() {
   })
 
   return {
-    sessions: data || [],
+    sessions: data ?? [],
     isLoading,
     error,
     deleteSession: deleteSessionMutation.mutate,

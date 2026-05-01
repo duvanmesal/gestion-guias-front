@@ -110,5 +110,5 @@ export interface RefreshResponse {
 
 // Logout All Request
 export interface LogoutAllRequest {
-  verification: { method: "password"; password: string } | { method: "mfa"; code: string }
+  verification: { method: "code"; code: string }
 }

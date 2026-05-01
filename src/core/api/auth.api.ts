@@ -46,6 +46,13 @@ export const authApi = {
   },
 
   // Logout all sessions
+  async requestLogoutAllCode(): Promise<ApiResponse<{ message: string }>> {
+    const response = await http.post<ApiResponse<{ message: string }>>(
+      "/auth/logout-all/request",
+    );
+    return response.data;
+  },
+
   async logoutAll(data: LogoutAllRequest): Promise<void> {
     await http.post("/auth/logout-all", data);
   },
@@ -57,8 +64,11 @@ export const authApi = {
   },
 
   // Get user sessions
-  async getSessions(): Promise<ApiResponse<Session[]>> {
-    const response = await http.get<ApiResponse<Session[]>>("/auth/sessions");
+  async getSessions(): Promise<ApiResponse<Session[] | { sessions: Session[] }>> {
+    const response =
+      await http.get<ApiResponse<Session[] | { sessions: Session[] }>>(
+        "/auth/sessions",
+      );
     return response.data;
   },
 
