@@ -3,16 +3,18 @@
 import React from "react"
 
 import { useState, useEffect } from "react"
+import { useQueryClient } from "@tanstack/react-query"
 import { Link, useSearchParams, useNavigate } from "react-router-dom"
 import { CheckCircle, AlertCircle, Ship, Mail, ArrowRight } from "lucide-react"
 import { GlassCard, GlassInput, GlassButton } from "@/shared/components/glass"
 import { Spinner } from "@/shared/components/feedback"
-import { authApi } from "@/core/api"
+import { authApi, usersApi } from "@/core/api"
 import { useAuthStore } from "@/app/stores/auth-store"
 
 export function VerifyEmailPage() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const token = searchParams.get("token")
   const { isAuthenticated, user, updateUser } = useAuthStore()
 
@@ -40,8 +42,9 @@ export function VerifyEmailPage() {
 
       // If user is logged in, update their profile
       if (isAuthenticated && user) {
-        const response = await authApi.me()
+        const response = await usersApi.getMe()
         if (response.data) {
+          queryClient.setQueryData(["me"], response.data)
           updateUser(response.data)
         }
       }
@@ -210,7 +213,7 @@ export function VerifyEmailPage() {
                     value={resendEmail}
                     onChange={(e) => setResendEmail(e.target.value)}
                     placeholder="correo@ejemplo.com"
-                    icon={<Mail className="w-5 h-5" />}
+                    leftIcon={<Mail className="w-5 h-5" />}
                     required
                   />
                 )}

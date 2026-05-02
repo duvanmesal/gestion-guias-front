@@ -41,6 +41,8 @@ export const useAuthStore = create<AuthState>()(
     {
       name: "auth-storage",
       storage: createJSONStorage(() => sessionStorage),
+      // accessToken lives only in memory — never written to sessionStorage
+      partialize: (state) => ({ user: state.user, isAuthenticated: state.isAuthenticated }),
     },
   ),
 )

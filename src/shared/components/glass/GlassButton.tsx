@@ -17,43 +17,57 @@ export function GlassButton({
   fullWidth = false,
   className = "",
   disabled,
+  style,
   ...props
 }: GlassButtonProps) {
-  const baseClasses =
-    "rounded-xl font-semibold transition-all duration-200 focus-ring active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2 relative overflow-hidden"
+  const base =
+    "rounded-xl font-semibold transition-all duration-150 focus-ring active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2"
 
-  const variantClasses = {
-    // Verde CORPOTURISMO - Acciones principales
-    primary:
-      "bg-[rgb(var(--color-primary))] text-white shadow-md hover:shadow-lg hover:brightness-110 border border-[rgb(var(--color-primary))]",
-    // Dorado CORPOTURISMO - Acciones secundarias/destacadas
-    secondary:
-      "bg-[rgb(var(--color-accent))] text-white shadow-md hover:shadow-lg hover:brightness-110 border border-[rgb(var(--color-accent))]",
-    // Acento dorado con estilo glass
-    accent:
-      "glass border border-[rgb(var(--color-accent)/0.3)] text-[rgb(var(--color-accent))] hover:bg-[rgb(var(--color-accent)/0.1)] hover:border-[rgb(var(--color-accent)/0.5)]",
-    // Glass style
-    glass:
-      "glass border border-[rgb(var(--color-border)/0.08)] text-[rgb(var(--color-fg))] hover:bg-[rgb(var(--color-glass-hover)/0.5)] hover:border-[rgb(var(--color-border)/0.12)]",
-    // Rojo CORPOTURISMO - Acciones críticas/alertas
-    danger:
-      "bg-[rgb(var(--color-danger))] text-white shadow-md hover:shadow-lg hover:brightness-110 border border-[rgb(var(--color-danger))]",
-    // Ghost - Sin fondo
-    ghost:
-      "text-[rgb(var(--color-fg)/0.8)] hover:bg-[rgb(var(--color-glass)/0.5)] hover:text-[rgb(var(--color-fg))]",
+  const variants: Record<string, React.CSSProperties> = {
+    primary: {
+      background: "var(--gradient-primary)",
+      color: "rgb(var(--color-bg-elevated))",
+      border: "none",
+      boxShadow: "var(--shadow-primary)",
+    },
+    secondary: {
+      background: "rgba(var(--color-border), 0.04)",
+      color: "rgb(var(--color-fg))",
+      border: "1px solid rgba(var(--color-border), 0.08)",
+    },
+    accent: {
+      background: "rgba(var(--color-accent), 0.1)",
+      color: "rgb(var(--color-accent))",
+      border: "1px solid rgba(var(--color-accent), 0.25)",
+    },
+    glass: {
+      background: "rgba(var(--color-border), 0.03)",
+      color: "rgb(var(--color-fg))",
+      border: "1px solid rgba(var(--color-border), 0.08)",
+    },
+    danger: {
+      background: "var(--gradient-danger)",
+      color: "rgb(var(--color-bg-elevated))",
+      border: "none",
+      boxShadow: "0 4px 14px rgba(var(--color-danger), 0.2)",
+    },
+    ghost: {
+      background: "transparent",
+      color: "rgb(var(--color-fg-secondary, var(--color-muted)))",
+      border: "none",
+    },
   }
 
-  const sizeClasses = {
-    sm: "px-3 py-2 text-sm",
-    md: "px-5 py-2.5 text-sm",
+  const sizes: Record<string, string> = {
+    sm: "px-3 py-1.5 text-sm",
+    md: "px-4 py-2.5 text-sm",
     lg: "px-6 py-3 text-base",
   }
 
-  const widthClass = fullWidth ? "w-full" : ""
-
   return (
     <button
-      className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${widthClass} ${className}`}
+      className={`${base} ${sizes[size]} ${fullWidth ? "w-full" : ""} ${className}`}
+      style={{ ...variants[variant], ...style }}
       disabled={disabled || loading}
       {...props}
     >

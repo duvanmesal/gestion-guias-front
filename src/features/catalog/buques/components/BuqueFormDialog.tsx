@@ -127,8 +127,8 @@ export function BuqueFormDialog({
         await createBuqueAsync(payload)
       }
       onSuccess()
-    } catch (error) {
-      console.error("Error saving buque:", error)
+    } catch {
+      // errors are surfaced via React Query's mutation state
     }
   }
 

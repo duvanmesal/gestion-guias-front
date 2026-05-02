@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Mail, LogOut, Ship, CheckCircle, AlertCircle } from "lucide-react";
 
@@ -11,42 +12,79 @@ import { useAuthStore } from "@/app/stores/auth-store";
 
 export function VerifyNeededPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { user, clearSession, updateUser } = useAuthStore();
 
-  const [isChecking, setIsChecking] = useState(true);
+  const [isChecking, setIsChecking] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   /**
    * =========================================================
-   * 🔑 HIDRATAR USUARIO REAL (SOLO /users/me)
+   * 🔑 HIDRATAR USUARIO REAL Y DETECTAR VERIFICACIÓN REMOTA
    * =========================================================
    */
   useEffect(() => {
     let mounted = true;
+    let inFlight = false;
 
-    const hydrate = async () => {
+    const syncVerificationStatus = async () => {
+      if (inFlight) return;
+
+      inFlight = true;
+
+      if (mounted) {
+        setIsChecking(true);
+      }
+
       try {
         const me = await usersApi.getMe();
         if (mounted && me.data) {
+          queryClient.setQueryData(["me"], me.data);
           updateUser(me.data);
+
+          if (me.data.emailVerifiedAt) {
+            navigate("/dashboard", { replace: true });
+          }
         }
       } catch {
         // silencio: el guard decidirá
       } finally {
+        inFlight = false;
+
         if (mounted) {
           setIsChecking(false);
         }
       }
     };
 
-    hydrate();
+    syncVerificationStatus();
+
+    const intervalId = window.setInterval(() => {
+      syncVerificationStatus();
+    }, 5000);
+
+    const syncWhenVisible = () => {
+      if (document.visibilityState === "visible") {
+        syncVerificationStatus();
+      }
+    };
+
+    const syncWhenFocused = () => {
+      syncVerificationStatus();
+    };
+
+    window.addEventListener("focus", syncWhenFocused);
+    document.addEventListener("visibilitychange", syncWhenVisible);
 
     return () => {
       mounted = false;
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", syncWhenFocused);
+      document.removeEventListener("visibilitychange", syncWhenVisible);
     };
-  }, [updateUser]);
+  }, [navigate, queryClient, updateUser]);
 
   /**
    * =========================================================
@@ -61,6 +99,7 @@ export function VerifyNeededPage() {
       try {
         const me = await usersApi.getMe();
         if (me.data) {
+          queryClient.setQueryData(["me"], me.data);
           updateUser(me.data);
           email = me.data.email;
         }
@@ -104,26 +143,6 @@ export function VerifyNeededPage() {
       navigate("/login", { replace: true });
     }
   };
-
-  /**
-   * =========================================================
-   * ⏳ LOADING INICIAL
-   * =========================================================
-   */
-  if (isChecking) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-[rgb(var(--color-bg))]">
-        <GlassCard className="w-full max-w-md">
-          <div className="py-10 flex flex-col items-center justify-center gap-3">
-            <Spinner />
-            <p className="text-sm text-[rgb(var(--color-fg)/0.7)]">
-              Verificando estado de tu cuenta...
-            </p>
-          </div>
-        </GlassCard>
-      </div>
-    );
-  }
 
   /**
    * =========================================================
@@ -198,6 +217,13 @@ export function VerifyNeededPage() {
                   Revisa tu bandeja de entrada y haz clic en el enlace.
                 </p>
               </div>
+            </div>
+          )}
+
+          {isChecking && (
+            <div className="flex items-center justify-center gap-2 text-xs text-[rgb(var(--color-fg)/0.6)]">
+              <Spinner size="sm" />
+              Comprobando verificación automáticamente...
             </div>
           )}
 

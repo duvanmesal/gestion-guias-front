@@ -174,8 +174,8 @@ export function RecaladaFormDialog({
       }
 
       onSuccess?.();
-    } catch (error) {
-      console.error("Error saving recalada:", error);
+    } catch {
+      // errors are surfaced via React Query's mutation state
     }
   };
 

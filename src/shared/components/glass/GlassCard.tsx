@@ -2,8 +2,6 @@
 
 import React from "react"
 
-import type { ReactNode } from "react"
-
 export type GlassCardProps = React.HTMLAttributes<HTMLDivElement> & {
   hover?: boolean
   variant?: "default" | "subtle" | "strong"
@@ -15,20 +13,38 @@ export function GlassCard({
   hover = false,
   variant = "default",
   onClick,
+  style,
   ...rest
 }: GlassCardProps) {
-  const variantClasses = {
-    default: "glass",
-    subtle: "glass-subtle",
-    strong: "glass-strong",
+  const variantStyles: Record<string, React.CSSProperties> = {
+    default: {
+      background: "rgb(var(--color-bg-elevated))",
+      border: "1px solid rgba(var(--color-border), 0.07)",
+      boxShadow: "var(--shadow-md)",
+      borderRadius: "var(--radius-lg)",
+    },
+    subtle: {
+      background: "rgba(var(--color-border), 0.02)",
+      border: "1px solid rgba(var(--color-border), 0.05)",
+      boxShadow: "var(--shadow-sm)",
+      borderRadius: "var(--radius-md)",
+    },
+    strong: {
+      background: "rgb(var(--color-bg-elevated))",
+      border: "1px solid rgba(var(--color-border), 0.07)",
+      boxShadow: "var(--shadow-lg)",
+      borderRadius: "var(--radius-xl)",
+    },
   }
 
-  const hoverClass = hover ? "glass-hover cursor-pointer" : ""
-  const clickableClass = onClick ? "cursor-pointer" : ""
+  const hoverStyle: React.CSSProperties = hover
+    ? { cursor: "pointer", transition: "transform 0.2s, box-shadow 0.2s" }
+    : {}
 
   return (
     <div
-      className={`${variantClasses[variant]} p-6 ${hoverClass} ${clickableClass} ${className}`}
+      className={`p-6 ${hover ? "hover:-translate-y-0.5 hover:shadow-lg" : ""} ${onClick ? "cursor-pointer" : ""} ${className}`}
+      style={{ ...variantStyles[variant], ...hoverStyle, ...style }}
       onClick={onClick}
       {...rest}
     >
@@ -39,11 +55,7 @@ export function GlassCard({
 
 export type GlassCardHeaderProps = React.HTMLAttributes<HTMLDivElement>
 
-export function GlassCardHeader({
-  children,
-  className = "",
-  ...rest
-}: GlassCardHeaderProps) {
+export function GlassCardHeader({ children, className = "", ...rest }: GlassCardHeaderProps) {
   return (
     <div className={`mb-5 ${className}`} {...rest}>
       {children}
@@ -53,14 +65,11 @@ export function GlassCardHeader({
 
 export type GlassCardTitleProps = React.HTMLAttributes<HTMLHeadingElement>
 
-export function GlassCardTitle({
-  children,
-  className = "",
-  ...rest
-}: GlassCardTitleProps) {
+export function GlassCardTitle({ children, className = "", ...rest }: GlassCardTitleProps) {
   return (
     <h3
-      className={`text-lg font-bold text-[rgb(var(--color-fg))] tracking-tight ${className}`}
+      className={`text-lg font-bold tracking-tight ${className}`}
+      style={{ color: "rgb(var(--color-fg))" }}
       {...rest}
     >
       {children}
@@ -70,14 +79,11 @@ export function GlassCardTitle({
 
 export type GlassCardDescriptionProps = React.HTMLAttributes<HTMLParagraphElement>
 
-export function GlassCardDescription({
-  children,
-  className = "",
-  ...rest
-}: GlassCardDescriptionProps) {
+export function GlassCardDescription({ children, className = "", ...rest }: GlassCardDescriptionProps) {
   return (
     <p
-      className={`text-sm text-[rgb(var(--color-muted))] mt-1 ${className}`}
+      className={`text-sm mt-1 ${className}`}
+      style={{ color: "rgb(var(--color-muted))" }}
       {...rest}
     >
       {children}
@@ -87,13 +93,9 @@ export function GlassCardDescription({
 
 export type GlassCardContentProps = React.HTMLAttributes<HTMLDivElement>
 
-export function GlassCardContent({
-  children,
-  className = "",
-  ...rest
-}: GlassCardContentProps) {
+export function GlassCardContent({ children, className = "", ...rest }: GlassCardContentProps) {
   return (
-    <div className={`text-[rgb(var(--color-fg)/0.9)] ${className}`} {...rest}>
+    <div className={className} style={{ color: "rgb(var(--color-fg))" }} {...rest}>
       {children}
     </div>
   )
@@ -101,14 +103,11 @@ export function GlassCardContent({
 
 export type GlassCardFooterProps = React.HTMLAttributes<HTMLDivElement>
 
-export function GlassCardFooter({
-  children,
-  className = "",
-  ...rest
-}: GlassCardFooterProps) {
+export function GlassCardFooter({ children, className = "", ...rest }: GlassCardFooterProps) {
   return (
     <div
-      className={`mt-5 pt-4 border-t border-[rgb(var(--color-border)/0.06)] ${className}`}
+      className={`mt-5 pt-4 ${className}`}
+      style={{ borderTop: "1px solid rgba(var(--color-border), 0.07)" }}
       {...rest}
     >
       {children}

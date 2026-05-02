@@ -12,132 +12,109 @@ interface GlassInputProps extends InputHTMLAttributes<HTMLInputElement> {
 
 function hasNonEmptyValue(v: unknown): boolean {
   if (v === null || v === undefined) return false
-  const s = String(v)
-  return s.trim().length > 0
+  return String(v).trim().length > 0
 }
 
 export const GlassInput = forwardRef<HTMLInputElement, GlassInputProps>(
   ({ label, error, helperText, leftIcon, className = "", placeholder, ...props }, ref) => {
     const [isFocused, setIsFocused] = useState(false)
-    // Estado interno para rastrear si el input tiene contenido (para inputs no controlados)
-    const [hasInternalValue, setHasInternalValue] = useState(() => 
+    const [hasInternalValue, setHasInternalValue] = useState(() =>
       hasNonEmptyValue(props.value) || hasNonEmptyValue(props.defaultValue)
     )
     const inputRef = useRef<HTMLInputElement>(null)
 
-    // Combinar refs para poder acceder internamente y pasar al padre
     const setRefs = useCallback((node: HTMLInputElement | null) => {
       (inputRef as React.MutableRefObject<HTMLInputElement | null>).current = node
-      if (typeof ref === 'function') {
-        ref(node)
-      } else if (ref) {
-        ref.current = node
-      }
+      if (typeof ref === 'function') ref(node)
+      else if (ref) ref.current = node
     }, [ref])
 
-    // Sincronizar estado cuando cambia value controlado
     useEffect(() => {
-      if (props.value !== undefined) {
-        setHasInternalValue(hasNonEmptyValue(props.value))
-      }
+      if (props.value !== undefined) setHasInternalValue(hasNonEmptyValue(props.value))
     }, [props.value])
 
-    // Detectar autofill del navegador
     useEffect(() => {
       const input = inputRef.current
       if (!input) return
-
-      // Verificar inmediatamente por si ya tiene valor
-      const checkValue = () => {
-        if (input.value && input.value.length > 0) {
-          setHasInternalValue(true)
-        }
-      }
-      
-      checkValue()
-
-      // Detectar autofill via animationstart (técnica estándar)
-      const handleAnimationStart = (e: AnimationEvent) => {
-        if (e.animationName === 'onAutoFillStart') {
-          setHasInternalValue(true)
-        }
-      }
-
-      // También verificar en input event por si acaso
-      const handleInput = () => checkValue()
-
-      input.addEventListener('animationstart', handleAnimationStart)
-      input.addEventListener('input', handleInput)
-
-      // Pequeño delay para capturar autofill inicial del navegador
-      const timeoutId = setTimeout(checkValue, 100)
-
-      return () => {
-        input.removeEventListener('animationstart', handleAnimationStart)
-        input.removeEventListener('input', handleInput)
-        clearTimeout(timeoutId)
-      }
+      const check = () => { if (input.value?.length > 0) setHasInternalValue(true) }
+      check()
+      const onAnim = (e: AnimationEvent) => { if (e.animationName === 'onAutoFillStart') setHasInternalValue(true) }
+      input.addEventListener('animationstart', onAnim)
+      input.addEventListener('input', check)
+      const t = setTimeout(check, 100)
+      return () => { input.removeEventListener('animationstart', onAnim); input.removeEventListener('input', check); clearTimeout(t) }
     }, [])
 
-    // El label flota si: hay focus, tiene valor controlado, o tiene valor interno
     const shouldFloat = isFocused || hasNonEmptyValue(props.value) || hasInternalValue
-
-    // El placeholder solo se muestra cuando:
-    // 1. No hay label (comportamiento normal)
-    // 2. O hay label Y el label ya esta flotando (para evitar superposicion)
-    // Esto evita que placeholder y label compitan visualmente
     const showPlaceholder = !label || shouldFloat
 
-    const handleFocus = () => setIsFocused(true)
-    
-    const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
-      setIsFocused(false)
-      // Actualizar estado interno basado en el valor actual del input
-      setHasInternalValue(hasNonEmptyValue(e.target.value))
-      props.onBlur?.(e)
-    }
+    const borderColor = error
+      ? "rgba(var(--color-danger), 0.5)"
+      : isFocused
+      ? "rgb(var(--color-primary))"
+      : "rgba(var(--color-border), 0.12)"
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      // Actualizar estado interno para inputs no controlados
-      setHasInternalValue(hasNonEmptyValue(e.target.value))
-      props.onChange?.(e)
-    }
+    const boxShadow = error
+      ? "0 0 0 3px rgba(var(--color-danger), 0.1)"
+      : isFocused
+      ? "0 0 0 3px rgba(var(--color-primary), 0.12)"
+      : "none"
 
     return (
       <div className="w-full">
-        <div className="relative glass-input-wrapper">
+        <div className="relative">
           <div
-            className={`glass rounded-xl px-4 py-3 transition-all duration-200 ${
-              isFocused ? "glass-input-focused" : ""
-            } ${error ? "border-[rgb(var(--color-danger))] border-2" : ""}`}
+            style={{
+              background: error ? "rgba(var(--color-danger), 0.03)" : "rgb(var(--color-bg-elevated))",
+              border: `1.5px solid ${borderColor}`,
+              borderRadius: "var(--radius-md)",
+              transition: "border-color 0.15s, box-shadow 0.15s",
+              boxShadow,
+              position: "relative",
+            }}
           >
             {leftIcon && (
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[rgb(var(--color-muted))]">
+              <span
+                className="absolute left-3.5 top-1/2 -translate-y-1/2"
+                style={{ color: "rgb(var(--color-muted))" }}
+              >
                 {leftIcon}
               </span>
             )}
 
-<input
+            <input
               ref={setRefs}
-              className={`bg-transparent w-full text-[rgb(var(--color-fg))] focus-ring border-none outline-none placeholder:text-[rgb(var(--color-muted)/0.6)] ${
-                label ? "pt-4" : ""
-              } ${leftIcon ? "pl-7" : ""} ${className}`}
-              onFocus={handleFocus}
-              onBlur={handleBlur}
-              onChange={handleChange}
+              className={`w-full bg-transparent outline-none text-sm ${
+                label ? "pt-5 pb-2" : "py-3"
+              } ${leftIcon ? "pl-10" : "px-3.5"} pr-3.5 ${className}`}
+              style={{ color: "rgb(var(--color-fg))" }}
+              onFocus={() => setIsFocused(true)}
+              onBlur={(e) => {
+                setIsFocused(false)
+                setHasInternalValue(hasNonEmptyValue(e.target.value))
+                props.onBlur?.(e)
+              }}
+              onChange={(e) => {
+                setHasInternalValue(hasNonEmptyValue(e.target.value))
+                props.onChange?.(e)
+              }}
               placeholder={showPlaceholder ? placeholder : undefined}
               {...props}
             />
 
             {label && (
               <label
-                className={`absolute left-4 transition-all duration-200 pointer-events-none font-medium ${
-                  leftIcon ? "left-11" : ""
-                } ${
-                  shouldFloat
-                    ? "top-2 text-xs text-[rgb(var(--color-primary))]"
-                    : "top-1/2 -translate-y-1/2 text-sm text-[rgb(var(--color-muted))]"
-                }`}
+                className="absolute pointer-events-none font-medium transition-all duration-150"
+                style={{
+                  left: leftIcon ? "2.5rem" : "0.875rem",
+                  top: shouldFloat ? "0.375rem" : "50%",
+                  transform: shouldFloat ? "none" : "translateY(-50%)",
+                  fontSize: shouldFloat ? 11 : 14,
+                  color: shouldFloat
+                    ? (error ? "rgb(var(--color-danger))" : "rgb(var(--color-primary))")
+                    : "rgb(var(--color-muted))",
+                  fontWeight: shouldFloat ? 600 : 400,
+                }}
               >
                 {label}
               </label>
@@ -146,12 +123,18 @@ export const GlassInput = forwardRef<HTMLInputElement, GlassInputProps>(
         </div>
 
         {error && (
-          <p className="mt-2 text-sm text-[rgb(var(--color-danger))] font-medium animate-fade-in-up">
+          <p
+            className="mt-1.5 text-xs font-medium flex items-center gap-1 animate-fade-in-up"
+            style={{ color: "rgb(var(--color-danger))" }}
+          >
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
             {error}
           </p>
         )}
         {helperText && !error && (
-          <p className="mt-2 text-sm text-[rgb(var(--color-muted))]">{helperText}</p>
+          <p className="mt-1.5 text-xs" style={{ color: "rgb(var(--color-muted))" }}>{helperText}</p>
         )}
       </div>
     )

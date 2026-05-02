@@ -11,7 +11,6 @@ import {
   ChevronRight,
   MapPin,
   Ship,
-  Compass,
   Anchor,
   Clock,
   Activity,
@@ -246,7 +245,7 @@ function SidebarWidgetCard({
   })()
 
   return (
-    <div className="glass-subtle rounded-2xl border border-[rgb(var(--color-border)/0.06)] overflow-hidden">
+    <div className="rounded-2xl overflow-hidden" style={{ background: "rgba(var(--color-border), 0.02)", border: "1px solid rgba(var(--color-border), 0.06)" }}>
       <Clickable
         to={clickableTo}
         onNavigate={onNavigate}
@@ -282,7 +281,10 @@ function SidebarWidgetCard({
                 onNavigate(clickableTo)
               }
             }}
-            className={`mt-3 w-full text-left text-xs font-medium px-3 py-2 rounded-xl hover:bg-[rgb(var(--color-glass-hover)/0.55)] transition-colors focus-ring ${styles.ring} cursor-pointer`}
+            className={`mt-3 w-full text-left text-xs font-medium px-3 py-2 rounded-xl transition-colors focus-ring cursor-pointer`}
+            style={{ color: "rgb(var(--color-fg))" }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "rgba(var(--color-border), 0.05)"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
           >
             <span className="inline-flex items-center justify-between w-full">
               <span className="text-[rgb(var(--color-fg))]">{primaryAction.label}</span>
@@ -349,13 +351,17 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
       <aside
         className={`
-          glass-strong fixed left-0 top-16 bottom-0 w-64 z-40
+          fixed left-0 top-16 bottom-0 w-64 z-40
           transition-transform duration-300 ease-out
-          border-r border-[rgb(var(--color-border)/0.06)]
+          flex flex-col
           ${isOpen ? "translate-x-0" : "-translate-x-full"}
           md:translate-x-0
-          flex flex-col
         `}
+        style={{
+          background: "rgb(var(--color-bg-elevated))",
+          borderRight: "1px solid rgba(var(--color-border), 0.07)",
+          boxShadow: "2px 0 16px rgba(var(--color-border), 0.04)",
+        }}
       >
         <button
           onClick={onClose}
@@ -366,14 +372,19 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         </button>
 
         {/* Header fijo */}
-        <div className="p-5 border-b border-[rgb(var(--color-border)/0.06)]">
+        <div className="p-4" style={{ borderBottom: "1px solid rgba(var(--color-border), 0.06)" }}>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[rgb(var(--color-primary))] flex items-center justify-center">
-              <Compass className="w-5 h-5 text-white" />
+            <div
+              className="w-9 h-9 rounded-xl flex items-center justify-center"
+              style={{ background: "var(--gradient-primary)" }}
+            >
+              <Anchor className="w-4 h-4 text-white" />
             </div>
             <div>
-              <p className="font-bold text-[rgb(var(--color-fg))]">CORPOTURISMO</p>
-              <p className="text-xs text-[rgb(var(--color-muted))]">Gestion de Guias</p>
+              <p className="font-bold text-sm" style={{ color: "rgb(var(--color-fg))", letterSpacing: "-0.01em" }}>
+                CORPOTURISMO
+              </p>
+              <p className="text-xs" style={{ color: "rgb(var(--color-muted))" }}>Gestion de Guias</p>
             </div>
           </div>
         </div>
@@ -389,10 +400,10 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                 onClick={onClose}
                 style={{ animationDelay: `${index * 0.05}s` }}
                 className={({ isActive }) =>
-                  `flex items-center justify-between gap-3 px-4 py-3 rounded-xl transition-all duration-200 focus-ring group animate-fade-in-up ${
+                  `flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 focus-ring group animate-fade-in-up ${
                     isActive
-                      ? "bg-[rgb(var(--color-primary)/0.15)] text-[rgb(var(--color-primary))] border-l-3 border-[rgb(var(--color-primary))]"
-                      : "text-[rgb(var(--color-fg)/0.7)] hover:bg-[rgb(var(--color-glass-hover)/0.5)] hover:text-[rgb(var(--color-fg))]"
+                      ? "bg-[rgba(var(--color-primary),0.08)] text-[rgb(var(--color-primary))]"
+                      : "text-[rgb(var(--color-fg-secondary,var(--color-muted)))] hover:bg-[rgba(var(--color-border),0.04)] hover:text-[rgb(var(--color-fg))]"
                   }`
                 }
               >
@@ -421,8 +432,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           )}
         </div>
 
-        {/* Degradado inferior fijo */}
-        <div className="h-16 bg-gradient-to-t from-[rgb(var(--color-primary)/0.06)] to-transparent pointer-events-none" />
+        <div className="h-8 bg-gradient-to-t from-[rgb(var(--color-bg-elevated))] to-transparent pointer-events-none" />
       </aside>
     </>
   )

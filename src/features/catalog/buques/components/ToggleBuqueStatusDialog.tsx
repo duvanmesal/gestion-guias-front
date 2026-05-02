@@ -27,8 +27,8 @@ export function ToggleBuqueStatusDialog({ isOpen, onClose, buque, onSuccess }: T
         },
       })
       onSuccess()
-    } catch (error) {
-      console.error("Error toggling buque status:", error)
+    } catch {
+      // errors are surfaced via React Query's mutation state
     }
   }
 

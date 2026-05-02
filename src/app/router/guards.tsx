@@ -104,16 +104,21 @@ interface GuestRouteProps {
 }
 
 export function GuestRoute({ children }: GuestRouteProps) {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, user, isLoading } = useAuth();
 
   // Esperar a que auth esté listo - MOSTRAR LOADER
   if (isLoading) {
     return <FullPageLoader />;
   }
 
-  // Si ya está autenticado → dashboard
+  // Si ya está autenticado → destino según verificación
   if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
+    return (
+      <Navigate
+        to={user?.emailVerifiedAt ? "/dashboard" : "/verify-needed"}
+        replace
+      />
+    );
   }
 
   return <>{children}</>;

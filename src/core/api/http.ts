@@ -2,9 +2,14 @@ import axios, { type AxiosError, type InternalAxiosRequestConfig } from "axios"
 import { generateRequestId } from "@/core/utils/request-id"
 import { useAuthStore } from "@/app/stores/auth-store"
 
+const apiUrl = import.meta.env.VITE_API_URL
+if (!apiUrl && import.meta.env.PROD) {
+  throw new Error("VITE_API_URL is not set. Refusing to start in production without an API URL.")
+}
+
 // Create axios instance
 export const http = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:3000/api/v1",
+  baseURL: apiUrl || "http://localhost:3000/api/v1",
   withCredentials: true,
   headers: {
     "Accept": "application/json",

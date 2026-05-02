@@ -111,8 +111,8 @@ export function AtencionFormDialog({
         await createAtencionAsync(createData)
       }
       onSuccess?.()
-    } catch (error) {
-      console.error("Error saving atencion:", error)
+    } catch {
+      // errors are surfaced via React Query's mutation state
     }
   }
 

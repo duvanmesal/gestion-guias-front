@@ -85,8 +85,8 @@ export function PaisFormDialog({ isOpen, onClose, pais, onSuccess }: PaisFormDia
         })
       }
       onSuccess()
-    } catch (error) {
-      console.error("Error saving pais:", error)
+    } catch {
+      // errors are surfaced via React Query's mutation state
     }
   }
 

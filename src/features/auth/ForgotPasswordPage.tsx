@@ -1,12 +1,7 @@
-'use client';
-
-import React from "react"
-
 import { useState } from "react"
 import { Link } from "react-router-dom"
-import { Mail, ArrowLeft, CheckCircle, AlertCircle, Ship } from "lucide-react"
-import { GlassCard, GlassInput, GlassButton } from "@/shared/components/glass"
-import { Spinner } from "@/shared/components/feedback"
+import { MailOpen, Mail, ArrowLeft, Send, LogIn, Info, CheckCircle } from "lucide-react"
+import { GlassInput } from "@/shared/components/glass/GlassInput"
 import { authApi } from "@/core/api"
 
 export function ForgotPasswordPage() {
@@ -15,11 +10,12 @@ export function ForgotPasswordPage() {
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const isValidEmail = email.includes("@") && email.includes(".")
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
     setIsLoading(true)
-
     try {
       await authApi.forgotPassword({ email })
       setIsSubmitted(true)
@@ -30,102 +26,144 @@ export function ForgotPasswordPage() {
     }
   }
 
-  const isValidEmail = email.includes("@") && email.includes(".")
-
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-[rgb(var(--color-bg))]">
-      {/* Background decoration */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/10 rounded-full blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-accent/10 rounded-full blur-3xl" />
-      </div>
+    <div className="min-h-[100dvh] flex flex-col bg-[rgb(var(--color-bg))] relative overflow-hidden">
+      {/* Top blue glow */}
+      <div
+        className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 w-[420px] h-[420px] rounded-full"
+        style={{ background: "radial-gradient(circle, rgba(var(--color-primary), 0.10) 0%, transparent 70%)" }}
+      />
 
-      <GlassCard className="w-full max-w-md relative z-10">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-4">
-            <Ship className="w-8 h-8 text-primary" />
-          </div>
-          <h1 className="text-2xl font-bold text-[rgb(var(--color-fg))]">
-            Recuperar Contraseña
-          </h1>
-          <p className="text-[rgb(var(--color-fg)/0.7)] mt-2">
-            CORPOTURISMO - Sistema de Gestión de Guías
-          </p>
+      <div className="flex-1 flex flex-col w-full max-w-sm mx-auto px-6 py-10 sm:py-14 relative z-10">
+
+        {/* Back button */}
+        <div className="flex items-center gap-2.5 mb-10">
+          <Link
+            to="/login"
+            className="w-10 h-10 rounded-xl flex items-center justify-center transition-all"
+            style={{
+              background: "rgb(var(--color-bg-elevated))",
+              border: "1px solid rgba(var(--color-primary), 0.15)",
+            }}
+          >
+            <ArrowLeft className="w-[18px] h-[18px] text-[rgb(var(--color-fg))]" />
+          </Link>
+          <span className="text-sm font-semibold text-[rgb(var(--color-muted))]">Volver</span>
         </div>
 
         {isSubmitted ? (
-          /* Success State */
-          <div className="text-center py-6">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
-              <CheckCircle className="w-8 h-8 text-primary" />
+          /* ── Success state ── */
+          <div className="flex flex-col items-center text-center gap-6 mt-4">
+            <div
+              className="w-24 h-24 rounded-[28px] flex items-center justify-center"
+              style={{
+                background: "var(--gradient-primary)",
+                boxShadow: "0 12px 32px rgba(var(--color-primary), 0.35)",
+              }}
+            >
+              <CheckCircle className="w-11 h-11 text-white" />
             </div>
-            <h2 className="text-xl font-semibold text-[rgb(var(--color-fg))] mb-2">
-              Solicitud Enviada
-            </h2>
-            <p className="text-[rgb(var(--color-fg)/0.7)] mb-6">
-              Si el correo existe, recibirás instrucciones para restablecer tu contraseña.
-            </p>
-            <Link to="/login">
-              <GlassButton variant="primary" className="w-full">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Volver a Iniciar Sesión
-              </GlassButton>
+            <div>
+              <h1 className="text-2xl font-extrabold text-[rgb(var(--color-fg))]">
+                ¡Solicitud Enviada!
+              </h1>
+              <p className="mt-3 text-sm text-[rgb(var(--color-muted))] leading-relaxed">
+                Si el correo existe en nuestro sistema, recibirás las instrucciones en los próximos minutos.
+              </p>
+            </div>
+            <Link
+              to="/login"
+              className="w-full h-[56px] rounded-2xl flex items-center justify-center gap-2.5 text-white text-[16px] font-bold"
+              style={{
+                background: "var(--gradient-primary)",
+                boxShadow: "0 6px 20px rgba(var(--color-primary), 0.35)",
+              }}
+            >
+              <LogIn className="w-5 h-5" />
+              Volver al inicio de sesión
             </Link>
           </div>
         ) : (
-          /* Form State */
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <p className="text-[rgb(var(--color-fg)/0.7)] text-sm">
-              Ingresa tu correo electrónico y te enviaremos un enlace para restablecer tu contraseña.
-            </p>
-
-            {error && (
-              <div className="flex items-center gap-3 p-4 rounded-xl bg-danger/10 border border-danger/20">
-                <AlertCircle className="w-5 h-5 text-danger flex-shrink-0" />
-                <p className="text-sm text-danger">{error}</p>
-              </div>
-            )}
-
-            <GlassInput
-              label="Correo Electrónico"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="correo@ejemplo.com"
-              icon={<Mail className="w-5 h-5" />}
-              required
-              autoFocus
-            />
-
-            <GlassButton
-              type="submit"
-              variant="primary"
-              className="w-full"
-              disabled={isLoading || !isValidEmail}
-            >
-              {isLoading ? (
-                <>
-                  <Spinner size="sm" className="mr-2" />
-                  Enviando...
-                </>
-              ) : (
-                "Enviar Enlace de Recuperación"
-              )}
-            </GlassButton>
-
-            <div className="text-center">
-              <Link
-                to="/login"
-                className="text-sm text-primary hover:text-primary/80 transition-colors inline-flex items-center gap-1"
+          /* ── Form state ── */
+          <>
+            {/* Illustration + heading */}
+            <div className="flex flex-col items-center text-center gap-5 mb-8">
+              <div
+                className="w-24 h-24 rounded-[28px] flex items-center justify-center"
+                style={{
+                  background: "var(--gradient-primary)",
+                  boxShadow: "0 12px 32px rgba(var(--color-primary), 0.35)",
+                }}
               >
-                <ArrowLeft className="w-4 h-4" />
-                Volver a Iniciar Sesión
-              </Link>
+                <MailOpen className="w-11 h-11 text-white" />
+              </div>
+              <div>
+                <h1 className="text-[26px] font-extrabold leading-tight text-[rgb(var(--color-fg))]">
+                  ¿Olvidaste tu contraseña?
+                </h1>
+                <p className="mt-2 text-sm text-[rgb(var(--color-muted))] leading-relaxed">
+                  Ingresa tu correo y te enviaremos un enlace para restablecer tu contraseña.
+                </p>
+              </div>
             </div>
-          </form>
+
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+              <GlassInput
+                label="Correo electrónico"
+                type="email"
+                placeholder="correo@ejemplo.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                leftIcon={<Mail className="w-[18px] h-[18px] text-[rgb(var(--color-primary))]" />}
+                error={error ?? undefined}
+                required
+                autoFocus
+              />
+
+              <div className="flex items-center gap-2">
+                <Info className="w-[13px] h-[13px] text-[rgb(var(--color-muted))] shrink-0" />
+                <span className="text-[12px] text-[rgb(var(--color-muted))]">
+                  Recibirás el enlace en los próximos minutos.
+                </span>
+              </div>
+
+              <button
+                type="submit"
+                disabled={isLoading || !isValidEmail}
+                className="mt-2 w-full h-[56px] rounded-2xl flex items-center justify-center gap-2.5 text-white text-[16px] font-bold transition-all active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
+                style={{
+                  background: "var(--gradient-primary)",
+                  boxShadow: "0 6px 20px rgba(var(--color-primary), 0.35)",
+                }}
+              >
+                {isLoading ? (
+                  <span className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <>
+                    Enviar enlace
+                    <Send className="w-5 h-5" />
+                  </>
+                )}
+              </button>
+            </form>
+
+            {/* Divider + back link */}
+            <div className="flex items-center gap-3 mt-8">
+              <div className="flex-1 h-px bg-[rgb(var(--color-glass))]" />
+              <span className="text-[11px] text-[rgb(var(--color-muted))]">o</span>
+              <div className="flex-1 h-px bg-[rgb(var(--color-glass))]" />
+            </div>
+
+            <Link
+              to="/login"
+              className="mt-5 flex items-center justify-center gap-1.5 text-[13px] font-semibold text-[rgb(var(--color-primary))] hover:opacity-80 transition-opacity"
+            >
+              <LogIn className="w-[14px] h-[14px]" />
+              Volver al inicio de sesión
+            </Link>
+          </>
         )}
-      </GlassCard>
+      </div>
     </div>
   )
 }
