@@ -33,6 +33,8 @@ import { healthApi } from "@/core/api"
 import { useDashboardOverview } from "@/hooks/use-dashboard"
 import { useAuthStore } from "@/app/stores/auth-store"
 import { Rol } from "@/core/models/auth"
+import { useTurnoSocket } from "@/hooks/use-turno-socket"
+import { useRecaladaSocket } from "@/hooks/use-recalada-socket"
 
 function formatRange(fechaInicio: string, fechaFin: string) {
   const start = new Date(fechaInicio)
@@ -54,6 +56,9 @@ export function DashboardPage() {
 
   const isSupervisor = user?.rol === Rol.SUPER_ADMIN || user?.rol === Rol.SUPERVISOR
   const isGuia = user?.rol === Rol.GUIA
+
+  useTurnoSocket()
+  useRecaladaSocket()
 
   // Health (se mantiene)
   const { data: healthData, isLoading: isLoadingHealth } = useQuery({

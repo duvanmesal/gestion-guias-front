@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { authApi, usersApi } from "@/core/api";
 import { useAuthStore } from "@/app/stores/auth-store";
+import { socketClient } from "@/core/socket/socket.client";
 import type { LoginRequest, LogoutAllRequest } from "@/core/models/auth";
 
 export function useAuth() {
@@ -26,15 +27,15 @@ export function useAuth() {
    */
   const loginMutation = useMutation({
     mutationFn: (data: LoginRequest) => authApi.login(data),
+    meta: { suppressGlobalError: true },
 
     onSuccess: async (response) => {
       if (!response.data) return;
 
       // 1) Guardar sesión inicial (user parcial + token)
-      setSession(
-        response.data.user,
-        response.data.tokens.accessToken
-      );
+      const accessToken = response.data.tokens.accessToken
+      setSession(response.data.user, accessToken);
+      socketClient.connect(accessToken);
 
       // 2) Hidratar user real desde /auth/me (emailVerifiedAt + flags reales)
       try {
@@ -68,6 +69,7 @@ export function useAuth() {
   const logoutMutation = useMutation({
     mutationFn: () => authApi.logout(),
     onSuccess: () => {
+      socketClient.disconnect();
       clearSession();
       queryClient.clear();
       navigate("/login", { replace: true });
@@ -77,6 +79,7 @@ export function useAuth() {
   const logoutAllMutation = useMutation({
     mutationFn: (data: LogoutAllRequest) => authApi.logoutAll(data),
     onSuccess: () => {
+      socketClient.disconnect();
       clearSession();
       queryClient.clear();
       navigate("/login", { replace: true });

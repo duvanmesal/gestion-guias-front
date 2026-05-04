@@ -1,6 +1,7 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from "axios"
 import { generateRequestId } from "@/core/utils/request-id"
 import { useAuthStore } from "@/app/stores/auth-store"
+import { socketClient } from "@/core/socket/socket.client"
 
 const apiUrl = import.meta.env.VITE_API_URL
 if (!apiUrl && import.meta.env.PROD) {
@@ -133,10 +134,13 @@ async function refreshAccessToken(): Promise<void> {
 
   const { data } = response.data
   if (data?.tokens?.accessToken) {
+    const newToken = data.tokens.accessToken as string
     const currentUser = useAuthStore.getState().user
     if (currentUser) {
-      useAuthStore.getState().setSession(currentUser, data.tokens.accessToken)
+      useAuthStore.getState().setSession(currentUser, newToken)
     }
+    // Reconnect socket with new token (covers page-reload scenario)
+    socketClient.connect(newToken)
   } else {
     throw new Error("No access token in refresh response")
   }
