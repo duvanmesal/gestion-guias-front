@@ -55,13 +55,20 @@ export interface TurnoListItem {
   checkOutAt?: string | null
 }
 
+export type TurnoDateField = "overlap" | "createdAt" | "checkInAt" | "checkOutAt" | "canceledAt"
+
 // Query Params for listing turnos
 export interface TurnosQueryParams {
   page?: number
   pageSize?: number
   atencionId?: number
+  recaladaId?: number
+  buqueId?: number
   guiaId?: string
   status?: TurnoStatus
+  dateFrom?: string
+  dateTo?: string
+  dateField?: TurnoDateField
 }
 
 // Assign Turno Request

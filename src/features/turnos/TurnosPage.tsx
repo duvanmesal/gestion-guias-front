@@ -8,15 +8,21 @@ import { useQuery } from "@tanstack/react-query"
 import { AppShell } from "@/shared/components/layout/AppShell"
 import { GlassCard, GlassCardContent } from "@/shared/components/glass/GlassCard"
 import { GlassSelect } from "@/shared/components/glass/GlassSelect"
+import { GlassInput } from "@/shared/components/glass/GlassInput"
 import { GlassButton } from "@/shared/components/glass/GlassButton"
+import { SearchableCombobox } from "@/shared/components/glass/SearchableCombobox"
+import { FilterChips } from "@/shared/components/glass/FilterChips"
 import { Skeleton } from "@/shared/components/feedback/Skeleton"
 
 import { useTurnos } from "@/hooks/use-turnos"
+import { useGuidesLookup } from "@/hooks/use-guides"
+import { useBuquesLookup } from "@/hooks/use-buques"
+import { useTurnoSocket } from "@/hooks/use-turno-socket"
 import { atencionesApi } from "@/core/api"
 
 import { useAuthStore } from "@/app/stores/auth-store"
 import { Rol } from "@/core/models/auth"
-import type { TurnoStatus } from "@/core/models/turnos"
+import type { TurnoStatus, TurnoDateField } from "@/core/models/turnos"
 
 import { TurnoCard } from "./components/TurnoCard"
 
@@ -25,28 +31,41 @@ export function TurnosPage() {
 
   const [statusFilter, setStatusFilter] = useState<string>("")
   const [atencionFilter, setAtencionFilter] = useState<string>("")
+  const [guiaFilter, setGuiaFilter] = useState<string>("")
+  const [buqueFilter, setBuqueFilter] = useState<string>("")
+  const [dateFrom, setDateFrom] = useState<string>("")
+  const [dateTo, setDateTo] = useState<string>("")
+  const [dateField, setDateField] = useState<string>("overlap")
   const [page, setPage] = useState(1)
   const pageSize = 24
 
   const isSupervisor = user?.rol === Rol.SUPER_ADMIN || user?.rol === Rol.SUPERVISOR
   const isGuia = user?.rol === Rol.GUIA
 
-  // ✅ Solo supervisor/admin trae atenciones para el dropdown (evita 403 en GUIA)
   const { data: atencionesResp, isLoading: loadingAtenciones } = useQuery({
     queryKey: ["atenciones", { pageSize: 100 }],
     queryFn: () => atencionesApi.getAtenciones({ pageSize: 100 }),
     staleTime: 30_000,
     enabled: isSupervisor,
   })
-
   const atenciones = atencionesResp?.data ?? []
 
-  // ✅ Turnos: GUIA -> /turnos/me ; Supervisor/Admin -> /turnos
+  const { guides, isLoading: loadingGuias } = useGuidesLookup({ enabled: isSupervisor })
+  const { buques, isLoading: loadingBuques } = useBuquesLookup()
+
+  useTurnoSocket({
+    atencionId: isSupervisor && atencionFilter ? Number(atencionFilter) : undefined,
+  })
+
   const { turnos, meta, isLoading, refetch } = useTurnos(
     {
       status: statusFilter ? (statusFilter as TurnoStatus) : undefined,
-      // Solo aplica filtro de atencion si supervisor (GUIA puede seguir filtrando por status)
       atencionId: isSupervisor && atencionFilter ? Number(atencionFilter) : undefined,
+      guiaId: isSupervisor && guiaFilter ? guiaFilter : undefined,
+      buqueId: isSupervisor && buqueFilter ? Number(buqueFilter) : undefined,
+      dateFrom: dateFrom || undefined,
+      dateTo: dateTo || undefined,
+      dateField: dateField ? (dateField as TurnoDateField) : undefined,
       page,
       pageSize,
     },
@@ -56,13 +75,21 @@ export function TurnosPage() {
     },
   )
 
-  const handleStatusFilter = (value: string) => {
-    setStatusFilter(value)
+  const hasActiveFilters = !!(statusFilter || atencionFilter || guiaFilter || buqueFilter || dateFrom || dateTo)
+
+  const resetFilters = () => {
+    setStatusFilter("")
+    setAtencionFilter("")
+    setGuiaFilter("")
+    setBuqueFilter("")
+    setDateFrom("")
+    setDateTo("")
+    setDateField("overlap")
     setPage(1)
   }
 
-  const handleAtencionFilter = (value: string) => {
-    setAtencionFilter(value)
+  const handleFilterChange = (setter: (v: string) => void) => (value: string) => {
+    setter(value)
     setPage(1)
   }
 
@@ -76,17 +103,56 @@ export function TurnosPage() {
     { value: "NO_SHOW", label: "No-show" },
   ]
 
-  const atencionOptions = useMemo(() => {
-    if (!isSupervisor) return [{ value: "", label: "Todas las atenciones" }]
+  const dateFieldOptions = [
+    { value: "overlap", label: "Ventana del turno" },
+    { value: "createdAt", label: "Fecha de creación" },
+    { value: "checkInAt", label: "Fecha de check-in" },
+    { value: "checkOutAt", label: "Fecha de check-out" },
+    { value: "canceledAt", label: "Fecha de cancelación" },
+  ]
 
-    return [
-      { value: "", label: "Todas las atenciones" },
-      ...atenciones.map((a: any) => ({
-        value: String(a.id),
-        label: `Atención #${a.id} · ${new Date(a.fechaInicio).toLocaleDateString("es-CO")}`,
-      })),
-    ]
-  }, [atenciones, isSupervisor])
+  const atencionOptions = useMemo(() => atenciones.map((a: any) => ({
+    value: String(a.id),
+    label: `Atención #${a.id} · ${new Date(a.fechaInicio).toLocaleDateString("es-CO")}`,
+  })), [atenciones])
+
+  const guiaOptions = useMemo(() => guides.map((g) => ({
+    value: String(g.guiaId),
+    label: `${g.nombres ?? ""} ${g.apellidos ?? ""}`.trim() || g.email,
+  })), [guides])
+
+  const buqueOptions = useMemo(() => buques.map((b) => ({
+    value: String(b.id),
+    label: b.nombre,
+  })), [buques])
+
+  const statusLabel: Record<string, string> = {
+    AVAILABLE: "Libre", ASSIGNED: "Asignado", IN_PROGRESS: "En curso",
+    COMPLETED: "Completado", CANCELED: "Cancelado", NO_SHOW: "No-show",
+  }
+
+  const activeChips = useMemo(() => [
+    statusFilter && {
+      key: "status", label: `Estado: ${statusLabel[statusFilter] ?? statusFilter}`,
+      onRemove: () => handleFilterChange(setStatusFilter)(""),
+    },
+    atencionFilter && {
+      key: "atencion", label: `Atención: #${atencionFilter}`,
+      onRemove: () => handleFilterChange(setAtencionFilter)(""),
+    },
+    guiaFilter && {
+      key: "guia", label: `Guía: ${guiaOptions.find((g) => g.value === guiaFilter)?.label ?? guiaFilter}`,
+      onRemove: () => handleFilterChange(setGuiaFilter)(""),
+    },
+    buqueFilter && {
+      key: "buque", label: `Buque: ${buqueOptions.find((b) => b.value === buqueFilter)?.label ?? buqueFilter}`,
+      onRemove: () => handleFilterChange(setBuqueFilter)(""),
+    },
+    dateFrom && { key: "dateFrom", label: `Desde: ${dateFrom}`, onRemove: () => { setDateFrom(""); setPage(1) } },
+    dateTo && { key: "dateTo", label: `Hasta: ${dateTo}`, onRemove: () => { setDateTo(""); setPage(1) } },
+  ].filter(Boolean) as { key: string; label: string; onRemove: () => void }[], [
+    statusFilter, atencionFilter, guiaFilter, buqueFilter, dateFrom, dateTo, guiaOptions, buqueOptions,
+  ])
 
   // Stats summary (solo supervisor)
   const stats = useMemo(() => {
@@ -161,40 +227,90 @@ export function TurnosPage() {
         {/* Filters */}
         <div className="animate-fade-in-up" style={{ animationDelay: "0.05s" }}>
           <GlassCard variant="subtle">
-            <div className="flex flex-wrap items-center gap-4">
-              <div className="flex items-center gap-2 text-[rgb(var(--color-muted))]">
-                <Filter className="w-4 h-4" />
-                <span className="text-sm font-medium">Filtros:</span>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-[rgb(var(--color-muted))]">
+                  <Filter className="w-4 h-4" />
+                  <span className="text-sm font-medium">Filtros</span>
+                </div>
+                {hasActiveFilters && (
+                  <GlassButton variant="ghost" size="sm" onClick={resetFilters}>
+                    Limpiar filtros
+                  </GlassButton>
+                )}
               </div>
 
-              {/* ✅ GUIA: filtros simples (status). SUPERVISOR: status + atencion */}
-              <GlassSelect
-                options={statusOptions}
-                value={statusFilter}
-                onChange={(e) => handleStatusFilter(e.target.value)}
-              />
+              <div className="flex flex-wrap gap-3">
+                <div className="min-w-[180px] flex-1">
+                  <GlassSelect
+                    options={statusOptions}
+                    value={statusFilter}
+                    onChange={(e) => handleFilterChange(setStatusFilter)(e.target.value)}
+                  />
+                </div>
+
+                {isSupervisor && (
+                  <>
+                    <div className="min-w-[220px] flex-1">
+                      <SearchableCombobox
+                        options={atencionOptions}
+                        value={atencionFilter}
+                        onChange={handleFilterChange(setAtencionFilter)}
+                        placeholder="Todas las atenciones"
+                        disabled={loadingAtenciones}
+                      />
+                    </div>
+                    <div className="min-w-[200px] flex-1">
+                      <SearchableCombobox
+                        options={guiaOptions}
+                        value={guiaFilter}
+                        onChange={handleFilterChange(setGuiaFilter)}
+                        placeholder="Todos los guías"
+                        disabled={loadingGuias}
+                      />
+                    </div>
+                    <div className="min-w-[180px] flex-1">
+                      <SearchableCombobox
+                        options={buqueOptions}
+                        value={buqueFilter}
+                        onChange={handleFilterChange(setBuqueFilter)}
+                        placeholder="Todos los buques"
+                        disabled={loadingBuques}
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <FilterChips chips={activeChips} onClearAll={resetFilters} />
 
               {isSupervisor && (
-                <GlassSelect
-                  options={atencionOptions}
-                  value={atencionFilter}
-                  onChange={(e) => handleAtencionFilter(e.target.value)}
-                  disabled={loadingAtenciones}
-                />
-              )}
-
-              {(statusFilter || (isSupervisor && atencionFilter)) && (
-                <GlassButton
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setStatusFilter("")
-                    setAtencionFilter("")
-                    setPage(1)
-                  }}
-                >
-                  Limpiar filtros
-                </GlassButton>
+                <div className="flex flex-wrap items-end gap-3 pt-1 border-t border-[rgb(var(--color-border)/0.06)]">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs text-[rgb(var(--color-muted))]">Filtrar por</span>
+                    <GlassSelect
+                      options={dateFieldOptions}
+                      value={dateField}
+                      onChange={(e) => { setDateField(e.target.value); setPage(1) }}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs text-[rgb(var(--color-muted))]">Desde</span>
+                    <GlassInput
+                      type="date"
+                      value={dateFrom}
+                      onChange={(e) => { setDateFrom(e.target.value); setPage(1) }}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs text-[rgb(var(--color-muted))]">Hasta</span>
+                    <GlassInput
+                      type="date"
+                      value={dateTo}
+                      onChange={(e) => { setDateTo(e.target.value); setPage(1) }}
+                    />
+                  </div>
+                </div>
               )}
             </div>
           </GlassCard>
