@@ -11,6 +11,7 @@ import {
 import { GlassButton } from "@/shared/components/glass/GlassButton"
 import { GlassInput } from "@/shared/components/glass/GlassInput"
 import { GlassSelect } from "@/shared/components/glass/GlassSelect"
+import { FilterChips } from "@/shared/components/glass/FilterChips"
 import {
   GlassTable,
   GlassTableHeader,
@@ -110,13 +111,18 @@ export function UsersListPage() {
 
   const canCreateUser = currentUser?.rol === Rol.SUPER_ADMIN
 
-  const search = q; // Declare search variable
-  const rolFilter = roleFilter; // Declare rolFilter variable
-
-  const handleRolFilter = (value: string) => { // Declare handleRolFilter function
-    setRoleFilter(value)
-    setPage(1)
+  const roleLabel: Record<string, string> = {
+    [Rol.SUPER_ADMIN]: "Super Admin", [Rol.SUPERVISOR]: "Supervisor", [Rol.GUIA]: "Guía",
   }
+  const profileStatusLabel: Record<string, string> = { COMPLETE: "Completo", INCOMPLETE: "Incompleto" }
+
+  const activeChips = [
+    roleFilter && { key: "role", label: `Rol: ${roleLabel[roleFilter] ?? roleFilter}`, onRemove: () => handleRoleFilter("") },
+    activoFilter && { key: "activo", label: `Estado: ${activoFilter === "true" ? "Activo" : "Inactivo"}`, onRemove: () => handleActivoFilter("") },
+    profileStatusFilter && { key: "profile", label: `Perfil: ${profileStatusLabel[profileStatusFilter] ?? profileStatusFilter}`, onRemove: () => handleProfileStatusFilter("") },
+  ].filter(Boolean) as { key: string; label: string; onRemove: () => void }[]
+
+  const resetFilters = () => { setRoleFilter(""); setActivoFilter(""); setProfileStatusFilter(""); setQ(""); setPage(1) }
 
   return (
     <AppShell>
@@ -209,6 +215,8 @@ export function UsersListPage() {
                 onChange={(e) => handleProfileStatusFilter(e.target.value)}
               />
             </div>
+
+            <FilterChips chips={activeChips} onClearAll={resetFilters} />
 
             {/* Advanced Filters */}
             {showAdvanced && (

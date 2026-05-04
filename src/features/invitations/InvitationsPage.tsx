@@ -37,8 +37,6 @@ import {
 } from "lucide-react"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
-import type { AxiosError } from "axios"
-import type { ApiResponse } from "@/core/models/api"
 
 export function InvitationsPage() {
   const { showToast } = useToast()
@@ -76,13 +74,6 @@ export function InvitationsPage() {
         setIsCreateDialogOpen(false)
         reset()
       },
-      onError: (error) => {
-        const axiosError = error as AxiosError<ApiResponse<unknown>>
-        const errorMessage =
-          axiosError.response?.data?.error?.message ||
-          "Error al enviar invitacion"
-        showToast("error", errorMessage)
-      },
     })
   }
 
@@ -90,13 +81,6 @@ export function InvitationsPage() {
     resendInvitation(id, {
       onSuccess: () => {
         showToast("success", "Invitacion reenviada exitosamente")
-      },
-      onError: (error) => {
-        const axiosError = error as AxiosError<ApiResponse<unknown>>
-        const errorMessage =
-          axiosError.response?.data?.error?.message ||
-          "Error al reenviar invitacion"
-        showToast("error", errorMessage)
       },
     })
   }
@@ -112,12 +96,8 @@ export function InvitationsPage() {
       if (!result) {
         showToast("info", "No se encontro invitacion para este email")
       }
-    } catch (error) {
-      const axiosError = error as AxiosError<ApiResponse<unknown>>
-      const errorMessage =
-        axiosError.response?.data?.error?.message ||
-        "Error al buscar invitacion"
-      showToast("error", errorMessage)
+    } catch {
+      // global handler shows error toast
     }
   }
 
@@ -131,13 +111,6 @@ export function InvitationsPage() {
         showToast("success", "Invitacion reenviada exitosamente")
         setFoundInvitation(undefined)
         setSearchEmail("")
-      },
-      onError: (error) => {
-        const axiosError = error as AxiosError<ApiResponse<unknown>>
-        const errorMessage =
-          axiosError.response?.data?.error?.message ||
-          "Error al reenviar invitacion"
-        showToast("error", errorMessage)
       },
     })
   }

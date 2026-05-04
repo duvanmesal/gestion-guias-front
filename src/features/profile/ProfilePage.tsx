@@ -28,9 +28,7 @@ import type {
 } from "@/core/utils/validation"
 import { DocumentType } from "@/core/models/auth"
 import type { UpdateMeRequest } from "@/core/models/users"
-import { User, Lock, Monitor, Save, AlertCircle } from "lucide-react"
-import type { AxiosError } from "axios"
-import type { ApiResponse } from "@/core/models/api"
+import { User, Lock, Monitor, Save } from "lucide-react"
 import { SessionsCard } from "./SessionsCard"
 
 export function ProfilePage() {
@@ -55,11 +53,6 @@ export function ProfilePage() {
         showToast("success", "Perfil actualizado exitosamente")
       }
     },
-    onError: (error: AxiosError<ApiResponse<unknown>>) => {
-      const errorMessage =
-        error.response?.data?.error?.message || "Error al actualizar perfil"
-      showToast("error", errorMessage)
-    },
   })
 
   // Onboarding profile completion mutation (PATCH /users/me/profile)
@@ -72,11 +65,6 @@ export function ProfilePage() {
         showToast("success", "Perfil completado exitosamente")
       }
     },
-    onError: (error: AxiosError<ApiResponse<unknown>>) => {
-      const errorMessage =
-        error.response?.data?.error?.message || "Error al completar perfil"
-      showToast("error", errorMessage)
-    },
   })
 
   // Change password mutation
@@ -88,11 +76,6 @@ export function ProfilePage() {
     onSuccess: () => {
       showToast("success", "Contrasena actualizada exitosamente")
       resetPasswordForm()
-    },
-    onError: (error: AxiosError<ApiResponse<unknown>>) => {
-      const errorMessage =
-        error.response?.data?.error?.message || "Error al cambiar contrasena"
-      showToast("error", errorMessage)
     },
   })
 

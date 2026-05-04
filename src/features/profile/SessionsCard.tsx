@@ -27,9 +27,6 @@ export function SessionsCard() {
       onSuccess: () => {
         showToast("success", "Sesión cerrada exitosamente")
       },
-      onError: () => {
-        showToast("error", "Error al cerrar sesión")
-      },
     })
   }
 
@@ -54,14 +51,7 @@ export function SessionsCard() {
       return
     }
 
-    logoutAll(
-      { verification: { method: "code", code } },
-      {
-        onError: () => {
-          showToast("error", "Código inválido o expirado.")
-        },
-      },
-    )
+    logoutAll({ verification: { method: "code", code } })
   }
 
   return (
