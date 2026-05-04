@@ -5,7 +5,7 @@ import React from "react"
 import { useState, useEffect } from "react"
 import { GlassModal, GlassModalFooter } from "@/shared/components/glass/GlassModal"
 import { GlassInput } from "@/shared/components/glass/GlassInput"
-import { GlassSelect } from "@/shared/components/glass/GlassSelect"
+import { SearchableCombobox } from "@/shared/components/glass/SearchableCombobox"
 import { GlassButton } from "@/shared/components/glass/GlassButton"
 import { usePaises } from "@/hooks/use-paises"
 import type { Pais, StatusType } from "@/core/models/catalog"
@@ -113,14 +113,15 @@ export function PaisFormDialog({ isOpen, onClose, pais, onSuccess }: PaisFormDia
             error={errors.nombre}
           />
 
-          <GlassSelect
+          <SearchableCombobox
             label="Estado"
             options={[
               { value: "ACTIVO", label: "Activo" },
               { value: "INACTIVO", label: "Inactivo" },
             ]}
             value={formData.status}
-            onChange={(e) => setFormData({ ...formData, status: e.target.value as StatusType })}
+            onChange={(val) => setFormData({ ...formData, status: val as StatusType })}
+            searchable={false}
           />
         </div>
 

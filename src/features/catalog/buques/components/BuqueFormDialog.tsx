@@ -4,7 +4,7 @@
 import React, { useEffect, useMemo, useState } from "react"
 import { GlassModal, GlassModalFooter } from "@/shared/components/glass/GlassModal"
 import { GlassInput } from "@/shared/components/glass/GlassInput"
-import { GlassSelect } from "@/shared/components/glass/GlassSelect"
+import { SearchableCombobox } from "@/shared/components/glass/SearchableCombobox"
 import { GlassButton } from "@/shared/components/glass/GlassButton"
 import { useBuques } from "@/hooks/use-buques"
 import { usePaisesLookup } from "@/hooks/use-paises"
@@ -135,13 +135,10 @@ export function BuqueFormDialog({
   const isLoading = isCreating || isUpdating
 
   const paisOptions = useMemo(
-    () => [
-      { value: "", label: "Sin país asignado" },
-      ...paisesLookup.map((p) => ({
-        value: String(p.id),
-        label: `${p.nombre} (${p.codigo})`,
-      })),
-    ],
+    () => paisesLookup.map((p) => ({
+      value: String(p.id),
+      label: `${p.nombre} (${p.codigo})`,
+    })),
     [paisesLookup]
   )
 
@@ -180,22 +177,24 @@ export function BuqueFormDialog({
             error={errors.capacidad}
           />
 
-          <GlassSelect
+          <SearchableCombobox
             label="País"
             options={paisOptions}
             value={formData.paisId}
-            onChange={(e) => setFormData({ ...formData, paisId: e.target.value })}
+            onChange={(val) => setFormData({ ...formData, paisId: val })}
+            placeholder="Sin país asignado"
             disabled={loadingPaises}
           />
 
-          <GlassSelect
+          <SearchableCombobox
             label="Estado"
             options={[
               { value: "ACTIVO", label: "Activo" },
               { value: "INACTIVO", label: "Inactivo" },
             ]}
             value={formData.status}
-            onChange={(e) => setFormData({ ...formData, status: e.target.value as StatusType })}
+            onChange={(val) => setFormData({ ...formData, status: val as StatusType })}
+            searchable={false}
           />
         </div>
 

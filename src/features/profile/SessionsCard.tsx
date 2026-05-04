@@ -22,7 +22,12 @@ export function SessionsCard() {
   const [logoutAllCode, setLogoutAllCode] = useState("")
   const [isRequestingCode, setIsRequestingCode] = useState(false)
 
-  const handleDeleteSession = (sessionId: string) => {
+  const handleDeleteSession = (sessionId: string, isCurrent?: boolean) => {
+    if (isCurrent) {
+      showToast("info", "Usa cerrar sesión para terminar la sesión actual.")
+      return
+    }
+
     deleteSession(sessionId, {
       onSuccess: () => {
         showToast("success", "Sesión cerrada exitosamente")
@@ -98,7 +103,14 @@ export function SessionsCard() {
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-[rgb(var(--color-fg))]">{session.platform}</p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-medium text-[rgb(var(--color-fg))]">{session.platform}</p>
+                        {session.isCurrent && (
+                          <span className="text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full bg-[rgb(var(--color-primary)/0.14)] text-[rgb(var(--color-primary))]">
+                            Esta sesión
+                          </span>
+                        )}
+                      </div>
                       {session.userAgent && (
                         <p className="text-sm text-[rgb(var(--color-fg)/0.6)] truncate">{session.userAgent}</p>
                       )}
@@ -116,8 +128,9 @@ export function SessionsCard() {
                   <GlassButton
                     variant="ghost"
                     size="sm"
-                    onClick={() => handleDeleteSession(session.id)}
-                    disabled={isDeletingSession}
+                    onClick={() => handleDeleteSession(session.id, session.isCurrent)}
+                    disabled={isDeletingSession || session.isCurrent}
+                    title={session.isCurrent ? "Usa cerrar sesión para terminar la sesión actual" : "Cerrar esta sesión"}
                   >
                     <Trash2 className="w-4 h-4 text-red-400" />
                   </GlassButton>

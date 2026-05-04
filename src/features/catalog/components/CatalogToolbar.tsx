@@ -3,7 +3,7 @@
 import React from "react"
 import { Search, Filter, Plus } from "lucide-react"
 import { GlassInput } from "@/shared/components/glass/GlassInput"
-import { GlassSelect } from "@/shared/components/glass/GlassSelect"
+import { SearchableCombobox } from "@/shared/components/glass/SearchableCombobox"
 import { GlassButton } from "@/shared/components/glass/GlassButton"
 import { GlassCard, GlassCardContent } from "@/shared/components/glass/GlassCard"
 
@@ -17,6 +17,11 @@ interface CatalogToolbarProps {
   canCreate?: boolean
   extraFilters?: React.ReactNode
 }
+
+const STATUS_OPTIONS = [
+  { value: "ACTIVO", label: "Activos" },
+  { value: "INACTIVO", label: "Inactivos" },
+]
 
 export function CatalogToolbar({
   search,
@@ -46,14 +51,12 @@ export function CatalogToolbar({
               leftIcon={<Search className="w-4 h-4" />}
             />
 
-            <GlassSelect
-              options={[
-                { value: "", label: "Todos los estados" },
-                { value: "ACTIVO", label: "Activos" },
-                { value: "INACTIVO", label: "Inactivos" },
-              ]}
+            <SearchableCombobox
+              options={STATUS_OPTIONS}
               value={statusFilter}
-              onChange={(e) => onStatusFilterChange(e.target.value)}
+              onChange={onStatusFilterChange}
+              placeholder="Todos los estados"
+              searchable={false}
             />
 
             {extraFilters}

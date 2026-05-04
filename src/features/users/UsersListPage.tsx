@@ -10,7 +10,7 @@ import {
 } from "@/shared/components/glass/GlassCard"
 import { GlassButton } from "@/shared/components/glass/GlassButton"
 import { GlassInput } from "@/shared/components/glass/GlassInput"
-import { GlassSelect } from "@/shared/components/glass/GlassSelect"
+import { SearchableCombobox } from "@/shared/components/glass/SearchableCombobox"
 import { FilterChips } from "@/shared/components/glass/FilterChips"
 import {
   GlassTable,
@@ -184,35 +184,38 @@ export function UsersListPage() {
                 />
               </div>
 
-              <GlassSelect
+              <SearchableCombobox
                 options={[
-                  { value: "", label: "Todos los roles" },
                   { value: Rol.SUPER_ADMIN, label: "Super Admin" },
                   { value: Rol.SUPERVISOR, label: "Supervisor" },
                   { value: Rol.GUIA, label: "Guia" },
                 ]}
                 value={roleFilter}
-                onChange={(e) => handleRoleFilter(e.target.value)}
+                onChange={handleRoleFilter}
+                placeholder="Todos los roles"
+                searchable={false}
               />
 
-              <GlassSelect
+              <SearchableCombobox
                 options={[
-                  { value: "", label: "Todos los estados" },
                   { value: "true", label: "Activos" },
                   { value: "false", label: "Inactivos" },
                 ]}
                 value={activoFilter}
-                onChange={(e) => handleActivoFilter(e.target.value)}
+                onChange={handleActivoFilter}
+                placeholder="Todos los estados"
+                searchable={false}
               />
 
-              <GlassSelect
+              <SearchableCombobox
                 options={[
-                  { value: "", label: "Estado perfil" },
                   { value: "COMPLETE", label: "Completo" },
                   { value: "INCOMPLETE", label: "Incompleto" },
                 ]}
                 value={profileStatusFilter}
-                onChange={(e) => handleProfileStatusFilter(e.target.value)}
+                onChange={handleProfileStatusFilter}
+                placeholder="Estado perfil"
+                searchable={false}
               />
             </div>
 
@@ -225,14 +228,15 @@ export function UsersListPage() {
                   <label className="block text-xs text-[rgb(var(--color-muted))] mb-1.5">
                     Ordenar por
                   </label>
-                  <GlassSelect
+                  <SearchableCombobox
                     options={[
                       { value: "createdAt", label: "Fecha de creacion" },
                       { value: "updatedAt", label: "Ultima actualizacion" },
                       { value: "email", label: "Email" },
                     ]}
                     value={orderBy}
-                    onChange={(e) => handleOrderChange(e.target.value)}
+                    onChange={handleOrderChange}
+                    searchable={false}
                   />
                 </div>
 
@@ -240,16 +244,14 @@ export function UsersListPage() {
                   <label className="block text-xs text-[rgb(var(--color-muted))] mb-1.5">
                     Direccion
                   </label>
-                  <GlassSelect
+                  <SearchableCombobox
                     options={[
                       { value: "desc", label: "Descendente" },
                       { value: "asc", label: "Ascendente" },
                     ]}
                     value={orderDir}
-                    onChange={(e) => {
-                      setOrderDir(e.target.value)
-                      setPage(1)
-                    }}
+                    onChange={(val) => { setOrderDir(val); setPage(1) }}
+                    searchable={false}
                   />
                 </div>
               </div>

@@ -7,8 +7,7 @@ import { useQuery } from "@tanstack/react-query"
 
 import { AppShell } from "@/shared/components/layout/AppShell"
 import { GlassCard, GlassCardContent } from "@/shared/components/glass/GlassCard"
-import { GlassSelect } from "@/shared/components/glass/GlassSelect"
-import { GlassInput } from "@/shared/components/glass/GlassInput"
+import { GlassDateTimeInput } from "@/shared/components/glass/GlassDateTimeInput"
 import { GlassButton } from "@/shared/components/glass/GlassButton"
 import { SearchableCombobox } from "@/shared/components/glass/SearchableCombobox"
 import { FilterChips } from "@/shared/components/glass/FilterChips"
@@ -25,6 +24,14 @@ import { Rol } from "@/core/models/auth"
 import type { TurnoStatus, TurnoDateField } from "@/core/models/turnos"
 
 import { TurnoCard } from "./components/TurnoCard"
+
+function getTodayDateInputValue() {
+  const today = new Date()
+  const year = today.getFullYear()
+  const month = String(today.getMonth() + 1).padStart(2, "0")
+  const day = String(today.getDate()).padStart(2, "0")
+  return `${year}-${month}-${day}`
+}
 
 export function TurnosPage() {
   const { user } = useAuthStore()
@@ -51,11 +58,14 @@ export function TurnosPage() {
   const atenciones = atencionesResp?.data ?? []
 
   const { guides, isLoading: loadingGuias } = useGuidesLookup({ enabled: isSupervisor })
-  const { buques, isLoading: loadingBuques } = useBuquesLookup()
+  const { buques, isLoading: loadingBuques } = useBuquesLookup({ enabled: isSupervisor })
 
   useTurnoSocket({
     atencionId: isSupervisor && atencionFilter ? Number(atencionFilter) : undefined,
   })
+
+  const guiaDefaultDateFrom = useMemo(() => getTodayDateInputValue(), [])
+  const effectiveDateFrom = isGuia && !dateFrom && !dateTo ? guiaDefaultDateFrom : dateFrom || undefined
 
   const { turnos, meta, isLoading, refetch } = useTurnos(
     {
@@ -63,7 +73,7 @@ export function TurnosPage() {
       atencionId: isSupervisor && atencionFilter ? Number(atencionFilter) : undefined,
       guiaId: isSupervisor && guiaFilter ? guiaFilter : undefined,
       buqueId: isSupervisor && buqueFilter ? Number(buqueFilter) : undefined,
-      dateFrom: dateFrom || undefined,
+      dateFrom: effectiveDateFrom,
       dateTo: dateTo || undefined,
       dateField: dateField ? (dateField as TurnoDateField) : undefined,
       page,
@@ -242,10 +252,12 @@ export function TurnosPage() {
 
               <div className="flex flex-wrap gap-3">
                 <div className="min-w-[180px] flex-1">
-                  <GlassSelect
-                    options={statusOptions}
+                  <SearchableCombobox
+                    options={statusOptions.filter((o) => o.value !== "")}
                     value={statusFilter}
-                    onChange={(e) => handleFilterChange(setStatusFilter)(e.target.value)}
+                    onChange={handleFilterChange(setStatusFilter)}
+                    placeholder="Todos los estados"
+                    searchable={false}
                   />
                 </div>
 
@@ -288,26 +300,27 @@ export function TurnosPage() {
                 <div className="flex flex-wrap items-end gap-3 pt-1 border-t border-[rgb(var(--color-border)/0.06)]">
                   <div className="flex flex-col gap-1">
                     <span className="text-xs text-[rgb(var(--color-muted))]">Filtrar por</span>
-                    <GlassSelect
+                    <SearchableCombobox
                       options={dateFieldOptions}
                       value={dateField}
-                      onChange={(e) => { setDateField(e.target.value); setPage(1) }}
+                      onChange={handleFilterChange(setDateField)}
+                      searchable={false}
                     />
                   </div>
                   <div className="flex flex-col gap-1">
                     <span className="text-xs text-[rgb(var(--color-muted))]">Desde</span>
-                    <GlassInput
+                    <GlassDateTimeInput
                       type="date"
                       value={dateFrom}
-                      onChange={(e) => { setDateFrom(e.target.value); setPage(1) }}
+                      onChange={(v) => { setDateFrom(v); setPage(1) }}
                     />
                   </div>
                   <div className="flex flex-col gap-1">
                     <span className="text-xs text-[rgb(var(--color-muted))]">Hasta</span>
-                    <GlassInput
+                    <GlassDateTimeInput
                       type="date"
                       value={dateTo}
-                      onChange={(e) => { setDateTo(e.target.value); setPage(1) }}
+                      onChange={(v) => { setDateTo(v); setPage(1) }}
                     />
                   </div>
                 </div>

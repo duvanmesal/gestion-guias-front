@@ -73,10 +73,13 @@ export interface Session {
   id: string
   userId: string
   platform: Platform
+  deviceId?: string | null
   userAgent?: string | null
   ip?: string | null
   createdAt: string
+  lastRotatedAt?: string | null
   lastActivityAt?: string | null
+  isCurrent?: boolean
 }
 
 // Authentication Tokens

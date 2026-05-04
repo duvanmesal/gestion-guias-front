@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { GlassModal, GlassModalFooter } from "@/shared/components/glass/GlassModal"
 import { GlassInput } from "@/shared/components/glass/GlassInput"
-import { GlassSelect } from "@/shared/components/glass/GlassSelect"
+import { SearchableCombobox } from "@/shared/components/glass/SearchableCombobox"
 import { GlassButton } from "@/shared/components/glass/GlassButton"
 import { useToast } from "@/shared/components/feedback/Toast"
 import { useUsers } from "@/hooks/use-users"
@@ -23,6 +23,17 @@ interface UserFormDialogProps {
   onSuccess?: () => void
 }
 
+const ROL_OPTIONS = [
+  { value: Rol.GUIA, label: "Guía" },
+  { value: Rol.SUPERVISOR, label: "Supervisor" },
+  { value: Rol.SUPER_ADMIN, label: "Super Admin" },
+]
+
+const ACTIVO_OPTIONS = [
+  { value: "true", label: "Activo" },
+  { value: "false", label: "Inactivo" },
+]
+
 export function UserFormDialog({ isOpen, onClose, user, onSuccess }: UserFormDialogProps) {
   const { showToast } = useToast()
   const { createUser, updateUser, isCreating, isUpdating } = useUsers()
@@ -34,6 +45,8 @@ export function UserFormDialog({ isOpen, onClose, user, onSuccess }: UserFormDia
     handleSubmit,
     formState: { errors },
     reset,
+    watch,
+    setValue,
   } = useForm<CreateUserFormData | UpdateUserFormData>({
     resolver: zodResolver(isEditing ? updateUserSchema : createUserSchema),
     defaultValues: isEditing
@@ -67,14 +80,15 @@ export function UserFormDialog({ isOpen, onClose, user, onSuccess }: UserFormDia
     }
   }, [isOpen, user, reset])
 
+  const rolValue = watch("rol") as string | undefined
+  const activoValue = watch("activo") as boolean | undefined
+
   const onSubmit = (data: CreateUserFormData | UpdateUserFormData) => {
     if (isEditing && user) {
       updateUser(
         { id: user.id, data: data as UpdateUserFormData },
         {
-          onSuccess: () => {
-            onSuccess?.()
-          },
+          onSuccess: () => { onSuccess?.() },
           onError: (error) => {
             const axiosError = error as AxiosError<ApiResponse<unknown>>
             const errorMessage = axiosError.response?.data?.error?.message || "Error al actualizar usuario"
@@ -84,9 +98,7 @@ export function UserFormDialog({ isOpen, onClose, user, onSuccess }: UserFormDia
       )
     } else {
       createUser(data as CreateUserFormData, {
-        onSuccess: () => {
-          onSuccess?.()
-        },
+        onSuccess: () => { onSuccess?.() },
         onError: (error) => {
           const axiosError = error as AxiosError<ApiResponse<unknown>>
           const errorMessage = axiosError.response?.data?.error?.message || "Error al crear usuario"
@@ -112,7 +124,7 @@ export function UserFormDialog({ isOpen, onClose, user, onSuccess }: UserFormDia
             label="Contraseña"
             type="password"
             placeholder="••••••••"
-            error={errors.password?.message}
+            error={"password" in errors ? (errors as { password?: { message?: string } }).password?.message : undefined}
             helperText="Mínimo 8 caracteres con mayúscula, minúscula, número y símbolo"
             {...register("password")}
           />
@@ -127,25 +139,22 @@ export function UserFormDialog({ isOpen, onClose, user, onSuccess }: UserFormDia
           {...register("apellidos")}
         />
 
-        <GlassSelect
+        <SearchableCombobox
           label="Rol"
-          options={[
-            { value: Rol.GUIA, label: "Guía" },
-            { value: Rol.SUPERVISOR, label: "Supervisor" },
-            { value: Rol.SUPER_ADMIN, label: "Super Admin" },
-          ]}
+          options={ROL_OPTIONS}
+          value={rolValue ?? ""}
+          onChange={(val) => setValue("rol", val as Rol, { shouldValidate: true })}
           error={errors.rol?.message}
-          {...register("rol")}
+          searchable={false}
         />
 
         {isEditing && (
-          <GlassSelect
+          <SearchableCombobox
             label="Estado"
-            options={[
-              { value: "true", label: "Activo" },
-              { value: "false", label: "Inactivo" },
-            ]}
-            {...register("activo")}
+            options={ACTIVO_OPTIONS}
+            value={activoValue != null ? String(activoValue) : "true"}
+            onChange={(val) => setValue("activo", val === "true", { shouldValidate: true })}
+            searchable={false}
           />
         )}
 

@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, useCallback } from "react"
+import { createPortal } from "react-dom"
 import { ChevronDown, Search, X } from "lucide-react"
 
 export interface ComboboxOption {
@@ -15,6 +16,7 @@ export interface SearchableComboboxProps {
   error?: string
   helperText?: string
   disabled?: boolean
+  searchable?: boolean
 }
 
 export function SearchableCombobox({
@@ -26,27 +28,49 @@ export function SearchableCombobox({
   error,
   helperText,
   disabled = false,
+  searchable = true,
 }: SearchableComboboxProps) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState("")
+  const [highlighted, setHighlighted] = useState(0)
+  const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number; width: number } | null>(null)
+
   const containerRef = useRef<HTMLDivElement>(null)
+  const dropdownRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLUListElement>(null)
-  const [highlighted, setHighlighted] = useState(0)
 
   const selected = options.find((o) => o.value === value) ?? null
-
-  const filtered = query.trim()
+  const filtered = searchable && query.trim()
     ? options.filter((o) => o.label.toLowerCase().includes(query.toLowerCase()))
     : options
 
-  // Reset highlight when filtered list changes
   useEffect(() => { setHighlighted(0) }, [query])
 
-  // Close on outside click
+  const updatePos = useCallback(() => {
+    if (!containerRef.current) return
+    const rect = containerRef.current.getBoundingClientRect()
+    setDropdownPos({ top: rect.bottom + 4, left: rect.left, width: rect.width })
+  }, [])
+
+  useEffect(() => {
+    if (open) {
+      updatePos()
+      window.addEventListener("scroll", updatePos, true)
+      window.addEventListener("resize", updatePos)
+      return () => {
+        window.removeEventListener("scroll", updatePos, true)
+        window.removeEventListener("resize", updatePos)
+      }
+    }
+  }, [open, updatePos])
+
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      if (
+        containerRef.current && !containerRef.current.contains(e.target as Node) &&
+        dropdownRef.current && !dropdownRef.current.contains(e.target as Node)
+      ) {
         setOpen(false)
         setQuery("")
       }
@@ -55,12 +79,10 @@ export function SearchableCombobox({
     return () => document.removeEventListener("mousedown", handler)
   }, [])
 
-  // Focus input when opening
   useEffect(() => {
-    if (open) inputRef.current?.focus()
-  }, [open])
+    if (open && searchable) inputRef.current?.focus()
+  }, [open, searchable])
 
-  // Scroll highlighted item into view
   useEffect(() => {
     if (!listRef.current) return
     const item = listRef.current.children[highlighted] as HTMLElement | undefined
@@ -83,9 +105,7 @@ export function SearchableCombobox({
       setHighlighted((h) => Math.max(h - 1, 0))
     } else if (e.key === "Enter") {
       e.preventDefault()
-      if (filtered[highlighted]) {
-        select(filtered[highlighted].value)
-      }
+      if (filtered[highlighted]) select(filtered[highlighted].value)
     } else if (e.key === "Escape") {
       setOpen(false)
       setQuery("")
@@ -103,15 +123,90 @@ export function SearchableCombobox({
     onChange("")
   }
 
+  const dropdown = open && dropdownPos ? (
+    <div
+      ref={dropdownRef}
+      style={{
+        position: "fixed",
+        top: dropdownPos.top,
+        left: dropdownPos.left,
+        width: dropdownPos.width,
+        zIndex: 9999,
+        background: "rgb(var(--color-bg-elevated))",
+        border: "1px solid rgba(var(--color-border), 0.1)",
+        borderRadius: "var(--radius-lg)",
+        boxShadow: "var(--shadow-lg)",
+        overflow: "hidden",
+      }}
+    >
+      {searchable && (
+        <div
+          className="flex items-center gap-2 px-3 py-2 border-b"
+          style={{ borderColor: "rgba(var(--color-border), 0.08)" }}
+        >
+          <Search className="shrink-0 w-4 h-4" style={{ color: "rgb(var(--color-muted))" }} />
+          <input
+            ref={inputRef}
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Buscar..."
+            className="flex-1 bg-transparent outline-none text-sm"
+            style={{ color: "rgb(var(--color-fg))" }}
+          />
+        </div>
+      )}
+
+      <ul ref={listRef} role="listbox" className="overflow-y-auto" style={{ maxHeight: "240px" }}>
+        {filtered.length === 0 ? (
+          <li className="px-4 py-3 text-sm text-center" style={{ color: "rgb(var(--color-muted))" }}>
+            Sin resultados
+          </li>
+        ) : (
+          filtered.map((opt, i) => {
+            const isSelected = opt.value === value
+            const isHighlighted = i === highlighted
+            return (
+              <li
+                key={opt.value}
+                role="option"
+                aria-selected={isSelected}
+                onMouseEnter={() => setHighlighted(i)}
+                onMouseDown={(e) => { e.preventDefault(); select(opt.value) }}
+                className="px-4 py-2.5 text-sm cursor-pointer flex items-center justify-between gap-2 transition-colors"
+                style={{
+                  background: isHighlighted
+                    ? "rgba(var(--color-primary), 0.08)"
+                    : isSelected
+                    ? "rgba(var(--color-primary), 0.05)"
+                    : "transparent",
+                  color: isSelected ? "rgb(var(--color-primary))" : "rgb(var(--color-fg))",
+                  fontWeight: isSelected ? 600 : 400,
+                }}
+              >
+                <span className="truncate">{opt.label}</span>
+                {isSelected && (
+                  <svg className="shrink-0 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+              </li>
+            )
+          })
+        )}
+      </ul>
+    </div>
+  ) : null
+
   return (
-    <div className="w-full relative" ref={containerRef}>
+    <div className="w-full" ref={containerRef}>
       {label && (
         <label className="block text-sm font-semibold mb-2" style={{ color: "rgb(var(--color-fg))" }}>
           {label}
         </label>
       )}
 
-      {/* Trigger */}
       <div
         role="combobox"
         aria-expanded={open}
@@ -119,7 +214,7 @@ export function SearchableCombobox({
         tabIndex={disabled ? -1 : 0}
         onKeyDown={handleKeyDown}
         onClick={() => { if (!disabled) setOpen((o) => !o) }}
-        className={`glass relative flex items-center gap-2 px-4 py-3 cursor-pointer select-none transition-all duration-200 ${
+        className={`glass flex items-center gap-2 px-4 py-3 cursor-pointer select-none transition-all duration-200 ${
           error ? "border-2 border-[rgb(var(--color-danger))]" : ""
         } ${disabled ? "opacity-50 cursor-not-allowed" : "hover:bg-[rgb(var(--color-glass-hover)/0.5)]"} ${
           open ? "ring-2 ring-[rgb(var(--color-primary))/0.3]" : ""
@@ -150,87 +245,7 @@ export function SearchableCombobox({
         />
       </div>
 
-      {/* Dropdown */}
-      {open && (
-        <div
-          className="absolute z-50 mt-1 w-full rounded-xl shadow-lg overflow-hidden"
-          style={{
-            background: "rgb(var(--color-bg-elevated))",
-            border: "1px solid rgba(var(--color-border), 0.1)",
-            boxShadow: "var(--shadow-lg)",
-            minWidth: containerRef.current?.offsetWidth,
-            maxWidth: containerRef.current?.offsetWidth,
-          }}
-        >
-          {/* Search input */}
-          <div
-            className="flex items-center gap-2 px-3 py-2 border-b"
-            style={{ borderColor: "rgba(var(--color-border), 0.08)" }}
-          >
-            <Search className="shrink-0 w-4 h-4" style={{ color: "rgb(var(--color-muted))" }} />
-            <input
-              ref={inputRef}
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Buscar..."
-              className="flex-1 bg-transparent outline-none text-sm"
-              style={{ color: "rgb(var(--color-fg))" }}
-            />
-          </div>
-
-          {/* Options list */}
-          <ul
-            ref={listRef}
-            role="listbox"
-            className="overflow-y-auto"
-            style={{ maxHeight: "240px" }}
-          >
-            {filtered.length === 0 ? (
-              <li
-                className="px-4 py-3 text-sm text-center"
-                style={{ color: "rgb(var(--color-muted))" }}
-              >
-                Sin resultados
-              </li>
-            ) : (
-              filtered.map((opt, i) => {
-                const isSelected = opt.value === value
-                const isHighlighted = i === highlighted
-                return (
-                  <li
-                    key={opt.value}
-                    role="option"
-                    aria-selected={isSelected}
-                    onMouseEnter={() => setHighlighted(i)}
-                    onMouseDown={(e) => { e.preventDefault(); select(opt.value) }}
-                    className="px-4 py-2.5 text-sm cursor-pointer flex items-center justify-between gap-2 transition-colors"
-                    style={{
-                      background: isHighlighted
-                        ? "rgba(var(--color-primary), 0.08)"
-                        : isSelected
-                        ? "rgba(var(--color-primary), 0.05)"
-                        : "transparent",
-                      color: isSelected
-                        ? "rgb(var(--color-primary))"
-                        : "rgb(var(--color-fg))",
-                      fontWeight: isSelected ? 600 : 400,
-                    }}
-                  >
-                    <span className="truncate">{opt.label}</span>
-                    {isSelected && (
-                      <svg className="shrink-0 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                      </svg>
-                    )}
-                  </li>
-                )
-              })
-            )}
-          </ul>
-        </div>
-      )}
+      {typeof document !== "undefined" && dropdown ? createPortal(dropdown, document.body) : null}
 
       {error && (
         <p className="mt-2 text-sm font-medium" style={{ color: "rgb(var(--color-danger))" }}>{error}</p>

@@ -6,7 +6,6 @@ import { Anchor, Plus, Search, Filter, Calendar } from "lucide-react"
 import { AppShell } from "@/shared/components/layout/AppShell"
 import { GlassCard, GlassCardContent } from "@/shared/components/glass/GlassCard"
 import { GlassInput } from "@/shared/components/glass/GlassInput"
-import { GlassSelect } from "@/shared/components/glass/GlassSelect"
 import { GlassButton } from "@/shared/components/glass/GlassButton"
 import { SearchableCombobox } from "@/shared/components/glass/SearchableCombobox"
 import { FilterChips } from "@/shared/components/glass/FilterChips"
@@ -138,10 +137,12 @@ export function RecaladasPage() {
                   </div>
                 </div>
                 <div className="min-w-[170px]">
-                  <GlassSelect
-                    options={statusOptions}
+                  <SearchableCombobox
+                    options={statusOptions.filter((o) => o.value !== "")}
                     value={statusFilter}
-                    onChange={(e) => handleStatusFilter(e.target.value)}
+                    onChange={handleStatusFilter}
+                    placeholder="Todos los estados"
+                    searchable={false}
                   />
                 </div>
                 <div className="min-w-[190px] flex-1">

@@ -7,6 +7,7 @@ import { GlassInput } from "@/shared/components/glass/GlassInput";
 import { GlassTextarea } from "@/shared/components/glass/GlassTextarea";
 import { GlassButton } from "@/shared/components/glass/GlassButton";
 import { SearchableCombobox } from "@/shared/components/glass/SearchableCombobox";
+import { GlassDateTimeInput } from "@/shared/components/glass/GlassDateTimeInput";
 import { useBuquesLookup } from "@/hooks/use-buques";
 import { usePaisesLookup } from "@/hooks/use-paises";
 import { useRecaladas } from "@/hooks/use-recaladas";
@@ -221,41 +222,21 @@ export function RecaladaFormDialog({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-[rgb(var(--color-fg))] mb-1">
-              Fecha/Hora Llegada *
-            </label>
-            <GlassInput
-              type="datetime-local"
-              value={formData.fechaLlegada}
-              onChange={(e) =>
-                setFormData({ ...formData, fechaLlegada: e.target.value })
-              }
-            />
-            {errors.fechaLlegada && (
-              <p className="text-xs text-[rgb(var(--color-danger))] mt-1">
-                {errors.fechaLlegada}
-              </p>
-            )}
-          </div>
+          <GlassDateTimeInput
+            label="Fecha/Hora Llegada *"
+            type="datetime-local"
+            value={formData.fechaLlegada}
+            onChange={(v) => setFormData({ ...formData, fechaLlegada: v })}
+            error={errors.fechaLlegada}
+          />
 
-          <div>
-            <label className="block text-sm font-medium text-[rgb(var(--color-fg))] mb-1">
-              Fecha/Hora Salida
-            </label>
-            <GlassInput
-              type="datetime-local"
-              value={formData.fechaSalida}
-              onChange={(e) =>
-                setFormData({ ...formData, fechaSalida: e.target.value })
-              }
-            />
-            {errors.fechaSalida && (
-              <p className="text-xs text-[rgb(var(--color-danger))] mt-1">
-                {errors.fechaSalida}
-              </p>
-            )}
-          </div>
+          <GlassDateTimeInput
+            label="Fecha/Hora Salida"
+            type="datetime-local"
+            value={formData.fechaSalida}
+            onChange={(v) => setFormData({ ...formData, fechaSalida: v })}
+            error={errors.fechaSalida}
+          />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

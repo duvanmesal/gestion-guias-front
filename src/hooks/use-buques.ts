@@ -54,11 +54,14 @@ export function useBuques(params?: BuquesQueryParams) {
   }
 }
 
-export function useBuquesLookup() {
+export function useBuquesLookup(options?: { enabled?: boolean }) {
+  const { enabled = true } = options ?? {}
+
   const { data, isLoading, error } = useQuery({
     queryKey: ["buques", "lookup"],
     queryFn: () => buquesApi.lookup(),
     staleTime: 60_000,
+    enabled,
   })
 
   return {

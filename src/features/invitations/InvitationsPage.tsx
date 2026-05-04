@@ -11,7 +11,7 @@ import {
   GlassCardContent,
 } from "@/shared/components/glass/GlassCard"
 import { GlassInput } from "@/shared/components/glass/GlassInput"
-import { GlassSelect } from "@/shared/components/glass/GlassSelect"
+import { SearchableCombobox } from "@/shared/components/glass/SearchableCombobox"
 import { GlassButton } from "@/shared/components/glass/GlassButton"
 import { GlassModal, GlassModalFooter } from "@/shared/components/glass/GlassModal"
 import { Skeleton } from "@/shared/components/feedback/Skeleton"
@@ -63,6 +63,8 @@ export function InvitationsPage() {
     handleSubmit,
     formState: { errors },
     reset,
+    watch,
+    setValue,
   } = useForm<CreateInvitationFormData>({
     resolver: zodResolver(createInvitationSchema),
   })
@@ -369,15 +371,17 @@ export function InvitationsPage() {
             {...register("email")}
           />
 
-          <GlassSelect
+          <SearchableCombobox
             label="Rol"
             options={[
-              { value: "", label: "Seleccionar rol..." },
               { value: Rol.GUIA, label: "Guia" },
               { value: Rol.SUPERVISOR, label: "Supervisor" },
             ]}
+            value={watch("role") ?? ""}
+            onChange={(val) => setValue("role", val as Rol, { shouldValidate: true })}
+            placeholder="Seleccionar rol..."
             error={errors.role?.message}
-            {...register("role")}
+            searchable={false}
           />
 
           <div className="glass-subtle p-4 rounded-xl">

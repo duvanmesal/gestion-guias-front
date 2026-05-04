@@ -12,7 +12,7 @@ import {
   GlassCardContent,
 } from "@/shared/components/glass/GlassCard"
 import { GlassInput } from "@/shared/components/glass/GlassInput"
-import { GlassSelect } from "@/shared/components/glass/GlassSelect"
+import { SearchableCombobox } from "@/shared/components/glass/SearchableCombobox"
 import { GlassButton } from "@/shared/components/glass/GlassButton"
 import { useToast } from "@/shared/components/feedback/Toast"
 import { useAuthStore } from "@/app/stores/auth-store"
@@ -85,6 +85,8 @@ export function ProfilePage() {
     handleSubmit: handleSubmitProfile,
     formState: { errors: profileErrors },
     reset: resetProfileForm,
+    watch: watchProfile,
+    setValue: setProfileValue,
   } = useForm<UpdateProfileFormData>({
     resolver: zodResolver(updateProfileSchema),
     defaultValues: {
@@ -225,16 +227,18 @@ export function ProfilePage() {
                 />
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <GlassSelect
+                  <SearchableCombobox
                     label="Tipo de Documento"
                     options={[
-                      { value: "", label: "Seleccionar..." },
                       { value: DocumentType.CC, label: "Cedula de Ciudadania" },
                       { value: DocumentType.CE, label: "Cedula de Extranjeria" },
                       { value: DocumentType.PASAPORTE, label: "Pasaporte" },
                     ]}
+                    value={watchProfile("documentType") ?? ""}
+                    onChange={(val) => setProfileValue("documentType", val as DocumentType, { shouldValidate: true })}
+                    placeholder="Seleccionar..."
                     error={profileErrors.documentType?.message}
-                    {...registerProfile("documentType")}
+                    searchable={false}
                   />
 
                   <GlassInput

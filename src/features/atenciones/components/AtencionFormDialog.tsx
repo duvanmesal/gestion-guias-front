@@ -7,6 +7,7 @@ import { GlassModal } from "@/shared/components/glass/GlassModal"
 import { GlassInput } from "@/shared/components/glass/GlassInput"
 import { GlassTextarea } from "@/shared/components/glass/GlassTextarea"
 import { GlassButton } from "@/shared/components/glass/GlassButton"
+import { GlassDateTimeInput } from "@/shared/components/glass/GlassDateTimeInput"
 import { useAtenciones } from "@/hooks/use-atenciones"
 import type { Atencion, CreateAtencionRequest, UpdateAtencionRequest } from "@/core/models/atenciones"
 
@@ -47,7 +48,6 @@ export function AtencionFormDialog({
         descripcion: atencion.descripcion || "",
       })
     } else if (isOpen) {
-      // Default to today with some reasonable times
       const now = new Date()
       const startTime = new Date(now)
       startTime.setHours(8, 0, 0, 0)
@@ -106,7 +106,7 @@ export function AtencionFormDialog({
             fechaInicio: new Date(formData.fechaInicio).toISOString(),
             fechaFin: new Date(formData.fechaFin).toISOString(),
             turnosTotal: Number(formData.turnosTotal),
-            ...(desc ? { descripcion: desc } : {}), // 👈 si está vacío, NO lo envía
+            ...(desc ? { descripcion: desc } : {}),
           }
         await createAtencionAsync(createData)
       }
@@ -125,59 +125,39 @@ export function AtencionFormDialog({
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-[rgb(var(--color-fg))] mb-1">
-              Fecha/Hora Inicio *
-            </label>
-            <GlassInput
-              type="datetime-local"
-              value={formData.fechaInicio}
-              onChange={(e) => setFormData({ ...formData, fechaInicio: e.target.value })}
-            />
-            {errors.fechaInicio && (
-              <p className="text-xs text-[rgb(var(--color-danger))] mt-1">{errors.fechaInicio}</p>
-            )}
-          </div>
+          <GlassDateTimeInput
+            label="Fecha/Hora Inicio *"
+            type="datetime-local"
+            value={formData.fechaInicio}
+            onChange={(v) => setFormData({ ...formData, fechaInicio: v })}
+            error={errors.fechaInicio}
+          />
 
-          <div>
-            <label className="block text-sm font-medium text-[rgb(var(--color-fg))] mb-1">
-              Fecha/Hora Fin *
-            </label>
-            <GlassInput
-              type="datetime-local"
-              value={formData.fechaFin}
-              onChange={(e) => setFormData({ ...formData, fechaFin: e.target.value })}
-            />
-            {errors.fechaFin && (
-              <p className="text-xs text-[rgb(var(--color-danger))] mt-1">{errors.fechaFin}</p>
-            )}
-          </div>
+          <GlassDateTimeInput
+            label="Fecha/Hora Fin *"
+            type="datetime-local"
+            value={formData.fechaFin}
+            onChange={(v) => setFormData({ ...formData, fechaFin: v })}
+            error={errors.fechaFin}
+          />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-[rgb(var(--color-fg))] mb-1">
-            Numero de Turnos *
-          </label>
           <GlassInput
+            label="Numero de Turnos *"
             type="number"
             value={formData.turnosTotal}
             onChange={(e) => setFormData({ ...formData, turnosTotal: e.target.value })}
             min="1"
             max="100"
+            error={errors.turnosTotal}
+            helperText={`Se crearan ${formData.turnosTotal || 0} turnos disponibles para esta atencion`}
           />
-          {errors.turnosTotal && (
-            <p className="text-xs text-[rgb(var(--color-danger))] mt-1">{errors.turnosTotal}</p>
-          )}
-          <p className="text-xs text-[rgb(var(--color-muted))] mt-1">
-            Se crearan {formData.turnosTotal || 0} turnos disponibles para esta atencion
-          </p>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-[rgb(var(--color-fg))] mb-1">
-            Descripcion
-          </label>
           <GlassTextarea
+            label="Descripcion"
             value={formData.descripcion}
             onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
             placeholder="Ej: Ventana de la manana, Grupo A..."
