@@ -63,24 +63,25 @@
 
 /* ── Dark mode ── */
 .dark {
-  --color-bg:           8 15 10;
-  --color-fg:           249 250 251;
-  --color-primary:      59 130 246;     /* blue-400, more readable on dark */
-  --color-primary-dark: 37 99 235;
-  --color-accent:       245 158 11;
-  --color-danger:       239 68 68;
-  --color-danger-light: 248 113 113;   /* #F87171 */
+  --color-bg:           7 11 20;       /* #070B14 azul noche */
+  --color-bg-elevated:  11 18 32;      /* #0B1220 */
+  --color-fg:           241 245 249;   /* #F1F5F9 */
+  --color-primary:      96 165 250;    /* blue-400 */
+  --color-primary-dark: 59 130 246;
+  --color-accent:       251 191 36;    /* amber-400 */
+  --color-danger:       248 113 113;   /* red-400 */
+  --color-danger-light: 252 165 165;
   --color-success:      52 211 153;
-  --color-glass:        17 28 22;
-  --color-glass-hover:  26 40 32;
+  --color-glass:        14 24 43;      /* #0E182B */
+  --color-glass-hover:  20 34 58;      /* #14223A */
   --color-fg-secondary: 148 163 184;
-  --color-muted:        156 163 175;
-  --color-ring:         59 130 246;
-  --color-border:       255 255 255;
-  --shadow-sm:      0 2px 8px rgba(0,0,0,0.25);
-  --shadow-md:      0 4px 16px rgba(0,0,0,0.3);
-  --shadow-lg:      0 8px 32px rgba(0,0,0,0.4);
-  --shadow-primary: 0 6px 20px rgba(59,130,246,0.35);
+  --color-muted:        100 116 139;
+  --color-ring:         96 165 250;
+  --color-border:       148 163 184;
+  --shadow-sm:      0 2px 8px rgba(0,0,0,0.4);
+  --shadow-md:      0 4px 16px rgba(0,0,0,0.5);
+  --shadow-lg:      0 8px 32px rgba(0,0,0,0.6);
+  --shadow-primary: 0 6px 20px rgba(96,165,250,0.3);
 }
 
 /* Gradient tokens — use as: background: var(--gradient-primary) */

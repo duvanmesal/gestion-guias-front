@@ -10,11 +10,11 @@ import "@/styles/index.css"
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <ErrorBoundary>
-      <QueryProvider>
-        <ToastProvider>
+      <ToastProvider>
+        <QueryProvider>
           <RouterProvider router={router} />
-        </ToastProvider>
-      </QueryProvider>
+        </QueryProvider>
+      </ToastProvider>
     </ErrorBoundary>
   </React.StrictMode>,
 )

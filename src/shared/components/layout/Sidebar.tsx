@@ -371,24 +371,6 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           <X className="w-5 h-5 text-[rgb(var(--color-fg))]" />
         </button>
 
-        {/* Header fijo */}
-        <div className="p-4" style={{ borderBottom: "1px solid rgba(var(--color-border), 0.06)" }}>
-          <div className="flex items-center gap-3">
-            <div
-              className="w-9 h-9 rounded-xl flex items-center justify-center"
-              style={{ background: "var(--gradient-primary)" }}
-            >
-              <Anchor className="w-4 h-4 text-white" />
-            </div>
-            <div>
-              <p className="font-bold text-sm" style={{ color: "rgb(var(--color-fg))", letterSpacing: "-0.01em" }}>
-                CORPOTURISMO
-              </p>
-              <p className="text-xs" style={{ color: "rgb(var(--color-muted))" }}>Gestion de Guias</p>
-            </div>
-          </div>
-        </div>
-
         {/* Contenido scrolleable */}
         <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
           {/* Navigation primero */}
@@ -400,10 +382,9 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                 onClick={onClose}
                 style={{ animationDelay: `${index * 0.05}s` }}
                 className={({ isActive }) =>
-                  `flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 focus-ring group animate-fade-in-up ${
-                    isActive
-                      ? "bg-[rgba(var(--color-primary),0.08)] text-[rgb(var(--color-primary))]"
-                      : "text-[rgb(var(--color-fg-secondary,var(--color-muted)))] hover:bg-[rgba(var(--color-border),0.04)] hover:text-[rgb(var(--color-fg))]"
+                  `flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 focus-ring group animate-fade-in-up ${isActive
+                    ? "bg-[rgba(var(--color-primary),0.08)] text-[rgb(var(--color-primary))]"
+                    : "text-[rgb(var(--color-fg-secondary,var(--color-muted)))] hover:bg-[rgba(var(--color-border),0.04)] hover:text-[rgb(var(--color-fg))]"
                   }`
                 }
               >

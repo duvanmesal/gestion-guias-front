@@ -1,24 +1,27 @@
-"use client"
-
 import { Moon, Sun } from "lucide-react"
 import { useEffect, useState } from "react"
 
+function applyTheme(theme: "dark" | "light") {
+  if (theme === "dark") {
+    document.documentElement.classList.add("dark")
+  } else {
+    document.documentElement.classList.remove("dark")
+  }
+}
+
 export function ThemeToggle() {
-  const [theme, setTheme] = useState<"dark" | "light">("dark")
+  const [theme, setTheme] = useState<"dark" | "light">(() => {
+    return (localStorage.getItem("theme") as "dark" | "light") || "light"
+  })
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem("theme") as "dark" | "light" | null
-    if (savedTheme) {
-      setTheme(savedTheme)
-      document.documentElement.setAttribute("data-theme", savedTheme)
-    }
-  }, [])
+    applyTheme(theme)
+  }, [theme])
 
   const toggleTheme = () => {
     const newTheme = theme === "dark" ? "light" : "dark"
     setTheme(newTheme)
     localStorage.setItem("theme", newTheme)
-    document.documentElement.setAttribute("data-theme", newTheme)
   }
 
   return (
