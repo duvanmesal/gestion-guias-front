@@ -4,9 +4,9 @@
 import React, { useEffect, useState } from "react";
 import { GlassModal } from "@/shared/components/glass/GlassModal";
 import { GlassInput } from "@/shared/components/glass/GlassInput";
-import { GlassSelect } from "@/shared/components/glass/GlassSelect";
 import { GlassTextarea } from "@/shared/components/glass/GlassTextarea";
 import { GlassButton } from "@/shared/components/glass/GlassButton";
+import { SearchableCombobox } from "@/shared/components/glass/SearchableCombobox";
 import { useBuquesLookup } from "@/hooks/use-buques";
 import { usePaisesLookup } from "@/hooks/use-paises";
 import { useRecaladas } from "@/hooks/use-recaladas";
@@ -179,18 +179,12 @@ export function RecaladaFormDialog({
     }
   };
 
-  const buqueOptions = [
-    { value: "", label: "Seleccionar buque" },
-    ...buques.map((b) => ({ value: String(b.id), label: b.nombre })),
-  ];
+  const buqueOptions = buques.map((b) => ({ value: String(b.id), label: b.nombre }));
 
-  const paisOptions = [
-    { value: "", label: "Seleccionar país" },
-    ...paises.map((p) => ({
-      value: String(p.id),
-      label: `${p.nombre} (${p.codigo})`,
-    })),
-  ];
+  const paisOptions = paises.map((p) => ({
+    value: String(p.id),
+    label: `${p.nombre} (${p.codigo})`,
+  }));
 
   return (
     <GlassModal
@@ -202,41 +196,27 @@ export function RecaladaFormDialog({
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-[rgb(var(--color-fg))] mb-1">
-              Buque *
-            </label>
-            <GlassSelect
+            <SearchableCombobox
+              label="Buque *"
               options={buqueOptions}
               value={formData.buqueId}
-              onChange={(e) =>
-                setFormData({ ...formData, buqueId: e.target.value })
-              }
+              onChange={(val) => setFormData({ ...formData, buqueId: val })}
+              placeholder="Buscar buque..."
               disabled={loadingBuques}
+              error={errors.buqueId}
             />
-            {errors.buqueId && (
-              <p className="text-xs text-[rgb(var(--color-danger))] mt-1">
-                {errors.buqueId}
-              </p>
-            )}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-[rgb(var(--color-fg))] mb-1">
-              País de Origen *
-            </label>
-            <GlassSelect
+            <SearchableCombobox
+              label="País de Origen *"
               options={paisOptions}
               value={formData.paisOrigenId}
-              onChange={(e) =>
-                setFormData({ ...formData, paisOrigenId: e.target.value })
-              }
+              onChange={(val) => setFormData({ ...formData, paisOrigenId: val })}
+              placeholder="Buscar país..."
               disabled={loadingPaises}
+              error={errors.paisOrigenId}
             />
-            {errors.paisOrigenId && (
-              <p className="text-xs text-[rgb(var(--color-danger))] mt-1">
-                {errors.paisOrigenId}
-              </p>
-            )}
           </div>
         </div>
 

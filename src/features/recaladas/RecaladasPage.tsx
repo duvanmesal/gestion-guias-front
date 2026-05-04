@@ -8,6 +8,8 @@ import { GlassCard, GlassCardContent } from "@/shared/components/glass/GlassCard
 import { GlassInput } from "@/shared/components/glass/GlassInput"
 import { GlassSelect } from "@/shared/components/glass/GlassSelect"
 import { GlassButton } from "@/shared/components/glass/GlassButton"
+import { SearchableCombobox } from "@/shared/components/glass/SearchableCombobox"
+import { FilterChips } from "@/shared/components/glass/FilterChips"
 import { Skeleton } from "@/shared/components/feedback/Skeleton"
 import { useToast } from "@/shared/components/feedback/Toast"
 import { useRecaladas } from "@/hooks/use-recaladas"
@@ -15,6 +17,7 @@ import { useBuquesLookup } from "@/hooks/use-buques"
 import { usePaisesLookup } from "@/hooks/use-paises"
 import { useAuthStore } from "@/app/stores/auth-store"
 import { Rol } from "@/core/models/auth"
+import { useRecaladaSocket } from "@/hooks/use-recalada-socket"
 import type { RecaladaOperativeStatus } from "@/core/models/recaladas"
 import { RecaladaCard } from "./components/RecaladaCard"
 import { RecaladaFormDialog } from "./components/RecaladaFormDialog"
@@ -23,6 +26,7 @@ export function RecaladasPage() {
   const navigate = useNavigate()
   const { user } = useAuthStore()
   const { showToast } = useToast()
+  useRecaladaSocket()
 
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("")
@@ -68,13 +72,27 @@ export function RecaladasPage() {
     { value: "CANCELED", label: "Cancelada" },
   ]
 
-  const buqueOptions = [
-    { value: "", label: "Todos los buques" },
-    ...buquesLookup.map((b) => ({
-      value: String(b.id),
-      label: b.nombre,
-    })),
-  ]
+  const buqueOptions = buquesLookup.map((b) => ({
+    value: String(b.id),
+    label: b.nombre,
+  }))
+
+  const statusLabel: Record<string, string> = {
+    SCHEDULED: "Programada", ARRIVED: "Arribada", DEPARTED: "Zarpada", CANCELED: "Cancelada",
+  }
+
+  const activeChips = [
+    statusFilter && {
+      key: "status",
+      label: `Estado: ${statusLabel[statusFilter] ?? statusFilter}`,
+      onRemove: () => { setStatusFilter(""); setPage(1) },
+    },
+    buqueFilter && {
+      key: "buque",
+      label: `Buque: ${buquesLookup.find((b) => String(b.id) === buqueFilter)?.nombre ?? buqueFilter}`,
+      onRemove: () => { setBuqueFilter(""); setPage(1) },
+    },
+  ].filter(Boolean) as { key: string; label: string; onRemove: () => void }[]
 
   return (
     <AppShell>
@@ -105,29 +123,40 @@ export function RecaladasPage() {
         {/* Filters */}
         <div className="animate-fade-in-up" style={{ animationDelay: "0.05s" }}>
           <GlassCard variant="subtle">
-            <div className="flex flex-wrap items-center gap-4">
-              <div className="flex-1 min-w-[200px]">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[rgb(var(--color-muted))]" />
-                  <GlassInput
-                    type="text"
-                    placeholder="Buscar por codigo o buque..."
-                    value={search}
-                    onChange={(e) => handleSearch(e.target.value)}
-                    className="pl-10"
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center gap-4">
+                <div className="flex-1 min-w-[200px]">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[rgb(var(--color-muted))]" />
+                    <GlassInput
+                      type="text"
+                      placeholder="Buscar por codigo o buque..."
+                      value={search}
+                      onChange={(e) => handleSearch(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+                <div className="min-w-[170px]">
+                  <GlassSelect
+                    options={statusOptions}
+                    value={statusFilter}
+                    onChange={(e) => handleStatusFilter(e.target.value)}
+                  />
+                </div>
+                <div className="min-w-[190px] flex-1">
+                  <SearchableCombobox
+                    options={buqueOptions}
+                    value={buqueFilter}
+                    onChange={handleBuqueFilter}
+                    placeholder="Todos los buques"
+                    disabled={loadingBuques}
                   />
                 </div>
               </div>
-              <GlassSelect
-                options={statusOptions}
-                value={statusFilter}
-                onChange={(e) => handleStatusFilter(e.target.value)}
-              />
-              <GlassSelect
-                options={buqueOptions}
-                value={buqueFilter}
-                onChange={(e) => handleBuqueFilter(e.target.value)}
-                disabled={loadingBuques}
+              <FilterChips
+                chips={activeChips}
+                onClearAll={() => { setStatusFilter(""); setBuqueFilter(""); setPage(1) }}
               />
             </div>
           </GlassCard>

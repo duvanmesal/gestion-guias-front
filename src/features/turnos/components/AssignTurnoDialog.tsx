@@ -3,8 +3,8 @@
 
 import React, { useState, useEffect, useMemo } from "react"
 import { GlassModal } from "@/shared/components/glass/GlassModal"
-import { GlassSelect } from "@/shared/components/glass/GlassSelect"
 import { GlassButton } from "@/shared/components/glass/GlassButton"
+import { SearchableCombobox } from "@/shared/components/glass/SearchableCombobox"
 import { useToast } from "@/shared/components/feedback/Toast"
 import { useTurno } from "@/hooks/use-turnos"
 import { useGuidesLookup } from "@/hooks/use-guides"
@@ -69,33 +69,25 @@ export function AssignTurnoDialog({
   }
 
   const guiaOptions = useMemo(() => {
-    return [
-      { value: "", label: "Seleccionar guía" },
-      ...guides.map((g) => ({
-        value: String(g.guiaId),
-        label: `${g.nombres ?? ""} ${g.apellidos ?? ""} (${g.email})`.trim(),
-      })),
-    ]
+    return guides.map((g) => ({
+      value: String(g.guiaId),
+      label: `${g.nombres ?? ""} ${g.apellidos ?? ""} (${g.email})`.trim(),
+    }))
   }, [guides])
 
   return (
     <GlassModal isOpen={isOpen} onClose={onClose} title={`Asignar Turno #${turnoNumero}`} size="sm">
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-[rgb(var(--color-fg))] mb-1">
-            Guía *
-          </label>
-
-          <GlassSelect
+          <SearchableCombobox
+            label="Guía *"
             options={guiaOptions}
             value={selectedGuia}
-            onChange={(e: any) => setSelectedGuia(e.target.value)}
+            onChange={setSelectedGuia}
+            placeholder="Buscar guía..."
             disabled={loadingGuides || isAssigning}
+            error={error}
           />
-
-          {error && (
-            <p className="text-xs text-[rgb(var(--color-danger))] mt-1">{error}</p>
-          )}
         </div>
 
         <div className="flex justify-end gap-3 pt-4">

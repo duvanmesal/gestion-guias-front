@@ -5,8 +5,9 @@ import { useSearchParams, useNavigate } from "react-router-dom"
 import { Ship, ArrowLeft } from "lucide-react"
 import { AppShell } from "@/shared/components/layout/AppShell"
 import { GlassCard, GlassCardContent } from "@/shared/components/glass/GlassCard"
-import { GlassSelect } from "@/shared/components/glass/GlassSelect"
 import { GlassButton } from "@/shared/components/glass/GlassButton"
+import { SearchableCombobox } from "@/shared/components/glass/SearchableCombobox"
+import { FilterChips } from "@/shared/components/glass/FilterChips"
 import { Skeleton } from "@/shared/components/feedback/Skeleton"
 import { useToast } from "@/shared/components/feedback/Toast"
 import { useBuques } from "@/hooks/use-buques"
@@ -86,13 +87,21 @@ export function BuquesPage() {
     ? paisesLookup.find((p) => p.id === paisFilter)
     : null
 
-  const paisOptions = [
-    { value: "", label: "Todos los paises" },
-    ...paisesLookup.map((p) => ({
-      value: p.id,
-      label: `${p.nombre} (${p.codigo})`,
-    })),
-  ]
+  const activeChips = [
+    statusFilter && {
+      key: "status", label: `Estado: ${statusFilter === "ACTIVO" ? "Activo" : "Inactivo"}`,
+      onRemove: () => handleStatusFilter(""),
+    },
+    !selectedPais && paisFilter && {
+      key: "pais", label: `País: ${paisesLookup.find((p) => p.id === paisFilter)?.nombre ?? paisFilter}`,
+      onRemove: () => handlePaisFilter(""),
+    },
+  ].filter(Boolean) as { key: string; label: string; onRemove: () => void }[]
+
+  const paisOptions = paisesLookup.map((p) => ({
+    value: p.id,
+    label: `${p.nombre} (${p.codigo})`,
+  }))
 
   return (
     <AppShell>
@@ -136,14 +145,22 @@ export function BuquesPage() {
           canCreate={canCreate}
           extraFilters={
             !selectedPais && (
-              <GlassSelect
-                options={paisOptions}
-                value={paisFilter}
-                onChange={(e) => handlePaisFilter(e.target.value)}
-                disabled={loadingPaises}
-              />
+              <div className="min-w-[200px] flex-1">
+                <SearchableCombobox
+                  options={paisOptions}
+                  value={paisFilter}
+                  onChange={handlePaisFilter}
+                  placeholder="Todos los países"
+                  disabled={loadingPaises}
+                />
+              </div>
             )
           }
+        />
+
+        <FilterChips
+          chips={activeChips}
+          onClearAll={() => { handleStatusFilter(""); handlePaisFilter("") }}
         />
 
         {/* Content */}
