@@ -19,6 +19,7 @@ import { AtencionDetailPage } from "@/features/atenciones/AtencionDetailPage"
 import { TurnosPage } from "@/features/turnos/TurnosPage"
 
 import { ProtectedRoute, RequireRoles, GuestRoute } from "./guards"
+import { NotFoundPage } from "@/features/errors/NotFoundPage"
 import { Rol } from "@/core/models/auth"
 
 export const router = createBrowserRouter([
@@ -180,6 +181,6 @@ export const router = createBrowserRouter([
      ======================= */
   {
     path: "*",
-    element: <Navigate to="/dashboard" replace />,
+    element: <NotFoundPage />,
   },
 ])
