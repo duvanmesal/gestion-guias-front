@@ -83,6 +83,50 @@ export const updateProfileSchema = z.object({
 
 export type UpdateProfileFormData = z.infer<typeof updateProfileSchema>
 
+export const onboardingSchema = z
+  .object({
+    nombres: z
+      .string()
+      .min(1, "Los nombres son requeridos")
+      .max(100, "Maximo 100 caracteres")
+      .regex(/^[A-Za-zÁÉÍÓÚÑÜäëïöüáéíóúñü' -]+$/, "Solo letras, espacios y guiones"),
+    apellidos: z
+      .string()
+      .min(1, "Los apellidos son requeridos")
+      .max(100, "Maximo 100 caracteres")
+      .regex(/^[A-Za-zÁÉÍÓÚÑÜäëïöüáéíóúñü' -]+$/, "Solo letras, espacios y guiones"),
+    telefono: z
+      .string()
+      .min(7, "Minimo 7 caracteres")
+      .max(20, "Maximo 20 caracteres")
+      .regex(/^[0-9()+\-\s]+$/, "Formato invalido"),
+    documentType: z.nativeEnum(DocumentType, { required_error: "El tipo de documento es requerido" }),
+    documentNumber: z
+      .string()
+      .min(6, "Minimo 6 caracteres")
+      .max(20, "Maximo 20 caracteres")
+      .regex(/^[A-Za-z0-9]+$/, "Solo letras y numeros"),
+    currentPassword: z.string().min(1, "La contrasena actual es requerida"),
+    newPassword: z
+      .string()
+      .min(8, "Minimo 8 caracteres")
+      .regex(/[A-Z]/, "Debe incluir al menos una mayuscula")
+      .regex(/[a-z]/, "Debe incluir al menos una minuscula")
+      .regex(/[0-9]/, "Debe incluir al menos un numero")
+      .regex(/[^A-Za-z0-9]/, "Debe incluir al menos un simbolo"),
+    confirmPassword: z.string().min(1, "Confirma la nueva contrasena"),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Las contrasenas no coinciden",
+    path: ["confirmPassword"],
+  })
+  .refine((data) => data.currentPassword !== data.newPassword, {
+    message: "La nueva contrasena debe ser diferente a la actual",
+    path: ["newPassword"],
+  })
+
+export type OnboardingFormData = z.infer<typeof onboardingSchema>
+
 // Create invitation validation
 export const createInvitationSchema = z.object({
   email: z.string().min(1, "El email es requerido").email("Email inválido"),

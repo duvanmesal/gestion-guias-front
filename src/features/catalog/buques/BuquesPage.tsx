@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useSearchParams, useNavigate } from "react-router-dom"
+import { useSearchParams } from "react-router-dom"
 import { Ship, ArrowLeft } from "lucide-react"
 import { AppShell } from "@/shared/components/layout/AppShell"
 import { GlassCard, GlassCardContent } from "@/shared/components/glass/GlassCard"
@@ -21,7 +21,6 @@ import { BuqueFormDialog } from "./components/BuqueFormDialog"
 import { ToggleBuqueStatusDialog } from "./components/ToggleBuqueStatusDialog"
 
 export function BuquesPage() {
-  const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const { user } = useAuthStore()
   const { showToast } = useToast()

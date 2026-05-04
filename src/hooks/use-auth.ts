@@ -8,6 +8,12 @@ import { useAuthStore } from "@/app/stores/auth-store";
 import { socketClient } from "@/core/socket/socket.client";
 import type { LoginRequest, LogoutAllRequest } from "@/core/models/auth";
 
+function resolveAuthenticatedEntry(user: { emailVerifiedAt?: string | null; profileStatus?: string | null }) {
+  if (!user.emailVerifiedAt) return "/verify-needed";
+  if (user.profileStatus !== "COMPLETE") return "/onboarding";
+  return "/dashboard";
+}
+
 export function useAuth() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -37,20 +43,16 @@ export function useAuth() {
       setSession(response.data.user, accessToken);
       socketClient.connect(accessToken);
 
-      // 2) Hidratar user real desde /auth/me (emailVerifiedAt + flags reales)
+      // 2) Hidratar user real desde /users/me (emailVerifiedAt + profileStatus + IDs operativos)
       try {
-        const me = await authApi.me();
+        const me = await usersApi.getMe();
 
         if (me.data) {
           updateUser(me.data);
           queryClient.setQueryData(["me"], me.data);
 
           // 3) Decidir navegación con estado REAL
-          if (me.data.emailVerifiedAt) {
-            navigate("/dashboard", { replace: true });
-          } else {
-            navigate("/verify-needed", { replace: true });
-          }
+          navigate(resolveAuthenticatedEntry(me.data), { replace: true });
         } else {
           navigate("/dashboard", { replace: true });
         }

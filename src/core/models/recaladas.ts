@@ -87,8 +87,8 @@ export interface RecaladasQueryParams {
   from?: string
   to?: string
   operationalStatus?: RecaladaOperativeStatus
-  buqueId?: string
-  paisOrigenId?: string
+  buqueId?: string | number
+  paisOrigenId?: string | number
   status?: StatusType
 }
 

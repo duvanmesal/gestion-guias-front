@@ -43,7 +43,7 @@ export const recaladasApi = {
   },
 
   // Get recalada by ID
-  async getRecalada(id: number): Promise<ApiResponse<Recalada>> {
+  async getRecalada(id: string | number): Promise<ApiResponse<Recalada>> {
     const response = await http.get<ApiResponse<Recalada>>(`/recaladas/${id}`);
     return response.data;
   },
@@ -58,7 +58,7 @@ export const recaladasApi = {
 
   // Update recalada
   async updateRecalada(
-    id: number,
+    id: string | number,
     data: UpdateRecaladaRequest,
   ): Promise<ApiResponse<Recalada>> {
     const response = await http.patch<ApiResponse<Recalada>>(
@@ -69,12 +69,12 @@ export const recaladasApi = {
   },
 
   // Delete recalada (safe delete)
-  async deleteRecalada(id: number): Promise<void> {
+  async deleteRecalada(id: string | number): Promise<void> {
     await http.delete(`/recaladas/${id}`);
   },
 
   // Arrive recalada
-  async arriveRecalada(id: number): Promise<ApiResponse<Recalada>> {
+  async arriveRecalada(id: string | number): Promise<ApiResponse<Recalada>> {
     const response = await http.patch<ApiResponse<Recalada>>(
       `/recaladas/${id}/arrive`,
     );
@@ -82,7 +82,7 @@ export const recaladasApi = {
   },
 
   // Depart recalada
-  async departRecalada(id: number): Promise<ApiResponse<Recalada>> {
+  async departRecalada(id: string | number): Promise<ApiResponse<Recalada>> {
     const response = await http.patch<ApiResponse<Recalada>>(
       `/recaladas/${id}/depart`,
     );
@@ -91,7 +91,7 @@ export const recaladasApi = {
 
   // Cancel recalada
   async cancelRecalada(
-    id: number,
+    id: string | number,
     data: CancelRecaladaRequest,
   ): Promise<ApiResponse<Recalada>> {
     const response = await http.patch<ApiResponse<Recalada>>(
@@ -102,7 +102,7 @@ export const recaladasApi = {
   },
 
   // Get atenciones for a recalada
-  async getRecaladaAtenciones(id: number): Promise<ApiResponse<unknown[]>> {
+  async getRecaladaAtenciones(id: string | number): Promise<ApiResponse<unknown[]>> {
     const response = await http.get<ApiResponse<unknown[]>>(
       `/recaladas/${id}/atenciones`,
     );

@@ -23,28 +23,28 @@ export function useRecaladas(params?: RecaladasQueryParams) {
   })
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: UpdateRecaladaRequest }) =>
+    mutationFn: ({ id, data }: { id: string | number; data: UpdateRecaladaRequest }) =>
       recaladasApi.updateRecalada(id, data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["recaladas"] }),
   })
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => recaladasApi.deleteRecalada(id),
+    mutationFn: (id: string | number) => recaladasApi.deleteRecalada(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["recaladas"] }),
   })
 
   const arriveMutation = useMutation({
-    mutationFn: (id: string) => recaladasApi.arriveRecalada(id),
+    mutationFn: (id: string | number) => recaladasApi.arriveRecalada(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["recaladas"] }),
   })
 
   const departMutation = useMutation({
-    mutationFn: (id: string) => recaladasApi.departRecalada(id),
+    mutationFn: (id: string | number) => recaladasApi.departRecalada(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["recaladas"] }),
   })
 
   const cancelMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: CancelRecaladaRequest }) =>
+    mutationFn: ({ id, data }: { id: string | number; data: CancelRecaladaRequest }) =>
       recaladasApi.cancelRecalada(id, data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["recaladas"] }),
   })
@@ -92,7 +92,7 @@ export function useRecaladas(params?: RecaladasQueryParams) {
   }
 }
 
-export function useRecalada(id: string | null) {
+export function useRecalada(id: string | number | null) {
   const queryClient = useQueryClient()
 
   const { data, isLoading, error, refetch } = useQuery({

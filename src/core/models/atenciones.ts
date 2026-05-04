@@ -1,5 +1,5 @@
 import type { StatusType } from "./catalog"
-import type { SupervisorMini, RecaladaListItem } from "./recaladas"
+import type { SupervisorMini } from "./recaladas"
 import type { TurnoListItem } from "./turnos"
 
 // Atencion Operative Status

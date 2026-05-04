@@ -35,13 +35,10 @@ export function ProfilePage() {
   const { user, updateUser } = useAuthStore()
   const { showToast } = useToast()
   const queryClient = useQueryClient()
-  const { me, isLoading: isLoadingMe } = useMe()
+  const { me } = useMe()
   const [activeTab, setActiveTab] = useState<"profile" | "password" | "sessions">(
     "profile"
   )
-
-  // Determine if user needs to complete onboarding
-  const isOnboarding = me?.profileStatus === "INCOMPLETE"
 
   // Update basic profile mutation (PATCH /users/me for nombres, apellidos, telefono)
   const updateMeMutation = useMutation({
@@ -51,18 +48,6 @@ export function ProfilePage() {
         updateUser(response.data as any)
         queryClient.invalidateQueries({ queryKey: ["me"] })
         showToast("success", "Perfil actualizado exitosamente")
-      }
-    },
-  })
-
-  // Onboarding profile completion mutation (PATCH /users/me/profile)
-  const updateProfileMutation = useMutation({
-    mutationFn: (data: UpdateProfileFormData) => usersApi.updateProfile(data),
-    onSuccess: (response) => {
-      if (response.data) {
-        updateUser(response.data)
-        queryClient.invalidateQueries({ queryKey: ["me"] })
-        showToast("success", "Perfil completado exitosamente")
       }
     },
   })
@@ -122,20 +107,14 @@ export function ProfilePage() {
   })
 
   const onSubmitProfile = (data: UpdateProfileFormData) => {
-    if (isOnboarding) {
-      // For onboarding, use the complete profile endpoint
-      updateProfileMutation.mutate(data)
-    } else {
-      // For regular profile updates, use PATCH /users/me with only basic fields
-      const basicData: UpdateMeRequest = {}
-      if (data.nombres) basicData.nombres = data.nombres
-      if (data.apellidos) basicData.apellidos = data.apellidos
-      if (data.telefono) basicData.telefono = data.telefono
-      
-      // Only send if there are changes
-      if (Object.keys(basicData).length > 0) {
-        updateMeMutation.mutate(basicData)
-      }
+    // Regular profile updates use PATCH /users/me with only basic fields.
+    const basicData: UpdateMeRequest = {}
+    if (data.nombres) basicData.nombres = data.nombres
+    if (data.apellidos) basicData.apellidos = data.apellidos
+    if (data.telefono) basicData.telefono = data.telefono
+
+    if (Object.keys(basicData).length > 0) {
+      updateMeMutation.mutate(basicData)
     }
   }
 
@@ -232,7 +211,9 @@ export function ProfilePage() {
                     options={[
                       { value: DocumentType.CC, label: "Cedula de Ciudadania" },
                       { value: DocumentType.CE, label: "Cedula de Extranjeria" },
-                      { value: DocumentType.PASAPORTE, label: "Pasaporte" },
+                      { value: DocumentType.PAS, label: "Pasaporte" },
+                      { value: DocumentType.NIT, label: "NIT" },
+                      { value: DocumentType.OTRO, label: "Otro" },
                     ]}
                     value={watchProfile("documentType") ?? ""}
                     onChange={(val) => setProfileValue("documentType", val as DocumentType, { shouldValidate: true })}
@@ -252,10 +233,10 @@ export function ProfilePage() {
                   <GlassButton
                     type="submit"
                     variant="primary"
-                    loading={updateProfileMutation.isPending || updateMeMutation.isPending}
+                    loading={updateMeMutation.isPending}
                   >
                     <Save className="w-4 h-4" />
-                    {isOnboarding ? "Completar Perfil" : "Guardar Cambios"}
+                    Guardar Cambios
                   </GlassButton>
                 </div>
               </form>

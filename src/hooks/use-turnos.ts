@@ -107,7 +107,7 @@ export function useTurnos(params?: TurnosQueryParams, options?: UseTurnosOptions
   })
 
   const cancelMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data?: { reason?: string } }) =>
+    mutationFn: ({ id, data }: { id: number; data?: { cancelReason?: string } }) =>
       turnosApi.cancelTurno(id, data),
     onSuccess: invalidateAllTurnosLists,
   })
@@ -220,7 +220,7 @@ export function useTurno(id: number | null) {
   })
 
   const cancelMutation = useMutation({
-    mutationFn: (payload?: { reason?: string }) =>
+    mutationFn: (payload?: { cancelReason?: string }) =>
       id ? turnosApi.cancelTurno(id, payload) : Promise.reject("No ID"),
     onSuccess: invalidateAllTurnosLists,
   })

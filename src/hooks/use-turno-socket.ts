@@ -8,6 +8,7 @@ import { Rol } from "@/core/models/auth"
 interface TurnoSocketPayload {
   turnoId: number
   atencionId: number
+  recaladaId?: number | null
   status: string
   guiaId?: string | null
 }
@@ -36,16 +37,30 @@ export function useTurnoSocket({ atencionId }: UseTurnoSocketOptions = {}) {
 
     const invalidateTurnos = (payload: TurnoSocketPayload) => {
       queryClient.invalidateQueries({ queryKey: ["turnos"] })
+      queryClient.invalidateQueries({ queryKey: ["turnos-me"] })
       queryClient.invalidateQueries({ queryKey: ["turno", payload.turnoId] })
+      queryClient.invalidateQueries({ queryKey: ["atencion-turnos", payload.atencionId] })
+      queryClient.invalidateQueries({ queryKey: ["atencion-summary", payload.atencionId] })
+      queryClient.invalidateQueries({ queryKey: ["turnos-me-next"] })
+      queryClient.invalidateQueries({ queryKey: ["turnos-me-active"] })
       queryClient.invalidateQueries({ queryKey: ["dashboard-overview"] })
       if (payload.atencionId) {
         queryClient.invalidateQueries({ queryKey: ["atencion", payload.atencionId] })
+      }
+      if (payload.recaladaId) {
+        queryClient.invalidateQueries({ queryKey: ["recalada", payload.recaladaId] })
       }
     }
 
     const invalidateAtencion = (payload: AtencionSocketPayload) => {
       queryClient.invalidateQueries({ queryKey: ["atenciones"] })
       queryClient.invalidateQueries({ queryKey: ["atencion", payload.atencionId] })
+      queryClient.invalidateQueries({ queryKey: ["atencion-turnos", payload.atencionId] })
+      queryClient.invalidateQueries({ queryKey: ["atencion-summary", payload.atencionId] })
+      queryClient.invalidateQueries({ queryKey: ["dashboard-overview"] })
+      if (payload.recaladaId) {
+        queryClient.invalidateQueries({ queryKey: ["recalada", payload.recaladaId] })
+      }
     }
 
     const isSupervisor = user?.rol === Rol.SUPER_ADMIN || user?.rol === Rol.SUPERVISOR

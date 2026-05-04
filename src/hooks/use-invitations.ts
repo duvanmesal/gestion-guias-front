@@ -1,4 +1,3 @@
-import { useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { invitationsApi } from "@/core/api"
 import type { CreateInvitationRequest, Invitation } from "@/core/models/invitations"

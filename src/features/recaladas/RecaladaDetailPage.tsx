@@ -393,7 +393,7 @@ export function RecaladaDetailPage() {
       <CancelRecaladaDialog
         isOpen={isCancelDialogOpen}
         onClose={() => setIsCancelDialogOpen(false)}
-        recaladaId={recalada.id}
+        recaladaId={Number(recalada.id)}
         onSuccess={() => {
           setIsCancelDialogOpen(false)
           showToast("success", "Recalada cancelada")
@@ -403,7 +403,7 @@ export function RecaladaDetailPage() {
       <AtencionFormDialog
         isOpen={isAtencionDialogOpen}
         onClose={() => setIsAtencionDialogOpen(false)}
-        recaladaId={recalada.id}
+        recaladaId={Number(recalada.id)}
         onSuccess={() => {
           setIsAtencionDialogOpen(false)
           showToast("success", "Atencion creada exitosamente")

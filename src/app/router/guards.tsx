@@ -28,11 +28,13 @@ function FullPageLoader() {
 interface ProtectedRouteProps {
   children: ReactNode;
   requireEmailVerification?: boolean;
+  requireProfileCompletion?: boolean;
 }
 
 export function ProtectedRoute({
   children,
   requireEmailVerification = true,
+  requireProfileCompletion = true,
 }: ProtectedRouteProps) {
   const { isAuthenticated, user, isLoading } = useAuth();
   const location = useLocation();
@@ -52,7 +54,12 @@ export function ProtectedRoute({
     return <Navigate to="/verify-needed" replace />;
   }
 
-  // 4️⃣ Acceso permitido
+  // 4️⃣ Perfil incompleto → onboarding obligatorio, salvo la pantalla de verificación
+  if (requireProfileCompletion && user?.profileStatus !== "COMPLETE") {
+    return <Navigate to="/onboarding" state={{ from: location }} replace />;
+  }
+
+  // 5️⃣ Acceso permitido
   return <>{children}</>;
 }
 
@@ -113,12 +120,49 @@ export function GuestRoute({ children }: GuestRouteProps) {
 
   // Si ya está autenticado → destino según verificación
   if (isAuthenticated) {
+    const target = !user?.emailVerifiedAt
+      ? "/verify-needed"
+      : user.profileStatus !== "COMPLETE"
+        ? "/onboarding"
+        : "/dashboard";
+
     return (
       <Navigate
-        to={user?.emailVerifiedAt ? "/dashboard" : "/verify-needed"}
+        to={target}
         replace
       />
     );
+  }
+
+  return <>{children}</>;
+}
+
+/* =========================================================
+ * ONBOARDING ROUTE
+ * ========================================================= */
+
+interface OnboardingRouteProps {
+  children: ReactNode;
+}
+
+export function OnboardingRoute({ children }: OnboardingRouteProps) {
+  const { isAuthenticated, user, isLoading } = useAuth();
+  const location = useLocation();
+
+  if (isLoading) {
+    return <FullPageLoader />;
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  if (!user?.emailVerifiedAt) {
+    return <Navigate to="/verify-needed" replace />;
+  }
+
+  if (user.profileStatus === "COMPLETE") {
+    return <Navigate to="/dashboard" replace />;
   }
 
   return <>{children}</>;

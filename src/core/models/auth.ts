@@ -9,7 +9,9 @@ export enum Rol {
 export enum DocumentType {
   CC = "CC",
   CE = "CE",
-  PASAPORTE = "PASAPORTE",
+  PAS = "PAS",
+  NIT = "NIT",
+  OTRO = "OTRO",
 }
 
 // Platform Types

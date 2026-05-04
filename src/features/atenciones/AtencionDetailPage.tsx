@@ -44,7 +44,7 @@ const atencionId = id ? Number(id) : null
     isClaiming,
   } = useAtencion(atencionId)
   const { turnos, isLoading: loadingTurnos, refetch: refetchTurnos } = useAtencionTurnos(atencionId)
-  const { summary, isLoading: loadingSummary, refetch: refetchSummary } = useAtencionSummary(atencionId)
+  const { summary, refetch: refetchSummary } = useAtencionSummary(atencionId)
 
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false)

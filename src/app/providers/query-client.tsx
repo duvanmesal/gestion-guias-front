@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider, MutationCache } from "@tanstack/react
 import type { ReactNode } from "react"
 import { useToast } from "@/shared/components/feedback/Toast"
 import { extractApiError } from "@/core/utils/api-error"
+import { useGlobalRealtime } from "@/hooks/use-global-realtime"
 
 interface QueryProviderProps {
   children: ReactNode
@@ -35,5 +36,15 @@ export function QueryProvider({ children }: QueryProviderProps) {
       }),
   )
 
-  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  return (
+    <QueryClientProvider client={queryClient}>
+      <RealtimeBridge />
+      {children}
+    </QueryClientProvider>
+  )
+}
+
+function RealtimeBridge() {
+  useGlobalRealtime()
+  return null
 }

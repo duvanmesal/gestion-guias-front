@@ -17,6 +17,10 @@ export function useRecaladaSocket({ recaladaId }: UseRecaladaSocketOptions = {})
     const socket = socketClient.getSocket()
     if (!socket) return
 
+    if (recaladaId) {
+      socket.emit("join:recalada", recaladaId)
+    }
+
     const invalidate = (payload: RecaladaSocketPayload) => {
       queryClient.invalidateQueries({ queryKey: ["recaladas"] })
       queryClient.invalidateQueries({ queryKey: ["recalada", payload.recaladaId] })
@@ -40,6 +44,7 @@ export function useRecaladaSocket({ recaladaId }: UseRecaladaSocketOptions = {})
     socket.on("recalada:canceled", invalidateWithAtenciones)
 
     return () => {
+      if (recaladaId) socket.emit("leave:recalada", recaladaId)
       socket.off("recalada:created", onCreated)
       socket.off("recalada:updated", invalidate)
       socket.off("recalada:arrived", invalidate)

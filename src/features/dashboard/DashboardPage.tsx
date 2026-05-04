@@ -54,7 +54,6 @@ export function DashboardPage() {
   const navigate = useNavigate()
   const { user } = useAuthStore()
 
-  const isSupervisor = user?.rol === Rol.SUPER_ADMIN || user?.rol === Rol.SUPERVISOR
   const isGuia = user?.rol === Rol.GUIA
 
   useTurnoSocket()

@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { Anchor, Plus, Search, Filter, Calendar } from "lucide-react"
+import { Anchor, Plus, Search, Calendar } from "lucide-react"
 import { AppShell } from "@/shared/components/layout/AppShell"
 import { GlassCard, GlassCardContent } from "@/shared/components/glass/GlassCard"
 import { GlassInput } from "@/shared/components/glass/GlassInput"
@@ -13,7 +13,6 @@ import { Skeleton } from "@/shared/components/feedback/Skeleton"
 import { useToast } from "@/shared/components/feedback/Toast"
 import { useRecaladas } from "@/hooks/use-recaladas"
 import { useBuquesLookup } from "@/hooks/use-buques"
-import { usePaisesLookup } from "@/hooks/use-paises"
 import { useAuthStore } from "@/app/stores/auth-store"
 import { Rol } from "@/core/models/auth"
 import { useRecaladaSocket } from "@/hooks/use-recalada-socket"
@@ -36,9 +35,7 @@ export function RecaladasPage() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
 
   const { buques: buquesLookup, isLoading: loadingBuques } = useBuquesLookup()
-  const { paises: paisesLookup } = usePaisesLookup()
-
-  const { recaladas, meta, isLoading, isCreating } = useRecaladas({
+  const { recaladas, meta, isLoading } = useRecaladas({
     q: search || undefined,
     operationalStatus: statusFilter ? (statusFilter as RecaladaOperativeStatus) : undefined,
     buqueId: buqueFilter ? Number(buqueFilter) : undefined,

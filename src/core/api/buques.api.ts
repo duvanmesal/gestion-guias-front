@@ -2,11 +2,11 @@ import { http } from "./http"
 import type { ApiResponse, MetaPage } from "@/core/models/api"
 import type { Buque, BuquesQueryParams, CreateBuqueRequest, UpdateBuqueRequest } from "@/core/models/catalog"
 
-function cleanParams<T extends Record<string, unknown>>(params?: T): T | undefined {
+function cleanParams<T extends object>(params?: T): Partial<T> | undefined {
   if (!params) return undefined
   const p = { ...params } as Record<string, unknown>
   if (typeof p.q === "string" && p.q.trim().length === 0) delete p.q
-  return p as T
+  return p as Partial<T>
 }
 
 export const buquesApi = {

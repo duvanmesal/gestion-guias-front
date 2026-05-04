@@ -8,6 +8,7 @@ import { VerifyNeededPage } from "@/features/auth/VerifyNeededPage"
 import { DashboardPage } from "@/features/dashboard/DashboardPage"
 import { UsersListPage } from "@/features/users/UsersListPage"
 import { ProfilePage } from "@/features/profile/ProfilePage"
+import { OnboardingPage } from "@/features/profile/OnboardingPage"
 import { InvitationsPage } from "@/features/invitations/InvitationsPage"
 
 import { PaisesPage } from "@/features/catalog/paises/PaisesPage"
@@ -15,10 +16,12 @@ import { BuquesPage } from "@/features/catalog/buques/BuquesPage"
 
 import { RecaladasPage } from "@/features/recaladas/RecaladasPage"
 import { RecaladaDetailPage } from "@/features/recaladas/RecaladaDetailPage"
+import { AtencionesPage } from "@/features/atenciones/AtencionesPage"
 import { AtencionDetailPage } from "@/features/atenciones/AtencionDetailPage"
 import { TurnosPage } from "@/features/turnos/TurnosPage"
+import { TurnoDetailPage } from "@/features/turnos/TurnoDetailPage"
 
-import { ProtectedRoute, RequireRoles, GuestRoute } from "./guards"
+import { ProtectedRoute, RequireRoles, GuestRoute, OnboardingRoute } from "./guards"
 import { NotFoundPage } from "@/features/errors/NotFoundPage"
 import { Rol } from "@/core/models/auth"
 
@@ -66,9 +69,17 @@ export const router = createBrowserRouter([
   {
     path: "/verify-needed",
     element: (
-      <ProtectedRoute requireEmailVerification={false}>
+      <ProtectedRoute requireEmailVerification={false} requireProfileCompletion={false}>
         <VerifyNeededPage />
       </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/onboarding",
+    element: (
+      <OnboardingRoute>
+        <OnboardingPage />
+      </OnboardingRoute>
     ),
   },
 
@@ -156,6 +167,14 @@ export const router = createBrowserRouter([
     ),
   },
   {
+    path: "/atenciones",
+    element: (
+      <ProtectedRoute>
+        <AtencionesPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
     path: "/atenciones/:id",
     element: (
       <ProtectedRoute>
@@ -172,6 +191,14 @@ export const router = createBrowserRouter([
     element: (
       <ProtectedRoute>
         <TurnosPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/turnos/:id",
+    element: (
+      <ProtectedRoute>
+        <TurnoDetailPage />
       </ProtectedRoute>
     ),
   },

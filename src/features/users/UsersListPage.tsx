@@ -41,7 +41,6 @@ import {
   UserCircle,
   ChevronDown,
   ChevronUp,
-  ArrowUpDown,
 } from "lucide-react"
 import { useAuthStore } from "@/app/stores/auth-store"
 

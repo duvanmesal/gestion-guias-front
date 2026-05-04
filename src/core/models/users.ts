@@ -80,9 +80,11 @@ export interface ChangePasswordRequest {
 
 // Update Profile Request (for onboarding - completeProfile)
 export interface UpdateProfileRequest {
-  nombres?: string
-  apellidos?: string
-  telefono?: string
-  documentType?: DocumentType
-  documentNumber?: string
+  nombres: string
+  apellidos: string
+  telefono: string
+  documentType: DocumentType
+  documentNumber: string
+  currentPassword: string
+  newPassword: string
 }

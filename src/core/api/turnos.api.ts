@@ -117,7 +117,7 @@ export const turnosApi = {
   // Cancel turno (supervisor mode)
   async cancelTurno(
     id: number,
-    data?: { reason?: string },
+    data?: { cancelReason?: string },
   ): Promise<ApiResponse<Turno>> {
     const response = await http.patch<ApiResponse<Turno>>(
       `/turnos/${id}/cancel`,

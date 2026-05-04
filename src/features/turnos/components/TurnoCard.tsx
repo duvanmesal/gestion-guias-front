@@ -1,9 +1,12 @@
 "use client"
 
 import { useState } from "react"
-import { User, Play, Square, UserX, UserPlus, UserMinus, Hand } from "lucide-react"
+import { useNavigate } from "react-router-dom"
+import { Eye, User, Play, Square, UserX, UserPlus, UserMinus, Hand, XCircle } from "lucide-react"
 import { GlassCard } from "@/shared/components/glass/GlassCard"
 import { GlassButton } from "@/shared/components/glass/GlassButton"
+import { GlassModal, GlassModalFooter } from "@/shared/components/glass/GlassModal"
+import { GlassTextarea } from "@/shared/components/glass/GlassTextarea"
 import { useToast } from "@/shared/components/feedback/Toast"
 import { useTurno } from "@/hooks/use-turnos"
 import { useAuthStore } from "@/app/stores/auth-store"
@@ -29,6 +32,7 @@ const statusColors: Record<TurnoStatus, string> = {
 }
 
 export function TurnoCard({ turno, index = 0, canOperate = false, onRefresh }: TurnoCardProps) {
+  const navigate = useNavigate()
   const { user } = useAuthStore()
   const { showToast } = useToast()
   const {
@@ -36,19 +40,25 @@ export function TurnoCard({ turno, index = 0, canOperate = false, onRefresh }: T
     checkOutTurnoAsync,
     unassignTurnoAsync,
     noShowTurnoAsync,
+    cancelTurnoAsync,
     claimTurnoAsync,
     isCheckingIn,
     isCheckingOut,
     isUnassigning,
     isMarkingNoShow,
+    isCanceling,
     isClaiming,
   } = useTurno(turno.id)
 
   const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false)
+  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false)
+  const [cancelReason, setCancelReason] = useState("")
+  const [cancelError, setCancelError] = useState<string | null>(null)
 
   const isSupervisor = user?.rol === Rol.SUPER_ADMIN || user?.rol === Rol.SUPERVISOR
   const isGuia = user?.rol === Rol.GUIA
   const isMyTurno = turno.guia?.usuario?.id === user?.id
+  const actionsEnabled = canOperate
 
   const handleCheckIn = async () => {
     try {
@@ -100,12 +110,32 @@ export function TurnoCard({ turno, index = 0, canOperate = false, onRefresh }: T
     }
   }
 
-  const canCheckIn = isGuia && isMyTurno && turno.status === "ASSIGNED"
-  const canCheckOut = isGuia && isMyTurno && turno.status === "IN_PROGRESS"
-  const canClaim = isGuia && turno.status === "AVAILABLE"
-  const canAssign = isSupervisor && turno.status === "AVAILABLE"
-  const canUnassign = isSupervisor && turno.status === "ASSIGNED"
-  const canMarkNoShow = isSupervisor && turno.status === "ASSIGNED"
+  const handleCancel = async () => {
+    const reason = cancelReason.trim()
+    if (reason.length < 3) {
+      setCancelError("Ingresa un motivo de cancelacion de al menos 3 caracteres")
+      return
+    }
+
+    try {
+      await cancelTurnoAsync({ cancelReason: reason })
+      showToast("success", "Turno cancelado")
+      setIsCancelDialogOpen(false)
+      setCancelReason("")
+      setCancelError(null)
+      onRefresh?.()
+    } catch (error) {
+      showToast("error", "Error al cancelar turno")
+    }
+  }
+
+  const canCheckIn = actionsEnabled && isGuia && isMyTurno && turno.status === "ASSIGNED"
+  const canCheckOut = actionsEnabled && isGuia && isMyTurno && turno.status === "IN_PROGRESS"
+  const canClaim = actionsEnabled && isGuia && turno.status === "AVAILABLE"
+  const canAssign = actionsEnabled && isSupervisor && turno.status === "AVAILABLE"
+  const canUnassign = actionsEnabled && isSupervisor && turno.status === "ASSIGNED"
+  const canMarkNoShow = actionsEnabled && isSupervisor && turno.status === "ASSIGNED"
+  const canCancel = actionsEnabled && isSupervisor && (turno.status === "AVAILABLE" || turno.status === "ASSIGNED")
 
   return (
     <>
@@ -144,6 +174,14 @@ export function TurnoCard({ turno, index = 0, canOperate = false, onRefresh }: T
 
           {/* Actions */}
           <div className="flex flex-wrap gap-1 pt-2">
+            <GlassButton
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate(`/turnos/${turno.id}`)}
+              aria-label={`Ver turno ${turno.numero}`}
+            >
+              <Eye className="w-3 h-3" />
+            </GlassButton>
             {canCheckIn && (
               <GlassButton
                 variant="primary"
@@ -210,6 +248,16 @@ export function TurnoCard({ turno, index = 0, canOperate = false, onRefresh }: T
                 <UserX className="w-3 h-3" />
               </GlassButton>
             )}
+            {canCancel && (
+              <GlassButton
+                variant="danger"
+                size="sm"
+                onClick={() => setIsCancelDialogOpen(true)}
+                loading={isCanceling}
+              >
+                <XCircle className="w-3 h-3" />
+              </GlassButton>
+            )}
           </div>
         </div>
       </GlassCard>
@@ -224,6 +272,48 @@ export function TurnoCard({ turno, index = 0, canOperate = false, onRefresh }: T
           onRefresh?.()
         }}
       />
+
+      <GlassModal
+        isOpen={isCancelDialogOpen}
+        onClose={() => {
+          if (!isCanceling) {
+            setIsCancelDialogOpen(false)
+            setCancelReason("")
+            setCancelError(null)
+          }
+        }}
+        title={`Cancelar turno #${turno.numero}`}
+        description="Esta accion retira el cupo de la operacion sin borrar el historial."
+      >
+        <div className="space-y-4">
+          <GlassTextarea
+            label="Motivo de cancelacion"
+            value={cancelReason}
+            onChange={(event) => {
+              setCancelReason(event.target.value)
+              setCancelError(null)
+            }}
+            error={cancelError ?? undefined}
+            placeholder="Describe el motivo de la cancelacion..."
+          />
+        </div>
+        <GlassModalFooter>
+          <GlassButton
+            variant="ghost"
+            onClick={() => {
+              setIsCancelDialogOpen(false)
+              setCancelReason("")
+              setCancelError(null)
+            }}
+            disabled={isCanceling}
+          >
+            Volver
+          </GlassButton>
+          <GlassButton variant="danger" onClick={handleCancel} loading={isCanceling}>
+            Cancelar turno
+          </GlassButton>
+        </GlassModalFooter>
+      </GlassModal>
     </>
   )
 }

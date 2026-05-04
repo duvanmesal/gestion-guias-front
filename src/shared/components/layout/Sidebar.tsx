@@ -325,6 +325,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const navItems = [
     { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard", roles: [Rol.SUPER_ADMIN, Rol.SUPERVISOR, Rol.GUIA] },
     { to: "/recaladas", icon: Anchor, label: "Recaladas", roles: [Rol.SUPER_ADMIN, Rol.SUPERVISOR, Rol.GUIA] },
+    { to: "/atenciones", icon: CalendarClock, label: "Atenciones", roles: [Rol.SUPER_ADMIN, Rol.SUPERVISOR, Rol.GUIA] },
     { to: "/turnos", icon: Clock, label: "Turnos", roles: [Rol.SUPER_ADMIN, Rol.SUPERVISOR, Rol.GUIA] },
     { to: "/users", icon: Users, label: "Usuarios", roles: [Rol.SUPER_ADMIN] },
     { to: "/catalog/paises", icon: MapPin, label: "Paises", roles: [Rol.SUPER_ADMIN, Rol.SUPERVISOR] },
