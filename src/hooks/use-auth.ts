@@ -100,6 +100,11 @@ export function useAuth() {
   } = useQuery({
     queryKey: ["me"],
     queryFn: async () => {
+      const state = useAuthStore.getState();
+      if (!state.accessToken) {
+        await authApi.refresh();
+      }
+
       const response = await usersApi.getMe();
       return response.data;
     },
