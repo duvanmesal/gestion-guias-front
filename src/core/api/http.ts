@@ -138,6 +138,8 @@ async function refreshAccessToken(): Promise<void> {
     const currentUser = useAuthStore.getState().user
     if (currentUser) {
       useAuthStore.getState().setSession(currentUser, newToken)
+    } else {
+      useAuthStore.getState().setAccessToken(newToken)
     }
     // Reconnect socket with new token (covers page-reload scenario)
     socketClient.connect(newToken)
