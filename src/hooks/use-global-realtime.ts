@@ -28,6 +28,24 @@ interface CatalogSocketPayload {
   buqueId?: number
 }
 
+interface DisponibilidadSocketPayload {
+  atencionId?: number
+  guiaId?: string
+  guiaUserId?: string
+  penalizado?: boolean
+  posicion?: number
+  tuPosicion?: number
+  total?: number
+}
+
+interface AtencionNuevaPayload {
+  atencionId: number
+  recaladaId?: number
+  fechaInicio?: string
+  fechaFin?: string
+  turnosTotal?: number
+}
+
 export function useGlobalRealtime() {
   const queryClient = useQueryClient()
   const { showToast } = useToast()
@@ -115,6 +133,27 @@ export function useGlobalRealtime() {
       }
     }
 
+    const invalidateDisponibilidad = (payload: DisponibilidadSocketPayload) => {
+      if (payload.atencionId) {
+        queryClient.invalidateQueries({ queryKey: ["disponibilidad-queue", payload.atencionId] })
+        queryClient.invalidateQueries({ queryKey: ["disponibilidad-me", payload.atencionId] })
+      }
+    }
+
+    const handleAtencionNueva = (_payload: AtencionNuevaPayload) => {
+      showToast("info", "Nueva atención disponible — puedes marcar tu disponibilidad")
+      queryClient.invalidateQueries({ queryKey: ["atenciones"] })
+      queryClient.invalidateQueries({ queryKey: ["dashboard-overview"] })
+    }
+
+    const handlePenalizado = () => {
+      showToast(
+        "warning",
+        "Fuiste marcado como NO_SHOW. En la próxima atención irás al final de la cola.",
+        8000,
+      )
+    }
+
     const invalidateBuque = (payload: CatalogSocketPayload) => {
       queryClient.invalidateQueries({ queryKey: ["buques"] })
       queryClient.invalidateQueries({ queryKey: ["buques", "lookup"] })
@@ -122,6 +161,11 @@ export function useGlobalRealtime() {
         queryClient.invalidateQueries({ queryKey: ["buque", payload.buqueId] })
       }
     }
+
+    socket.on("disponibilidad:marcada", invalidateDisponibilidad)
+    socket.on("disponibilidad:desmarcada", invalidateDisponibilidad)
+    socket.on("disponibilidad:penalizado", handlePenalizado)
+    socket.on("atencion:nueva", handleAtencionNueva)
 
     socket.on("auth:sessionRevoked", forceLogout)
     socket.on("auth:sessionsChanged", invalidateSessions)
@@ -165,6 +209,11 @@ export function useGlobalRealtime() {
     socket.on("catalog:buque:bulkChanged", invalidateBuque)
 
     return () => {
+      socket.off("disponibilidad:marcada", invalidateDisponibilidad)
+      socket.off("disponibilidad:desmarcada", invalidateDisponibilidad)
+      socket.off("disponibilidad:penalizado", handlePenalizado)
+      socket.off("atencion:nueva", handleAtencionNueva)
+
       socket.off("auth:sessionRevoked", forceLogout)
       socket.off("auth:sessionsChanged", invalidateSessions)
 

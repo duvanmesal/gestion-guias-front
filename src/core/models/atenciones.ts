@@ -12,6 +12,7 @@ export interface Atencion {
   recalada?: {
     id: number
     codigoRecalada: string
+    operationalStatus?: string
     buque: {
       id: number
       nombre: string

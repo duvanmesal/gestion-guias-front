@@ -26,6 +26,8 @@ import { AtencionStatusBadge } from "./components/AtencionStatusBadge"
 import { AtencionFormDialog } from "./components/AtencionFormDialog"
 import { CancelAtencionDialog } from "./components/CancelAtencionDialog"
 import { TurnoCard } from "../turnos/components/TurnoCard"
+import { GuiaDisponibilidadPanel } from "./components/GuiaDisponibilidadPanel"
+import { DisponibilidadQueuePanel } from "./components/DisponibilidadQueuePanel"
 
 export function AtencionDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -140,6 +142,17 @@ const handleClaim = async () => {
   const canCloseAtencion = atencion.operationalStatus === "OPEN"
   const canCancelAtencion = atencion.operationalStatus === "OPEN"
   const canClaimTurno = isGuia && atencion.operationalStatus === "OPEN" && turnoStats.available > 0
+
+  const recaladaArrived =
+    (atencion.recalada as any)?.operationalStatus === "ARRIVED" ||
+    (atencion.recalada as any)?.operationalStatus === "DEPARTED"
+
+  const showDisponibilidadGuia =
+    isGuia &&
+    atencion.operationalStatus === "OPEN" &&
+    !recaladaArrived
+
+  const showDisponibilidadQueue = canOperate && atencion.operationalStatus === "OPEN"
 
   return (
     <AppShell>
@@ -303,6 +316,23 @@ const handleClaim = async () => {
 
           {/* RIGHT — operations + metadata */}
           <div className="space-y-4">
+            {/* Guía: panel disponibilidad */}
+            {showDisponibilidadGuia && (
+              <GuiaDisponibilidadPanel
+                atencionId={atencion.id}
+                atencionAbierta={atencion.operationalStatus === "OPEN"}
+                recaladaArrived={recaladaArrived}
+              />
+            )}
+
+            {/* Supervisor: cola de disponibilidad */}
+            {showDisponibilidadQueue && (
+              <DisponibilidadQueuePanel
+                atencionId={atencion.id}
+                turnosTotal={atencion.turnosTotal}
+              />
+            )}
+
             {(canOperate || canClaimTurno) && (canCloseAtencion || canCancelAtencion || canClaimTurno) && (
               <GlassCard className="animate-fade-in-up" style={{ animationDelay: "0.05s" }}>
                 <h3 className="text-sm font-semibold text-[rgb(var(--color-fg))] mb-3">Operaciones</h3>

@@ -123,6 +123,7 @@ export function LoginPage() {
           <GlassInput
             label="Correo electrónico"
             type="email"
+            autoComplete="email"
             placeholder="correo@ejemplo.com"
             error={errors.email?.message}
             leftIcon={<Mail className="w-[18px] h-[18px] text-[rgb(var(--color-primary))]" />}
@@ -133,6 +134,9 @@ export function LoginPage() {
             <GlassInput
               label="Contraseña"
               type="password"
+              autoComplete="current-password"
+              data-lpignore="true"
+              data-1p-ignore="true"
               placeholder="••••••••"
               error={errors.password?.message}
               leftIcon={<Lock className="w-[18px] h-[18px] text-[rgb(var(--color-primary))]" />}
