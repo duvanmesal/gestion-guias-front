@@ -7,6 +7,7 @@ import {
   type ReactNode,
   useCallback,
 } from "react"
+import { createPortal } from "react-dom"
 import { X, CheckCircle, AlertCircle, Info, AlertTriangle } from "lucide-react"
 
 type ToastType = "success" | "error" | "info" | "warning"
@@ -58,15 +59,18 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
-      <div className="fixed top-20 right-4 z-50 flex flex-col gap-2 max-w-sm">
-        {toasts.map((toast) => (
-          <ToastItem
-            key={toast.id}
-            toast={toast}
-            onClose={() => removeToast(toast.id)}
-          />
-        ))}
-      </div>
+      {createPortal(
+        <div className="fixed top-20 right-4 z-50 flex flex-col gap-2 max-w-sm">
+          {toasts.map((toast) => (
+            <ToastItem
+              key={toast.id}
+              toast={toast}
+              onClose={() => removeToast(toast.id)}
+            />
+          ))}
+        </div>,
+        document.body
+      )}
     </ToastContext.Provider>
   )
 }
