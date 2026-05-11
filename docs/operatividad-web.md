@@ -1,8 +1,8 @@
 # Operatividad Web - Cambios Documentados
 
-Ultima revision contra codigo: 2026-05-04.
+Ultima revision contra codigo: 2026-05-10.
 
-Fuente principal: `src/features/profile`, `src/features/turnos`, `src/features/*/components/*FormDialog.tsx`, `src/shared/components/glass`, `src/hooks/use-buques.ts` y `src/core/models/auth.ts`.
+Fuente principal: `src/features/profile`, `src/features/turnos`, `src/features/*/components/*FormDialog.tsx`, `src/shared/components/glass`, `src/hooks/use-buques.ts`, `src/core/models/auth.ts`, `src/shared/components/feedback/Toast.tsx`, `src/features/atenciones/components/GuiaDisponibilidadPanel.tsx` y `src/features/auth/LoginPage.tsx`.
 
 ## Proposito
 
@@ -257,6 +257,41 @@ La pantalla de turnos decide el modo:
 
 En modo guia, la pantalla pasa `dateFrom` con la fecha actual si el usuario no selecciono rango. Esto complementa el comportamiento del backend, que por defecto filtra el listado por el dia actual.
 
+## Correcciones de estabilidad (mayo 2026)
+
+### Toast portal — crash removeChild al navegar
+
+Fuente: `src/shared/components/feedback/Toast.tsx`.
+
+**Problema**: cuando el usuario navegaba entre rutas mientras habia un toast visible, React lanzaba un error `NotFoundError: Failed to execute 'removeChild'` porque el contenedor del toast era un nodo hijo del componente de ruta que ya se habia desmontado.
+
+**Solucion**: el contenedor `<div>` de los toasts se renderiza con `createPortal(…, document.body)` en lugar de como hijo directo del componente. Al vivir directamente bajo `document.body`, queda fuera del arbol de rutas y nunca queda huerfano.
+
+Impacto: cualquier toast puede sobrevivir a una navegacion sin errores. La logica de duracion y cierre manual sigue funcionando igual.
+
+### GuiaDisponibilidadPanel — guard de posicion cero
+
+Fuente: `src/features/atenciones/components/GuiaDisponibilidadPanel.tsx`.
+
+**Problema**: el panel usaba `{posicion && (...)}` para mostrar la posicion en cola. Cuando la posicion era `0` (guia en primera posicion), la condicion evaluaba a falso y el badge de posicion no aparecia.
+
+**Solucion**: cambiado a `{posicion !== null && (...)}` para distinguir entre "sin dato" y "posicion cero".
+
+Impacto: el badge de posicion ahora se muestra correctamente para el primer guia en la cola.
+
+### LoginPage — autocompletado con gestores de contraseñas
+
+Fuente: `src/features/auth/LoginPage.tsx`.
+
+**Cambio**: se agregaron atributos de autocompletado al formulario de login para mejorar la compatibilidad con gestores de contraseñas (1Password, LastPass, Chrome, etc.):
+
+- Campo email: `autoComplete="email"`.
+- Campo password: `autoComplete="current-password"`, `data-lpignore="true"`, `data-1p-ignore="true"`.
+
+Impacto: los gestores de contraseñas detectan correctamente el formulario y ofrecen autorellenado. Los atributos `data-*` previenen interferencias de extensiones especificas cuando el campo ya tiene foco.
+
+---
+
 ## Matriz de QA manual
 
 | Escenario | Resultado esperado |
@@ -273,6 +308,9 @@ En modo guia, la pantalla pasa `dateFrom` con la fecha actual si el usuario no s
 | Crear buque con capacidad 0 | Error local de capacidad. |
 | Seleccionar fecha dentro de modal | Calendario se muestra por encima del modal sin recortarse. |
 | Abrir combobox dentro de modal | Dropdown se muestra por encima del contenedor sin recortarse. |
+| Toast visible al navegar entre rutas | No se produce error `removeChild`; el toast desaparece normalmente por duracion. |
+| Guia en posicion 0 de la cola de disponibilidad | El badge de posicion muestra "Posicion: 1" (o el valor correcto) sin desaparecer. |
+| Abrir login con gestor de contraseñas activo | El gestor detecta los campos y ofrece autorellenado sin conflictos. |
 
 ## Notas de mantenimiento
 
@@ -281,3 +319,4 @@ En modo guia, la pantalla pasa `dateFrom` con la fecha actual si el usuario no s
 - Cuando se agregue un nuevo enum visible, preferir `SearchableCombobox` con `searchable={false}`.
 - Cuando se agregue un campo de fecha/hora en modal o toolbar, preferir `GlassDateTimeInput` para mantener consistencia visual.
 - Si cambia el contrato de `GET /auth/sessions`, actualizar `Session` en `src/core/models/auth.ts` y este documento.
+- Si se agrega un nuevo componente con contenedor flotante (dropdown, modal, tooltip), evaluar si necesita portal para evitar el mismo patron de recorte o crash que el toast.
