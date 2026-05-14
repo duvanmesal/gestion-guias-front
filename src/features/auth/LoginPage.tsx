@@ -42,7 +42,10 @@ export function LoginPage() {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<LoginFormData>({ resolver: zodResolver(loginSchema) })
+  } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { rememberMe: false },
+  })
 
   useEffect(() => {
     if (!isAuthenticated || isLoading) return
@@ -151,6 +154,22 @@ export function LoginPage() {
               </Link>
             </div>
           </div>
+
+          <label className="flex items-start gap-3 rounded-2xl border border-[rgb(var(--color-glass))] bg-[rgb(var(--color-surface)/0.46)] px-4 py-3 text-left">
+            <input
+              type="checkbox"
+              className="mt-0.5 h-4 w-4 rounded border-[rgb(var(--color-glass))] accent-[rgb(var(--color-primary))]"
+              {...register("rememberMe")}
+            />
+            <span className="flex flex-col gap-0.5">
+              <span className="text-sm font-semibold text-[rgb(var(--color-fg))]">
+                Recordar este navegador
+              </span>
+              <span className="text-xs leading-relaxed text-[rgb(var(--color-muted))]">
+                Mantiene la sesión disponible hasta por 15 días.
+              </span>
+            </span>
+          </label>
 
           {isLocked && (
             <div className="px-4 py-3 rounded-xl border border-[rgb(var(--color-danger)/0.3)] bg-[rgb(var(--color-danger)/0.08)] animate-fade-in-up">

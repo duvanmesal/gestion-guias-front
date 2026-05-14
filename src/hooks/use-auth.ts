@@ -35,12 +35,14 @@ export function useAuth() {
     mutationFn: (data: LoginRequest) => authApi.login(data),
     meta: { suppressGlobalError: true },
 
-    onSuccess: async (response) => {
+    onSuccess: async (response, variables) => {
       if (!response.data) return;
 
       // 1) Guardar sesión inicial (user parcial + token)
       const accessToken = response.data.tokens.accessToken
-      setSession(response.data.user, accessToken);
+      setSession(response.data.user, accessToken, {
+        rememberMe: variables.rememberMe === true,
+      });
       socketClient.connect(accessToken);
 
       // 2) Hidratar user real desde /users/me (emailVerifiedAt + profileStatus + IDs operativos)
@@ -102,7 +104,12 @@ export function useAuth() {
     queryFn: async () => {
       const state = useAuthStore.getState();
       if (!state.accessToken) {
-        await authApi.refresh();
+        const refreshed = await authApi.refresh();
+        const accessToken = refreshed.data?.tokens.accessToken;
+        if (accessToken) {
+          useAuthStore.getState().setAccessToken(accessToken);
+          socketClient.connect(accessToken);
+        }
       }
 
       const response = await usersApi.getMe();

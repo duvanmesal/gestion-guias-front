@@ -98,6 +98,7 @@ export interface LoginRequest {
   password: string
   deviceId?: string
   platform?: Platform
+  rememberMe?: boolean
 }
 
 // Login Response

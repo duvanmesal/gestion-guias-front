@@ -6,6 +6,7 @@ export const loginSchema = z.object({
   email: z.string().min(1, "El email es requerido").email("Email inválido"),
   password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres"),
   platform: z.nativeEnum(Platform).optional(),
+  rememberMe: z.boolean().default(false),
 })
 
 export type LoginFormData = z.infer<typeof loginSchema>
