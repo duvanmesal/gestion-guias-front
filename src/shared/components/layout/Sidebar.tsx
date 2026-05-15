@@ -20,6 +20,7 @@ import {
   Ticket,
   Play,
   Info,
+  ShipWheel,
 } from "lucide-react"
 
 import { useAuthStore } from "@/app/stores/auth-store"
@@ -103,6 +104,8 @@ function iconFromKey(key?: string) {
       return Play
     case "info":
       return Info
+    case "ship-off":
+      return ShipWheel
     default:
       return Info
   }
@@ -315,7 +318,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       return ordered // 👈 aquí no limitamos; si hay muchos, el scroll lo soporta
     }
 
-    const priority = ["sup-operation-today", "sup-alerts", "sup-guides", "sup-upcoming"]
+    const priority = ["sup-overdue-recaladas", "sup-operation-today", "sup-alerts", "sup-guides", "sup-upcoming"]
     const ordered = priority
       .map((id) => widgets.find((w) => w.id === id))
       .filter(Boolean) as DashboardWidget[]

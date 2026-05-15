@@ -17,6 +17,7 @@ import {
   CalendarClock,
   Clock,
   PlayCircle,
+  AlertTriangle,
 } from "lucide-react"
 
 import { AppShell } from "@/shared/components/layout/AppShell"
@@ -121,6 +122,14 @@ export function DashboardPage() {
   const guiaActiveTurno = (overview as any)?.activeTurno ?? (overview as any)?.guia?.activeTurno
   const guiaDisponibles = (overview as any)?.atencionesDisponibles ?? (overview as any)?.guia?.atencionesDisponibles
 
+  const overdueRecaladasCount: number = (() => {
+    const fromCounts = (overview as any)?.counts?.overdueRecaladas
+    const fromSupervisor = (overview as any)?.supervisor?.counts?.overdueRecaladas
+    const fromAlerts = ((overview as any)?.supervisor?.alerts ?? (overview as any)?.alerts ?? [])
+      .find((a: any) => a?.code === "OVERDUE_RECALADAS")?.count
+    return Number(fromCounts ?? fromSupervisor ?? fromAlerts ?? 0) || 0
+  })()
+
   const disponiblesOrdered = useMemo(() => {
     const list = Array.isArray(guiaDisponibles) ? guiaDisponibles : []
     return [...list].sort(
@@ -131,6 +140,43 @@ export function DashboardPage() {
   return (
     <AppShell>
       <div className="space-y-6">
+        {!isGuia && overdueRecaladasCount > 0 && (
+          <button
+            type="button"
+            onClick={() => navigate("/recaladas?overdueDeparture=true")}
+            className="w-full text-left animate-fade-in-up focus-ring rounded-2xl"
+            aria-label="Revisar recaladas vencidas pendientes de zarpe"
+          >
+            <div
+              className="rounded-2xl p-4 flex items-start gap-3"
+              style={{
+                background: "rgba(var(--color-danger), 0.08)",
+                border: "1px solid rgba(var(--color-danger), 0.25)",
+              }}
+            >
+              <div className="w-10 h-10 rounded-xl bg-[rgb(var(--color-danger)/0.18)] flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5 text-[rgb(var(--color-danger))]" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-[rgb(var(--color-fg))]">
+                  Recaladas vencidas pendientes de zarpe
+                </p>
+                <p className="text-xs text-[rgb(var(--color-muted))] mt-0.5">
+                  {overdueRecaladasCount === 1
+                    ? "1 recalada arribada cuya salida programada ya venció. Marca el zarpe."
+                    : `${overdueRecaladasCount} recaladas arribadas cuya salida programada ya venció. Marca el zarpe.`}
+                </p>
+              </div>
+              <div className="flex items-center gap-2 text-xs font-medium text-[rgb(var(--color-danger))]">
+                <span className="px-2 py-0.5 rounded-full bg-[rgb(var(--color-danger)/0.18)]">
+                  {overdueRecaladasCount}
+                </span>
+                <ArrowRight className="w-4 h-4" />
+              </div>
+            </div>
+          </button>
+        )}
+
         {/* Top row */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {/* Health */}
