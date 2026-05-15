@@ -144,62 +144,34 @@ export function DashboardPage() {
           <button
             type="button"
             onClick={() => navigate("/recaladas?overdueDeparture=true")}
-            className="group w-full text-left animate-fade-in-up focus-ring rounded-2xl"
+            className="group w-full text-left animate-fade-in-up focus-ring rounded-xl"
             aria-label="Revisar recaladas vencidas pendientes de zarpe"
           >
             <div
-              className="relative overflow-hidden rounded-2xl p-4 sm:p-5 transition-all duration-300 group-hover:shadow-[0_8px_30px_-12px_rgba(var(--color-danger),0.35)]"
+              className="relative flex items-center gap-3 rounded-xl py-3 pl-4 pr-3 transition-colors duration-200 hover:bg-[rgb(var(--color-danger)/0.06)]"
               style={{
-                background:
-                  "linear-gradient(135deg, rgba(var(--color-danger), 0.10) 0%, rgba(var(--color-danger), 0.04) 60%, rgba(var(--color-danger), 0.07) 100%)",
-                border: "1px solid rgba(var(--color-danger), 0.28)",
+                backgroundColor: "rgba(var(--color-danger), 0.04)",
+                borderLeft: "2px solid rgba(var(--color-danger), 0.55)",
               }}
             >
-              <div className="pointer-events-none absolute inset-y-0 left-0 w-1 bg-[rgb(var(--color-danger))]" />
-              <div className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full bg-[rgb(var(--color-danger)/0.10)] blur-2xl" />
-
-              <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center">
-                <div className="flex items-start gap-3 min-w-0 flex-1">
-                  <div className="relative w-11 h-11 rounded-xl bg-[rgb(var(--color-danger)/0.14)] flex items-center justify-center shrink-0 ring-1 ring-[rgb(var(--color-danger)/0.22)]">
-                    <span className="absolute inset-0 rounded-xl bg-[rgb(var(--color-danger)/0.18)] animate-ping opacity-40" />
-                    <AlertTriangle className="relative w-5 h-5 text-[rgb(var(--color-danger))]" />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-[10.5px] font-bold uppercase tracking-[0.18em] text-[rgb(var(--color-danger))]">
-                        Atención operativa
-                      </span>
-                      <span className="inline-flex items-center gap-1 rounded-full bg-[rgb(var(--color-danger)/0.14)] px-2 py-0.5 text-[10.5px] font-semibold text-[rgb(var(--color-danger))] ring-1 ring-[rgb(var(--color-danger)/0.18)]">
-                        <span className="h-1.5 w-1.5 rounded-full bg-[rgb(var(--color-danger))]" />
-                        ARRIVED · salida vencida
-                      </span>
-                    </div>
-                    <p className="mt-1.5 text-[15px] font-bold leading-tight text-[rgb(var(--color-fg))] sm:text-base">
-                      Recaladas pendientes de zarpe
-                    </p>
-                    <p className="mt-1 text-[12.5px] leading-relaxed text-[rgb(var(--color-muted))] sm:text-sm">
-                      {overdueRecaladasCount === 1
-                        ? "Hay 1 recalada arribada cuya salida programada ya venció."
-                        : `Hay ${overdueRecaladasCount} recaladas arribadas cuya salida programada ya venció.`}{" "}
-                      Revisa la lista filtrada y marca el zarpe correspondiente.
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between gap-3 sm:justify-end">
-                  <div className="relative rounded-xl bg-[rgb(var(--color-danger)/0.14)] px-3.5 py-2 text-center ring-1 ring-inset ring-[rgb(var(--color-danger)/0.20)]">
-                    <p className="tabular-nums text-2xl font-black leading-none text-[rgb(var(--color-danger))]">
-                      {overdueRecaladasCount}
-                    </p>
-                    <p className="mt-1 text-[9.5px] font-bold uppercase tracking-[0.14em] text-[rgb(var(--color-danger)/0.85)]">
-                      vencidas
-                    </p>
-                  </div>
-                  <span className="inline-flex items-center gap-1.5 rounded-xl bg-[rgb(var(--color-bg-elevated))] px-3.5 py-2 text-[12.5px] font-bold text-[rgb(var(--color-danger))] ring-1 ring-[rgb(var(--color-danger)/0.22)] shadow-sm transition-all duration-200 group-hover:translate-x-0.5 group-hover:ring-[rgb(var(--color-danger)/0.35)]">
-                    Revisar
-                    <ArrowRight className="w-3.5 h-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
+              <AlertTriangle className="w-4 h-4 shrink-0 text-[rgb(var(--color-danger))]" aria-hidden />
+              <div className="min-w-0 flex-1">
+                <p className="text-[13px] font-medium leading-tight text-[rgb(var(--color-fg))]">
+                  Recaladas pendientes de zarpe
+                  <span className="ml-2 tabular-nums text-[rgb(var(--color-muted))]">
+                    · {overdueRecaladasCount}
                   </span>
-                </div>
+                </p>
+                <p className="mt-0.5 text-[12px] leading-snug text-[rgb(var(--color-muted))]">
+                  {overdueRecaladasCount === 1
+                    ? "1 buque arribado con salida programada vencida."
+                    : `${overdueRecaladasCount} buques arribados con salida programada vencida.`}
+                </p>
               </div>
+              <span className="inline-flex shrink-0 items-center gap-1 text-[12px] font-medium text-[rgb(var(--color-muted))] transition-colors group-hover:text-[rgb(var(--color-fg))]">
+                Revisar
+                <ArrowRight className="w-3.5 h-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
+              </span>
             </div>
           </button>
         )}
