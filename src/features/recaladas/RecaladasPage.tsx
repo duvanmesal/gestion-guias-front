@@ -150,28 +150,32 @@ export function RecaladasPage() {
 
         {overdueOnly && (
           <div
-            className="relative flex items-center gap-3 rounded-xl py-3 pl-4 pr-3 animate-fade-in-up"
+            className="relative flex items-start gap-3.5 rounded-xl px-4 py-3.5 animate-fade-in-up sm:items-center"
             style={{
-              backgroundColor: "rgba(var(--color-danger), 0.04)",
-              borderLeft: "2px solid rgba(var(--color-danger), 0.55)",
+              backgroundColor: "rgba(var(--color-danger), 0.07)",
+              border: "1px solid rgba(var(--color-danger), 0.20)",
             }}
           >
-            <AlertTriangle className="w-4 h-4 shrink-0 text-[rgb(var(--color-danger))]" aria-hidden />
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[rgb(var(--color-danger)/0.12)]">
+              <AlertTriangle className="h-4 w-4 text-[rgb(var(--color-danger))]" aria-hidden />
+            </div>
             <div className="min-w-0 flex-1">
-              <p className="text-[13px] font-medium leading-tight text-[rgb(var(--color-fg))]">
-                Recaladas vencidas pendientes de zarpe
-                <span className="ml-2 tabular-nums text-[rgb(var(--color-muted))]">
-                  · {isLoading ? "…" : meta?.total ?? recaladas.length}
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <p className="text-[13.5px] font-semibold leading-none text-[rgb(var(--color-fg))]">
+                  Recaladas vencidas pendientes de zarpe
+                </p>
+                <span className="inline-flex items-center rounded-md bg-[rgb(var(--color-danger)/0.14)] px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-[rgb(var(--color-danger))]">
+                  {isLoading ? "…" : meta?.total ?? recaladas.length}
                 </span>
-              </p>
-              <p className="mt-0.5 text-[12px] leading-snug text-[rgb(var(--color-muted))]">
+              </div>
+              <p className="mt-1 text-[12.5px] leading-snug text-[rgb(var(--color-muted))]">
                 Buques arribados con salida programada vencida.
               </p>
             </div>
             <button
               type="button"
               onClick={clearOverdueFilter}
-              className="shrink-0 rounded-md px-2 py-1 text-[12px] font-medium text-[rgb(var(--color-muted))] transition hover:bg-[rgb(var(--color-border)/0.06)] hover:text-[rgb(var(--color-fg))]"
+              className="shrink-0 self-center rounded-md px-2.5 py-1.5 text-[12px] font-medium text-[rgb(var(--color-muted))] transition hover:bg-[rgb(var(--color-border)/0.08)] hover:text-[rgb(var(--color-fg))]"
             >
               Quitar
             </button>
