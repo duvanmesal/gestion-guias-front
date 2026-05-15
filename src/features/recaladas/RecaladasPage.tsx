@@ -1,8 +1,8 @@
 "use client"
 
-import { useState } from "react"
-import { useNavigate } from "react-router-dom"
-import { Anchor, Plus, Search, Calendar } from "lucide-react"
+import { useEffect, useState } from "react"
+import { useNavigate, useSearchParams } from "react-router-dom"
+import { Anchor, Plus, Search, Calendar, AlertTriangle } from "lucide-react"
 import { AppShell } from "@/shared/components/layout/AppShell"
 import { GlassCard, GlassCardContent } from "@/shared/components/glass/GlassCard"
 import { GlassInput } from "@/shared/components/glass/GlassInput"
@@ -26,22 +26,49 @@ export function RecaladasPage() {
   const { showToast } = useToast()
   useRecaladaSocket()
 
+  const [searchParams, setSearchParams] = useSearchParams()
+  const initialOverdue = ["1", "true"].includes(
+    (searchParams.get("overdueDeparture") ?? "").toLowerCase(),
+  )
+
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("")
   const [buqueFilter, setBuqueFilter] = useState<string>("")
+  const [overdueOnly, setOverdueOnly] = useState<boolean>(initialOverdue)
   const [page, setPage] = useState(1)
   const pageSize = 12
 
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+
+  // Sincroniza el filtro overdueDeparture con la URL en ambos sentidos.
+  useEffect(() => {
+    const fromUrl = ["1", "true"].includes(
+      (searchParams.get("overdueDeparture") ?? "").toLowerCase(),
+    )
+    if (fromUrl !== overdueOnly) {
+      setOverdueOnly(fromUrl)
+      setPage(1)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams])
 
   const { buques: buquesLookup, isLoading: loadingBuques } = useBuquesLookup()
   const { recaladas, meta, isLoading } = useRecaladas({
     q: search || undefined,
     operationalStatus: statusFilter ? (statusFilter as RecaladaOperativeStatus) : undefined,
     buqueId: buqueFilter ? Number(buqueFilter) : undefined,
+    overdueDeparture: overdueOnly || undefined,
     page,
     pageSize,
   })
+
+  const clearOverdueFilter = () => {
+    setOverdueOnly(false)
+    setPage(1)
+    const next = new URLSearchParams(searchParams)
+    next.delete("overdueDeparture")
+    setSearchParams(next, { replace: true })
+  }
 
   const handleSearch = (value: string) => {
     setSearch(value)
@@ -88,6 +115,11 @@ export function RecaladasPage() {
       label: `Buque: ${buquesLookup.find((b) => String(b.id) === buqueFilter)?.nombre ?? buqueFilter}`,
       onRemove: () => { setBuqueFilter(""); setPage(1) },
     },
+    overdueOnly && {
+      key: "overdue",
+      label: "Solo vencidas pendientes de zarpe",
+      onRemove: clearOverdueFilter,
+    },
   ].filter(Boolean) as { key: string; label: string; onRemove: () => void }[]
 
   return (
@@ -115,6 +147,32 @@ export function RecaladasPage() {
             )}
           </div>
         </div>
+
+        {overdueOnly && (
+          <div
+            className="rounded-2xl p-4 flex items-start gap-3 animate-fade-in-up"
+            style={{
+              background: "rgba(var(--color-danger), 0.08)",
+              border: "1px solid rgba(var(--color-danger), 0.25)",
+            }}
+          >
+            <div className="w-10 h-10 rounded-xl bg-[rgb(var(--color-danger)/0.18)] flex items-center justify-center shrink-0">
+              <AlertTriangle className="w-5 h-5 text-[rgb(var(--color-danger))]" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-[rgb(var(--color-fg))]">
+                Mostrando solo recaladas vencidas pendientes de zarpe
+              </p>
+              <p className="text-xs text-[rgb(var(--color-muted))] mt-0.5">
+                Estado ARRIVED con fecha de salida ya vencida. Marca el zarpe en cada recalada para
+                cerrarla operativamente.
+              </p>
+            </div>
+            <GlassButton variant="ghost" size="sm" onClick={clearOverdueFilter}>
+              Quitar filtro
+            </GlassButton>
+          </div>
+        )}
 
         {/* Filters */}
         <div className="animate-fade-in-up" style={{ animationDelay: "0.05s" }}>
@@ -154,7 +212,12 @@ export function RecaladasPage() {
               </div>
               <FilterChips
                 chips={activeChips}
-                onClearAll={() => { setStatusFilter(""); setBuqueFilter(""); setPage(1) }}
+                onClearAll={() => {
+                  setStatusFilter("")
+                  setBuqueFilter("")
+                  setPage(1)
+                  if (overdueOnly) clearOverdueFilter()
+                }}
               />
             </div>
           </GlassCard>

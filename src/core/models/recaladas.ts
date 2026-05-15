@@ -90,6 +90,8 @@ export interface RecaladasQueryParams {
   buqueId?: string | number
   paisOrigenId?: string | number
   status?: StatusType
+  // Filtro operativo: recaladas ARRIVED cuyo zarpe programado ya venció.
+  overdueDeparture?: boolean
 }
 
 // Create Recalada Request
