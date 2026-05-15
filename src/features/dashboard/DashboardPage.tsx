@@ -148,29 +148,33 @@ export function DashboardPage() {
             aria-label="Revisar recaladas vencidas pendientes de zarpe"
           >
             <div
-              className="relative flex items-center gap-3 rounded-xl py-3 pl-4 pr-3 transition-colors duration-200 hover:bg-[rgb(var(--color-danger)/0.06)]"
+              className="relative flex items-start gap-3.5 rounded-xl px-4 py-3.5 transition-colors duration-200 sm:items-center"
               style={{
-                backgroundColor: "rgba(var(--color-danger), 0.04)",
-                borderLeft: "2px solid rgba(var(--color-danger), 0.55)",
+                backgroundColor: "rgba(var(--color-danger), 0.07)",
+                border: "1px solid rgba(var(--color-danger), 0.20)",
               }}
             >
-              <AlertTriangle className="w-4 h-4 shrink-0 text-[rgb(var(--color-danger))]" aria-hidden />
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[rgb(var(--color-danger)/0.12)] transition-colors group-hover:bg-[rgb(var(--color-danger)/0.18)]">
+                <AlertTriangle className="h-4 w-4 text-[rgb(var(--color-danger))]" aria-hidden />
+              </div>
               <div className="min-w-0 flex-1">
-                <p className="text-[13px] font-medium leading-tight text-[rgb(var(--color-fg))]">
-                  Recaladas pendientes de zarpe
-                  <span className="ml-2 tabular-nums text-[rgb(var(--color-muted))]">
-                    · {overdueRecaladasCount}
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <p className="text-[13.5px] font-semibold leading-none text-[rgb(var(--color-fg))]">
+                    Recaladas pendientes de zarpe
+                  </p>
+                  <span className="inline-flex items-center rounded-md bg-[rgb(var(--color-danger)/0.14)] px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-[rgb(var(--color-danger))]">
+                    {overdueRecaladasCount}
                   </span>
-                </p>
-                <p className="mt-0.5 text-[12px] leading-snug text-[rgb(var(--color-muted))]">
+                </div>
+                <p className="mt-1 text-[12.5px] leading-snug text-[rgb(var(--color-muted))]">
                   {overdueRecaladasCount === 1
                     ? "1 buque arribado con salida programada vencida."
                     : `${overdueRecaladasCount} buques arribados con salida programada vencida.`}
                 </p>
               </div>
-              <span className="inline-flex shrink-0 items-center gap-1 text-[12px] font-medium text-[rgb(var(--color-muted))] transition-colors group-hover:text-[rgb(var(--color-fg))]">
+              <span className="inline-flex shrink-0 self-center items-center gap-1 text-[12px] font-medium text-[rgb(var(--color-danger))] transition-transform duration-200 group-hover:translate-x-0.5">
                 Revisar
-                <ArrowRight className="w-3.5 h-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
+                <ArrowRight className="h-3.5 w-3.5" />
               </span>
             </div>
           </button>
