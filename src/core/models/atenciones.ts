@@ -13,6 +13,8 @@ export interface Atencion {
     id: number
     codigoRecalada: string
     operationalStatus?: string
+    fechaLlegada?: string
+    fechaSalida?: string | null
     buque: {
       id: number
       nombre: string
@@ -90,12 +92,10 @@ export interface CancelAtencionRequest {
 // Atencion Summary (for turnero dashboard)
 export interface AtencionSummary {
   turnosTotal: number
-  counts: {
-    available: number
-    assigned: number
-    inProgress: number
-    completed: number
-    noShow: number
-    canceled: number
-  }
+  availableCount: number
+  assignedCount: number
+  inProgressCount: number
+  completedCount: number
+  canceledCount: number
+  noShowCount: number
 }

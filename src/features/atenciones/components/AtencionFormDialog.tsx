@@ -15,14 +15,33 @@ interface AtencionFormDialogProps {
   isOpen: boolean
   onClose: () => void
   recaladaId?: number
+  recaladaWindow?: {
+    fechaLlegada?: string | null
+    fechaSalida?: string | null
+  }
   atencion?: Atencion | null
   onSuccess?: () => void
+}
+
+function toLocalInputValue(iso?: string | null): string {
+  if (!iso) return ""
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return ""
+  const pad = (value: number) => String(value).padStart(2, "0")
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
+}
+
+function addHours(iso: string, hours: number): string {
+  const date = new Date(iso)
+  date.setHours(date.getHours() + hours)
+  return date.toISOString()
 }
 
 export function AtencionFormDialog({
   isOpen,
   onClose,
   recaladaId,
+  recaladaWindow,
   atencion,
   onSuccess,
 }: AtencionFormDialogProps) {
@@ -42,27 +61,31 @@ export function AtencionFormDialog({
   useEffect(() => {
     if (isOpen && atencion) {
       setFormData({
-        fechaInicio: atencion.fechaInicio ? atencion.fechaInicio.slice(0, 16) : "",
-        fechaFin: atencion.fechaFin ? atencion.fechaFin.slice(0, 16) : "",
+        fechaInicio: toLocalInputValue(atencion.fechaInicio),
+        fechaFin: toLocalInputValue(atencion.fechaFin),
         turnosTotal: String(atencion.turnosTotal),
         descripcion: atencion.descripcion || "",
       })
     } else if (isOpen) {
-      const now = new Date()
-      const startTime = new Date(now)
-      startTime.setHours(8, 0, 0, 0)
-      const endTime = new Date(now)
-      endTime.setHours(12, 0, 0, 0)
+      const fallbackStart = new Date()
+      fallbackStart.setHours(8, 0, 0, 0)
+      const fallbackEnd = new Date()
+      fallbackEnd.setHours(12, 0, 0, 0)
+
+      const fechaInicio = recaladaWindow?.fechaLlegada ?? fallbackStart.toISOString()
+      const fechaFin =
+        recaladaWindow?.fechaSalida ??
+        (recaladaWindow?.fechaLlegada ? addHours(recaladaWindow.fechaLlegada, 4) : fallbackEnd.toISOString())
 
       setFormData({
-        fechaInicio: startTime.toISOString().slice(0, 16),
-        fechaFin: endTime.toISOString().slice(0, 16),
+        fechaInicio: toLocalInputValue(fechaInicio),
+        fechaFin: toLocalInputValue(fechaFin),
         turnosTotal: "6",
         descripcion: "",
       })
     }
     setErrors({})
-  }, [isOpen, atencion])
+  }, [isOpen, atencion, recaladaWindow?.fechaLlegada, recaladaWindow?.fechaSalida])
 
   const validate = () => {
     const newErrors: Record<string, string> = {}
@@ -71,8 +94,27 @@ export function AtencionFormDialog({
     if (!formData.fechaFin) newErrors.fechaFin = "Ingresa la fecha/hora de fin"
 
     if (formData.fechaInicio && formData.fechaFin) {
-      if (new Date(formData.fechaFin) <= new Date(formData.fechaInicio)) {
-        newErrors.fechaFin = "La fecha de fin debe ser posterior al inicio"
+      const start = new Date(formData.fechaInicio)
+      const end = new Date(formData.fechaFin)
+
+      if (end < start) {
+        newErrors.fechaFin = "La fecha de fin debe ser mayor o igual al inicio"
+      }
+
+      if (recaladaWindow?.fechaLlegada && start < new Date(recaladaWindow.fechaLlegada)) {
+        newErrors.fechaInicio = "Debe ser mayor o igual a la llegada de la recalada"
+      }
+
+      if (recaladaWindow?.fechaLlegada && end < new Date(recaladaWindow.fechaLlegada)) {
+        newErrors.fechaFin = "Debe ser mayor o igual a la llegada de la recalada"
+      }
+
+      if (recaladaWindow?.fechaSalida && start > new Date(recaladaWindow.fechaSalida)) {
+        newErrors.fechaInicio = "Debe ser menor o igual a la salida de la recalada"
+      }
+
+      if (recaladaWindow?.fechaSalida && end > new Date(recaladaWindow.fechaSalida)) {
+        newErrors.fechaFin = "Debe ser menor o igual a la salida de la recalada"
       }
     }
 
