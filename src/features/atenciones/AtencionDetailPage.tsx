@@ -104,14 +104,23 @@ const handleClaim = async () => {
   }
 
 // Use summary from backend or fallback to counting locally
-  const turnoStats = summary?.counts ?? {
-    available: turnos.filter((t) => t.status === "AVAILABLE").length,
-    assigned: turnos.filter((t) => t.status === "ASSIGNED").length,
-    inProgress: turnos.filter((t) => t.status === "IN_PROGRESS").length,
-    completed: turnos.filter((t) => t.status === "COMPLETED").length,
-    noShow: turnos.filter((t) => t.status === "NO_SHOW").length,
-    canceled: turnos.filter((t) => t.status === "CANCELED").length,
-  }
+  const turnoStats = summary
+    ? {
+        available: summary.availableCount,
+        assigned: summary.assignedCount,
+        inProgress: summary.inProgressCount,
+        completed: summary.completedCount,
+        noShow: summary.noShowCount,
+        canceled: summary.canceledCount,
+      }
+    : {
+        available: turnos.filter((t) => t.status === "AVAILABLE").length,
+        assigned: turnos.filter((t) => t.status === "ASSIGNED").length,
+        inProgress: turnos.filter((t) => t.status === "IN_PROGRESS").length,
+        completed: turnos.filter((t) => t.status === "COMPLETED").length,
+        noShow: turnos.filter((t) => t.status === "NO_SHOW").length,
+        canceled: turnos.filter((t) => t.status === "CANCELED").length,
+      }
 
   if (isLoading) {
     return (
@@ -385,6 +394,14 @@ const handleClaim = async () => {
         isOpen={isEditDialogOpen}
         onClose={() => setIsEditDialogOpen(false)}
         atencion={atencion}
+        recaladaWindow={
+          atencion.recalada?.fechaLlegada
+            ? {
+                fechaLlegada: atencion.recalada.fechaLlegada,
+                fechaSalida: atencion.recalada.fechaSalida,
+              }
+            : undefined
+        }
         onSuccess={() => {
           setIsEditDialogOpen(false)
           showToast("success", "Atencion actualizada exitosamente")

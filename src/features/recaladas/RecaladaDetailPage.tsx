@@ -404,6 +404,10 @@ export function RecaladaDetailPage() {
         isOpen={isAtencionDialogOpen}
         onClose={() => setIsAtencionDialogOpen(false)}
         recaladaId={Number(recalada.id)}
+        recaladaWindow={{
+          fechaLlegada: recalada.fechaLlegada,
+          fechaSalida: recalada.fechaSalida,
+        }}
         onSuccess={() => {
           setIsAtencionDialogOpen(false)
           showToast("success", "Atencion creada exitosamente")
