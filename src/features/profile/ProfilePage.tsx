@@ -157,33 +157,61 @@ export function ProfilePage() {
       <div className="space-y-6 max-w-4xl">
         {/* Header */}
         <div className="animate-fade-in-up">
-          <h1 className="text-3xl font-bold text-[rgb(var(--color-fg))] mb-1">
-            Mi Perfil
+          <p
+            className="text-[11px] font-semibold uppercase mb-1"
+            style={{
+              color: "rgb(var(--color-muted))",
+              letterSpacing: "0.12em",
+            }}
+          >
+            Cuenta personal
+          </p>
+          <h1
+            className="text-3xl font-bold"
+            style={{
+              color: "rgb(var(--color-fg))",
+              letterSpacing: "-0.02em",
+            }}
+          >
+            Mi perfil
           </h1>
-          <p className="text-[rgb(var(--color-muted))]">
-            Gestiona tu informacion personal y configuracion
+          <p
+            className="mt-1.5 text-sm"
+            style={{ color: "rgb(var(--color-muted))" }}
+          >
+            Información personal, seguridad y sesiones activas.
           </p>
         </div>
 
         {/* Tabs */}
         <div
-          className="glass-subtle p-1.5 inline-flex rounded-xl animate-fade-in-up"
-          style={{ animationDelay: "0.05s" }}
+          className="inline-flex p-1 rounded-xl animate-fade-in-up"
+          style={{
+            background: "rgba(var(--color-border), 0.04)",
+            border: "1px solid rgba(var(--color-border), 0.06)",
+            animationDelay: "0.05s",
+          }}
         >
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`px-4 py-2.5 rounded-lg transition-all duration-200 focus-ring flex items-center gap-2 ${
-                activeTab === tab.id
-                  ? "glass bg-[rgb(var(--color-primary)/0.15)] text-[rgb(var(--color-primary))]"
-                  : "text-[rgb(var(--color-muted))] hover:text-[rgb(var(--color-fg))] hover:bg-[rgb(var(--color-glass-hover)/0.3)]"
-              }`}
-            >
-              <tab.icon className="w-4 h-4" />
-              <span className="font-medium text-sm">{tab.label}</span>
-            </button>
-          ))}
+          {tabs.map((tab) => {
+            const active = activeTab === tab.id
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className="px-4 py-2 rounded-lg transition-all duration-150 focus-ring flex items-center gap-2"
+                style={{
+                  background: active ? "rgb(var(--color-bg-elevated))" : "transparent",
+                  color: active
+                    ? "rgb(var(--color-fg))"
+                    : "rgb(var(--color-muted))",
+                  boxShadow: active ? "var(--shadow-sm)" : "none",
+                }}
+              >
+                <tab.icon className="w-4 h-4" />
+                <span className="font-medium text-sm">{tab.label}</span>
+              </button>
+            )
+          })}
         </div>
 
         {/* Profile Tab */}
@@ -193,67 +221,131 @@ export function ProfilePage() {
               <GlassCardTitle>Informacion Personal</GlassCardTitle>
             </GlassCardHeader>
             <GlassCardContent>
-              {isGuia && (
-                <div className="mb-5 glass-subtle rounded-xl p-4">
-                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                    <div className="flex items-start gap-3">
+              {isGuia && (() => {
+                const status = pendingPenalty
+                  ? {
+                      title: "Penalización pendiente",
+                      detail:
+                        "No puedes tomar turnos hasta que tu penalización sea resuelta por un supervisor.",
+                      fg: "rgb(var(--color-warning))",
+                      bg: "rgba(var(--color-warning), 0.08)",
+                      border: "rgba(var(--color-warning), 0.25)",
+                      Icon: AlertTriangle,
+                    }
+                  : disponibilidadActiva
+                    ? {
+                        title: "Disponible para turnos",
+                        detail:
+                          "Puedes reclamar turnos o recibir asignaciones automáticas según el modo activo.",
+                        fg: "rgb(var(--color-success))",
+                        bg: "rgba(var(--color-success), 0.08)",
+                        border: "rgba(var(--color-success), 0.25)",
+                        Icon: CheckCircle2,
+                      }
+                    : {
+                        title: "No disponible",
+                        detail:
+                          "Actívate cuando puedas tomar turnos. Solo los guías disponibles aparecen en FIFO o pueden reclamar manualmente.",
+                        fg: "rgb(var(--color-muted))",
+                        bg: "rgba(var(--color-border), 0.04)",
+                        border: "rgba(var(--color-border), 0.10)",
+                        Icon: CheckCircle2,
+                      }
+
+                return (
+                  <div
+                    className="mb-5 rounded-2xl p-4"
+                    style={{
+                      background: status.bg,
+                      border: `1px solid ${status.border}`,
+                    }}
+                  >
+                    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                      <div className="flex items-start gap-3">
+                        <div
+                          className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-xl shrink-0"
+                          style={{ background: "rgba(255,255,255,0.6)", color: status.fg }}
+                        >
+                          <status.Icon className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p
+                              className="text-[10.5px] font-semibold uppercase"
+                              style={{
+                                color: status.fg,
+                                letterSpacing: "0.1em",
+                              }}
+                            >
+                              Disponibilidad
+                            </p>
+                            <span
+                              className="w-1 h-1 rounded-full"
+                              style={{ background: "rgb(var(--color-muted))", opacity: 0.5 }}
+                            />
+                            <span
+                              className="w-1.5 h-1.5 rounded-full animate-pulse"
+                              style={{ background: status.fg }}
+                            />
+                          </div>
+                          <p
+                            className="text-sm font-semibold mt-0.5"
+                            style={{ color: "rgb(var(--color-fg))" }}
+                          >
+                            {status.title}
+                          </p>
+                          <p
+                            className="mt-1 text-xs leading-relaxed max-w-md"
+                            style={{ color: "rgb(var(--color-muted))" }}
+                          >
+                            {status.detail}
+                          </p>
+                        </div>
+                      </div>
                       <div
-                        className={`mt-0.5 flex h-9 w-9 items-center justify-center rounded-xl ${
-                          pendingPenalty
-                            ? "bg-[rgb(var(--color-warning)/0.12)]"
-                            : disponibilidadActiva
-                              ? "bg-[rgb(var(--color-success)/0.12)]"
-                              : "bg-[rgb(var(--color-border)/0.08)]"
-                        }`}
+                        className="flex p-1 rounded-xl shrink-0"
+                        style={{
+                          background: "rgba(var(--color-bg-elevated), 0.9)",
+                          border: "1px solid rgba(var(--color-border), 0.06)",
+                        }}
                       >
-                        {pendingPenalty ? (
-                          <AlertTriangle className="h-4 w-4 text-[rgb(var(--color-warning))]" />
-                        ) : (
-                          <CheckCircle2
-                            className={`h-4 w-4 ${
-                              disponibilidadActiva
-                                ? "text-[rgb(var(--color-success))]"
-                                : "text-[rgb(var(--color-muted))]"
-                            }`}
-                          />
-                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleAvailabilityChange(true)}
+                          disabled={pendingPenalty || isUpdatingAvailability}
+                          className="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all focus-ring disabled:opacity-50"
+                          style={{
+                            background: disponibilidadActiva && !pendingPenalty
+                              ? "rgb(var(--color-success))"
+                              : "transparent",
+                            color: disponibilidadActiva && !pendingPenalty
+                              ? "white"
+                              : "rgb(var(--color-fg))",
+                          }}
+                        >
+                          {isUpdatingAvailability && !disponibilidadActiva ? "..." : "Disponible"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleAvailabilityChange(false)}
+                          disabled={isUpdatingAvailability}
+                          className="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all focus-ring disabled:opacity-50"
+                          style={{
+                            background: !disponibilidadActiva
+                              ? "rgb(var(--color-fg))"
+                              : "transparent",
+                            color: !disponibilidadActiva
+                              ? "rgb(var(--color-bg-elevated))"
+                              : "rgb(var(--color-fg))",
+                          }}
+                        >
+                          {isUpdatingAvailability && disponibilidadActiva ? "..." : "No disponible"}
+                        </button>
                       </div>
-                      <div>
-                        <p className="text-sm font-semibold text-[rgb(var(--color-fg))]">
-                          Disponibilidad para turnos
-                        </p>
-                        <p className="mt-1 text-xs text-[rgb(var(--color-muted))]">
-                          {pendingPenalty
-                            ? "Tienes una penalización pendiente y no puedes tomar turnos."
-                            : disponibilidadActiva
-                              ? "Estás disponible para reclamo manual o asignación FIFO."
-                              : "Marca disponibilidad para poder tomar turnos."}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <GlassButton
-                        type="button"
-                        variant={disponibilidadActiva ? "primary" : "ghost"}
-                        disabled={pendingPenalty || isUpdatingAvailability}
-                        loading={isUpdatingAvailability && !disponibilidadActiva}
-                        onClick={() => handleAvailabilityChange(true)}
-                      >
-                        Disponible
-                      </GlassButton>
-                      <GlassButton
-                        type="button"
-                        variant={!disponibilidadActiva ? "primary" : "ghost"}
-                        disabled={isUpdatingAvailability}
-                        loading={isUpdatingAvailability && disponibilidadActiva}
-                        onClick={() => handleAvailabilityChange(false)}
-                      >
-                        No disponible
-                      </GlassButton>
                     </div>
                   </div>
-                </div>
-              )}
+                )
+              })()}
 
               <form
                 onSubmit={handleSubmitProfile(onSubmitProfile)}
