@@ -6,7 +6,6 @@ import {
   LayoutDashboard,
   Users,
   UserPlus,
-  User,
   X,
   ChevronRight,
   MapPin,
@@ -326,20 +325,44 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     return ordered
   })()
 
-  const navItems = [
-    { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard", roles: [Rol.SUPER_ADMIN, Rol.SUPERVISOR, Rol.GUIA] },
-    { to: "/recaladas", icon: Anchor, label: "Recaladas", roles: [Rol.SUPER_ADMIN, Rol.SUPERVISOR, Rol.GUIA] },
-    { to: "/atenciones", icon: CalendarClock, label: "Atenciones", roles: [Rol.SUPER_ADMIN, Rol.SUPERVISOR, Rol.GUIA] },
-    { to: "/turnos", icon: Clock, label: "Turnos", roles: [Rol.SUPER_ADMIN, Rol.SUPERVISOR, Rol.GUIA] },
-    { to: "/users", icon: Users, label: "Usuarios", roles: [Rol.SUPER_ADMIN] },
-    { to: "/catalog/paises", icon: MapPin, label: "Paises", roles: [Rol.SUPER_ADMIN, Rol.SUPERVISOR] },
-    { to: "/catalog/buques", icon: Ship, label: "Buques", roles: [Rol.SUPER_ADMIN, Rol.SUPERVISOR] },
-    { to: "/configuracion-operativa", icon: Settings, label: "Config. operativa", roles: [Rol.SUPER_ADMIN, Rol.SUPERVISOR] },
-    { to: "/invitations", icon: UserPlus, label: "Invitaciones", roles: [Rol.SUPER_ADMIN] },
-    { to: "/profile", icon: User, label: "Mi Perfil", roles: [Rol.SUPER_ADMIN, Rol.SUPERVISOR, Rol.GUIA] },
+  type NavItem = { to: string; icon: typeof LayoutDashboard; label: string; roles: Rol[] }
+  type NavSection = { id: string; label?: string; items: NavItem[] }
+
+  const navSections: NavSection[] = [
+    {
+      id: "operacion",
+      items: [
+        { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard", roles: [Rol.SUPER_ADMIN, Rol.SUPERVISOR, Rol.GUIA] },
+        { to: "/recaladas", icon: Anchor, label: "Recaladas", roles: [Rol.SUPER_ADMIN, Rol.SUPERVISOR, Rol.GUIA] },
+        { to: "/atenciones", icon: CalendarClock, label: "Atenciones", roles: [Rol.SUPER_ADMIN, Rol.SUPERVISOR, Rol.GUIA] },
+        { to: "/turnos", icon: Clock, label: "Turnos", roles: [Rol.SUPER_ADMIN, Rol.SUPERVISOR, Rol.GUIA] },
+      ],
+    },
+    {
+      id: "catalogos",
+      label: "Catálogos",
+      items: [
+        { to: "/catalog/paises", icon: MapPin, label: "Países", roles: [Rol.SUPER_ADMIN, Rol.SUPERVISOR] },
+        { to: "/catalog/buques", icon: Ship, label: "Buques", roles: [Rol.SUPER_ADMIN, Rol.SUPERVISOR] },
+      ],
+    },
+    {
+      id: "sistema",
+      label: "Administración",
+      items: [
+        { to: "/configuracion-operativa", icon: Settings, label: "Config. operativa", roles: [Rol.SUPER_ADMIN, Rol.SUPERVISOR] },
+        { to: "/users", icon: Users, label: "Usuarios", roles: [Rol.SUPER_ADMIN] },
+        { to: "/invitations", icon: UserPlus, label: "Invitaciones", roles: [Rol.SUPER_ADMIN] },
+      ],
+    },
   ]
 
-  const filteredNavItems = navItems.filter((item) => user && item.roles.includes(user.rol))
+  const filteredSections = navSections
+    .map((section) => ({
+      ...section,
+      items: section.items.filter((item) => user && item.roles.includes(user.rol)),
+    }))
+    .filter((section) => section.items.length > 0)
 
   function onNavigate(to: string) {
     navigate(to)
@@ -378,28 +401,43 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         </button>
 
         {/* Contenido scrolleable */}
-        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-5">
           {/* Navigation primero */}
-          <nav className="space-y-1">
-            {filteredNavItems.map((item, index) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                onClick={onClose}
-                style={{ animationDelay: `${index * 0.05}s` }}
-                className={({ isActive }) =>
-                  `flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 focus-ring group animate-fade-in-up ${isActive
-                    ? "bg-[rgba(var(--color-primary),0.08)] text-[rgb(var(--color-primary))]"
-                    : "text-[rgb(var(--color-fg-secondary,var(--color-muted)))] hover:bg-[rgba(var(--color-border),0.04)] hover:text-[rgb(var(--color-fg))]"
-                  }`
-                }
-              >
-                <div className="flex items-center gap-3">
-                  <item.icon className="w-5 h-5 transition-transform group-hover:scale-110" />
-                  <span className="font-medium text-sm">{item.label}</span>
-                </div>
-                <ChevronRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-all group-hover:translate-x-1" />
-              </NavLink>
+          <nav className="space-y-5">
+            {filteredSections.map((section, sIdx) => (
+              <div key={section.id} className="space-y-1">
+                {section.label && (
+                  <p
+                    className="px-3 mb-1.5 text-[10.5px] font-semibold uppercase"
+                    style={{
+                      color: "rgb(var(--color-muted))",
+                      letterSpacing: "0.09em",
+                    }}
+                  >
+                    {section.label}
+                  </p>
+                )}
+                {section.items.map((item, index) => (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    onClick={onClose}
+                    style={{ animationDelay: `${(sIdx * 0.05) + index * 0.04}s` }}
+                    className={({ isActive }) =>
+                      `flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 focus-ring group animate-fade-in-up ${isActive
+                        ? "bg-[rgba(var(--color-primary),0.08)] text-[rgb(var(--color-primary))]"
+                        : "text-[rgb(var(--color-fg-secondary,var(--color-muted)))] hover:bg-[rgba(var(--color-border),0.04)] hover:text-[rgb(var(--color-fg))]"
+                      }`
+                    }
+                  >
+                    <div className="flex items-center gap-3">
+                      <item.icon className="w-5 h-5 transition-transform group-hover:scale-110" />
+                      <span className="font-medium text-sm">{item.label}</span>
+                    </div>
+                    <ChevronRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-all group-hover:translate-x-1" />
+                  </NavLink>
+                ))}
+              </div>
             ))}
           </nav>
 
