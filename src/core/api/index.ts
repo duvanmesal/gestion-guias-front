@@ -12,3 +12,4 @@ export * from "./atenciones.api";
 export * from "./turnos.api";
 export * from "./dashboard.api";
 export * from "./disponibilidad.api";
+export * from "./operational-config.api";

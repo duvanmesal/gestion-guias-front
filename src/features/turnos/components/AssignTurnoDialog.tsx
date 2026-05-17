@@ -29,6 +29,8 @@ export function AssignTurnoDialog({
 
   const { guides = [], isLoading: loadingGuides } = useGuidesLookup({
     activo: true,
+    disponible: true,
+    penalizado: false,
     pageSize: 200,
   })
 

@@ -1,4 +1,4 @@
-import type { Rol, DocumentType } from "./auth"
+import type { Rol, DocumentType, TurnoAssignmentMode } from "./auth"
 
 // Profile Status
 export type ProfileStatus = "INCOMPLETE" | "COMPLETE"
@@ -18,8 +18,20 @@ export interface UserMeResponse {
   emailVerifiedAt: string | null
   guiaId?: string | null
   supervisorId?: string | null
+  pendingPenalty?: boolean | null
+  disponibleParaTurnos?: boolean | null
+  disponibilidadUpdatedAt?: string | null
+  turnoAssignmentMode?: TurnoAssignmentMode
   createdAt: string
   updatedAt: string
+}
+
+export interface GuideAvailabilityResponse {
+  guiaId: string
+  disponibleParaTurnos: boolean
+  disponibilidadUpdatedAt: string | null
+  pendingPenalty: boolean
+  turnoAssignmentMode?: TurnoAssignmentMode
 }
 
 // User Search Query Params (new advanced search)

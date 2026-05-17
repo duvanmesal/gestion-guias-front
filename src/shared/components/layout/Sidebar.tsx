@@ -21,6 +21,7 @@ import {
   Play,
   Info,
   ShipWheel,
+  Settings,
 } from "lucide-react"
 
 import { useAuthStore } from "@/app/stores/auth-store"
@@ -333,6 +334,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     { to: "/users", icon: Users, label: "Usuarios", roles: [Rol.SUPER_ADMIN] },
     { to: "/catalog/paises", icon: MapPin, label: "Paises", roles: [Rol.SUPER_ADMIN, Rol.SUPERVISOR] },
     { to: "/catalog/buques", icon: Ship, label: "Buques", roles: [Rol.SUPER_ADMIN, Rol.SUPERVISOR] },
+    { to: "/configuracion-operativa", icon: Settings, label: "Config. operativa", roles: [Rol.SUPER_ADMIN, Rol.SUPERVISOR] },
     { to: "/invitations", icon: UserPlus, label: "Invitaciones", roles: [Rol.SUPER_ADMIN] },
     { to: "/profile", icon: User, label: "Mi Perfil", roles: [Rol.SUPER_ADMIN, Rol.SUPERVISOR, Rol.GUIA] },
   ]

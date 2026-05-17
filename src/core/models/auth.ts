@@ -20,6 +20,8 @@ export enum Platform {
   MOBILE = "MOBILE",
 }
 
+export type TurnoAssignmentMode = "MANUAL_RECLAMO" | "FIFO_GLOBAL"
+
 // Profile Status
 export type ProfileStatus = "INCOMPLETE" | "COMPLETE"
 
@@ -39,6 +41,10 @@ export interface User {
   // Operational IDs (populated by GET /users/me)
   guiaId?: string | null
   supervisorId?: string | null
+  pendingPenalty?: boolean | null
+  disponibleParaTurnos?: boolean | null
+  disponibilidadUpdatedAt?: string | null
+  turnoAssignmentMode?: TurnoAssignmentMode
   createdAt: string
   updatedAt: string
 }

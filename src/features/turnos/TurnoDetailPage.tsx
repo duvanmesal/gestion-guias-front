@@ -19,6 +19,7 @@ import {
 
 import { useAuthStore } from "@/app/stores/auth-store"
 import { Rol } from "@/core/models/auth"
+import { useMe } from "@/hooks/use-me"
 import { useTurno } from "@/hooks/use-turnos"
 import { useTurnoSocket } from "@/hooks/use-turno-socket"
 import { AppShell } from "@/shared/components/layout/AppShell"
@@ -49,6 +50,7 @@ export function TurnoDetailPage() {
   const turnoId = Number(id)
   const navigate = useNavigate()
   const { user } = useAuthStore()
+  const { me } = useMe()
   const { showToast } = useToast()
   const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false)
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false)
@@ -91,7 +93,15 @@ export function TurnoDetailPage() {
 
   const canCheckIn = isGuia && isMyTurno && turno?.status === "ASSIGNED"
   const canCheckOut = isGuia && isMyTurno && turno?.status === "IN_PROGRESS"
-  const canClaim = isGuia && turno?.status === "AVAILABLE"
+  const assignmentMode = me?.turnoAssignmentMode ?? user?.turnoAssignmentMode ?? "MANUAL_RECLAMO"
+  const guiaDisponible = me?.disponibleParaTurnos ?? user?.disponibleParaTurnos ?? false
+  const guiaPenalizado = me?.pendingPenalty ?? user?.pendingPenalty ?? false
+  const canClaim =
+    isGuia &&
+    assignmentMode === "MANUAL_RECLAMO" &&
+    guiaDisponible &&
+    !guiaPenalizado &&
+    turno?.status === "AVAILABLE"
   const canAssign = isSupervisor && turno?.status === "AVAILABLE"
   const canUnassign = isSupervisor && turno?.status === "ASSIGNED"
   const canMarkNoShow = isSupervisor && turno?.status === "ASSIGNED"

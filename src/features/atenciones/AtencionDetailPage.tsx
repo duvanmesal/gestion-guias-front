@@ -21,18 +21,19 @@ import { useToast } from "@/shared/components/feedback/Toast"
 import { useAtencion, useAtencionTurnos, useAtencionSummary } from "@/hooks/use-atenciones"
 import { useAuthStore } from "@/app/stores/auth-store"
 import { Rol } from "@/core/models/auth"
+import { useMe } from "@/hooks/use-me"
 import { useTurnoSocket } from "@/hooks/use-turno-socket"
 import { AtencionStatusBadge } from "./components/AtencionStatusBadge"
 import { AtencionFormDialog } from "./components/AtencionFormDialog"
 import { CancelAtencionDialog } from "./components/CancelAtencionDialog"
 import { TurnoCard } from "../turnos/components/TurnoCard"
-import { GuiaDisponibilidadPanel } from "./components/GuiaDisponibilidadPanel"
 import { DisponibilidadQueuePanel } from "./components/DisponibilidadQueuePanel"
 
 export function AtencionDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { user } = useAuthStore()
+  const { me } = useMe()
   const { showToast } = useToast()
 
 const atencionId = id ? Number(id) : null
@@ -54,6 +55,10 @@ const atencionId = id ? Number(id) : null
   const canEdit = user?.rol === Rol.SUPER_ADMIN || user?.rol === Rol.SUPERVISOR
   const canOperate = user?.rol === Rol.SUPER_ADMIN || user?.rol === Rol.SUPERVISOR
   const isGuia = user?.rol === Rol.GUIA
+  const assignmentMode = me?.turnoAssignmentMode ?? user?.turnoAssignmentMode ?? "MANUAL_RECLAMO"
+  const guiaDisponible =
+    me?.disponibleParaTurnos ?? user?.disponibleParaTurnos ?? false
+  const guiaPenalizado = me?.pendingPenalty ?? user?.pendingPenalty ?? false
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
@@ -150,16 +155,13 @@ const handleClaim = async () => {
 
   const canCloseAtencion = atencion.operationalStatus === "OPEN"
   const canCancelAtencion = atencion.operationalStatus === "OPEN"
-  const canClaimTurno = isGuia && atencion.operationalStatus === "OPEN" && turnoStats.available > 0
-
-  const recaladaArrived =
-    (atencion.recalada as any)?.operationalStatus === "ARRIVED" ||
-    (atencion.recalada as any)?.operationalStatus === "DEPARTED"
-
-  const showDisponibilidadGuia =
+  const canClaimTurno =
     isGuia &&
+    assignmentMode === "MANUAL_RECLAMO" &&
+    guiaDisponible &&
+    !guiaPenalizado &&
     atencion.operationalStatus === "OPEN" &&
-    !recaladaArrived
+    turnoStats.available > 0
 
   const showDisponibilidadQueue = canOperate && atencion.operationalStatus === "OPEN"
 
@@ -325,15 +327,6 @@ const handleClaim = async () => {
 
           {/* RIGHT — operations + metadata */}
           <div className="space-y-4">
-            {/* Guía: panel disponibilidad */}
-            {showDisponibilidadGuia && (
-              <GuiaDisponibilidadPanel
-                atencionId={atencion.id}
-                atencionAbierta={atencion.operationalStatus === "OPEN"}
-                recaladaArrived={recaladaArrived}
-              />
-            )}
-
             {/* Supervisor: cola de disponibilidad */}
             {showDisponibilidadQueue && (
               <DisponibilidadQueuePanel

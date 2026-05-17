@@ -9,6 +9,7 @@ import { GlassModal, GlassModalFooter } from "@/shared/components/glass/GlassMod
 import { GlassTextarea } from "@/shared/components/glass/GlassTextarea"
 import { useToast } from "@/shared/components/feedback/Toast"
 import { useTurno } from "@/hooks/use-turnos"
+import { useMe } from "@/hooks/use-me"
 import { useAuthStore } from "@/app/stores/auth-store"
 import { Rol } from "@/core/models/auth"
 import type { TurnoListItem, TurnoStatus } from "@/core/models/turnos"
@@ -34,6 +35,7 @@ const statusColors: Record<TurnoStatus, string> = {
 export function TurnoCard({ turno, index = 0, canOperate = false, onRefresh }: TurnoCardProps) {
   const navigate = useNavigate()
   const { user } = useAuthStore()
+  const { me } = useMe()
   const { showToast } = useToast()
   const {
     checkInTurnoAsync,
@@ -131,7 +133,16 @@ export function TurnoCard({ turno, index = 0, canOperate = false, onRefresh }: T
 
   const canCheckIn = actionsEnabled && isGuia && isMyTurno && turno.status === "ASSIGNED"
   const canCheckOut = actionsEnabled && isGuia && isMyTurno && turno.status === "IN_PROGRESS"
-  const canClaim = actionsEnabled && isGuia && turno.status === "AVAILABLE"
+  const assignmentMode = me?.turnoAssignmentMode ?? user?.turnoAssignmentMode ?? "MANUAL_RECLAMO"
+  const guiaDisponible = me?.disponibleParaTurnos ?? user?.disponibleParaTurnos ?? false
+  const guiaPenalizado = me?.pendingPenalty ?? user?.pendingPenalty ?? false
+  const canClaim =
+    actionsEnabled &&
+    isGuia &&
+    assignmentMode === "MANUAL_RECLAMO" &&
+    guiaDisponible &&
+    !guiaPenalizado &&
+    turno.status === "AVAILABLE"
   const canAssign = actionsEnabled && isSupervisor && turno.status === "AVAILABLE"
   const canUnassign = actionsEnabled && isSupervisor && turno.status === "ASSIGNED"
   const canMarkNoShow = actionsEnabled && isSupervisor && turno.status === "ASSIGNED"

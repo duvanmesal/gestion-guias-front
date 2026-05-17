@@ -20,6 +20,7 @@ import { AtencionesPage } from "@/features/atenciones/AtencionesPage"
 import { AtencionDetailPage } from "@/features/atenciones/AtencionDetailPage"
 import { TurnosPage } from "@/features/turnos/TurnosPage"
 import { TurnoDetailPage } from "@/features/turnos/TurnoDetailPage"
+import { OperationalConfigPage } from "@/features/operational-config/OperationalConfigPage"
 
 import { ProtectedRoute, RequireRoles, GuestRoute, OnboardingRoute } from "./guards"
 import { NotFoundPage } from "@/features/errors/NotFoundPage"
@@ -118,6 +119,16 @@ export const router = createBrowserRouter([
       <ProtectedRoute>
         <RequireRoles allowedRoles={[Rol.SUPER_ADMIN]}>
           <InvitationsPage />
+        </RequireRoles>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/configuracion-operativa",
+    element: (
+      <ProtectedRoute>
+        <RequireRoles allowedRoles={[Rol.SUPER_ADMIN, Rol.SUPERVISOR]}>
+          <OperationalConfigPage />
         </RequireRoles>
       </ProtectedRoute>
     ),
