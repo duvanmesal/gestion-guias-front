@@ -15,6 +15,9 @@ import { Rol } from "@/core/models/auth"
 import type { AxiosError } from "axios"
 import type { ApiResponse } from "@/core/models/api"
 import { useEffect } from "react"
+import { useGuidesLookup } from "@/hooks/use-guides"
+import { useOperationalConfig } from "@/hooks/use-operational-config"
+import { AlertTriangle, CheckCircle2, Clock3 } from "lucide-react"
 
 interface UserFormDialogProps {
   isOpen: boolean
@@ -39,6 +42,19 @@ export function UserFormDialog({ isOpen, onClose, user, onSuccess }: UserFormDia
   const { createUser, updateUser, isCreating, isUpdating } = useUsers()
 
   const isEditing = !!user
+  const isGuiaUser = isEditing && user?.rol === Rol.GUIA
+
+  // Pull live availability for guides (only fetch when editing a guide)
+  const { guides } = useGuidesLookup({
+    pageSize: 500,
+    enabled: isOpen && isGuiaUser,
+  })
+  const { config } = useOperationalConfig({ enabled: isOpen && isGuiaUser })
+
+  const guideOpInfo =
+    isGuiaUser && user?.guiaId
+      ? guides.find((g) => g.guiaId === user.guiaId)
+      : undefined
 
   const {
     register,
@@ -158,6 +174,15 @@ export function UserFormDialog({ isOpen, onClose, user, onSuccess }: UserFormDia
           />
         )}
 
+        {isGuiaUser && (
+          <GuideOperationalStatus
+            disponible={guideOpInfo?.disponibleParaTurnos ?? user?.disponibleParaTurnos ?? false}
+            pendingPenalty={guideOpInfo?.pendingPenalty ?? user?.pendingPenalty ?? false}
+            updatedAt={guideOpInfo?.disponibilidadUpdatedAt ?? user?.disponibilidadUpdatedAt ?? null}
+            mode={config?.turnoAssignmentMode ?? "MANUAL_RECLAMO"}
+          />
+        )}
+
         <GlassModalFooter>
           <GlassButton type="button" variant="ghost" onClick={onClose}>
             Cancelar
@@ -168,5 +193,151 @@ export function UserFormDialog({ isOpen, onClose, user, onSuccess }: UserFormDia
         </GlassModalFooter>
       </form>
     </GlassModal>
+  )
+}
+
+function GuideOperationalStatus({
+  disponible,
+  pendingPenalty,
+  updatedAt,
+  mode,
+}: {
+  disponible: boolean
+  pendingPenalty: boolean
+  updatedAt: string | null
+  mode: "MANUAL_RECLAMO" | "FIFO_GLOBAL"
+}) {
+  const formatted = updatedAt
+    ? new Date(updatedAt).toLocaleString("es-CO", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      })
+    : "Sin registro"
+
+  const status = pendingPenalty
+    ? {
+        label: "Penalizado",
+        detail: "Este guía tiene una penalización pendiente y no puede tomar turnos.",
+        fg: "rgb(var(--color-warning))",
+        bg: "rgba(var(--color-warning), 0.08)",
+        border: "rgba(var(--color-warning), 0.22)",
+        Icon: AlertTriangle,
+      }
+    : disponible
+      ? {
+          label: "Disponible",
+          detail: "Puede reclamar turnos o recibir asignaciones automáticas.",
+          fg: "rgb(var(--color-success))",
+          bg: "rgba(var(--color-success), 0.08)",
+          border: "rgba(var(--color-success), 0.22)",
+          Icon: CheckCircle2,
+        }
+      : {
+          label: "No disponible",
+          detail: "Está fuera del pool de asignación. El cambio lo hace el propio guía o desde Configuración operativa.",
+          fg: "rgb(var(--color-muted))",
+          bg: "rgba(var(--color-border), 0.04)",
+          border: "rgba(var(--color-border), 0.10)",
+          Icon: CheckCircle2,
+        }
+
+  return (
+    <div>
+      <p
+        className="text-[11px] font-semibold uppercase mb-2"
+        style={{
+          color: "rgb(var(--color-muted))",
+          letterSpacing: "0.1em",
+        }}
+      >
+        Estado operativo
+      </p>
+      <div
+        className="rounded-xl p-3.5"
+        style={{
+          background: status.bg,
+          border: `1px solid ${status.border}`,
+        }}
+      >
+        <div className="flex items-start gap-2.5">
+          <div
+            className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+            style={{ background: "rgba(255,255,255,0.6)", color: status.fg }}
+          >
+            <status.Icon className="w-4 h-4" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <p
+                className="text-[10.5px] font-semibold uppercase"
+                style={{ color: status.fg, letterSpacing: "0.08em" }}
+              >
+                Disponibilidad
+              </p>
+              <span
+                className="w-1.5 h-1.5 rounded-full"
+                style={{ background: status.fg, animation: "pulse-ring 2s ease-in-out infinite" }}
+              />
+            </div>
+            <p
+              className="text-sm font-semibold mt-0.5"
+              style={{ color: "rgb(var(--color-fg))" }}
+            >
+              {status.label}
+            </p>
+            <p
+              className="text-xs mt-1 leading-relaxed"
+              style={{ color: "rgb(var(--color-muted))" }}
+            >
+              {status.detail}
+            </p>
+          </div>
+        </div>
+
+        <div
+          className="mt-3 pt-3 grid grid-cols-2 gap-3"
+          style={{ borderTop: "1px dashed rgba(var(--color-border), 0.10)" }}
+        >
+          <div>
+            <p
+              className="text-[10px] font-semibold uppercase"
+              style={{
+                color: "rgb(var(--color-muted))",
+                letterSpacing: "0.08em",
+              }}
+            >
+              Última actualización
+            </p>
+            <p
+              className="text-xs mt-1 flex items-center gap-1.5"
+              style={{ color: "rgb(var(--color-fg))" }}
+            >
+              <Clock3
+                className="w-3 h-3"
+                style={{ color: "rgb(var(--color-muted))" }}
+              />
+              {formatted}
+            </p>
+          </div>
+          <div>
+            <p
+              className="text-[10px] font-semibold uppercase"
+              style={{
+                color: "rgb(var(--color-muted))",
+                letterSpacing: "0.08em",
+              }}
+            >
+              Modo global
+            </p>
+            <p
+              className="text-xs mt-1 font-medium"
+              style={{ color: "rgb(var(--color-fg))" }}
+            >
+              {mode === "FIFO_GLOBAL" ? "FIFO automático" : "Reclamo manual"}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }
