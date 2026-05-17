@@ -10,6 +10,7 @@ import type {
   ChangePasswordRequest,
   UpdateProfileRequest,
   UserMeResponse,
+  GuideAvailabilityResponse,
 } from "@/core/models/users";
 
 type AnyParams = Record<string, unknown>;
@@ -35,16 +36,21 @@ function cleanParams<T extends object>(params?: T): Partial<T> | undefined {
 export type GuidesLookupParams = {
   search?: string;
   activo?: boolean;
+  disponible?: boolean;
+  penalizado?: boolean;
   page?: number;
   pageSize?: number;
 };
 
 export type GuideLookupItem = {
-  guiaId: number;
+  guiaId: string;
   nombres: string;
   apellidos: string;
   email: string;
   activo: boolean;
+  disponibleParaTurnos: boolean;
+  disponibilidadUpdatedAt: string | null;
+  pendingPenalty: boolean;
 };
 
 export const usersApi = {
@@ -59,6 +65,23 @@ export const usersApi = {
     const response = await http.patch<ApiResponse<UserMeResponse>>(
       "/users/me",
       data,
+    );
+    return response.data;
+  },
+
+  async getMyAvailability(): Promise<ApiResponse<GuideAvailabilityResponse>> {
+    const response = await http.get<ApiResponse<GuideAvailabilityResponse>>(
+      "/users/me/disponibilidad",
+    );
+    return response.data;
+  },
+
+  async updateMyAvailability(
+    disponible: boolean,
+  ): Promise<ApiResponse<GuideAvailabilityResponse>> {
+    const response = await http.patch<ApiResponse<GuideAvailabilityResponse>>(
+      "/users/me/disponibilidad",
+      { disponible },
     );
     return response.data;
   },

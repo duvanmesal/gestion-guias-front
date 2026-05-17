@@ -32,10 +32,15 @@ interface DisponibilidadSocketPayload {
   atencionId?: number
   guiaId?: string
   guiaUserId?: string
+  userId?: string
   penalizado?: boolean
   posicion?: number
   tuPosicion?: number
   total?: number
+}
+
+interface OperationalConfigPayload {
+  turnoAssignmentMode?: string
 }
 
 interface AtencionNuevaPayload {
@@ -134,10 +139,23 @@ export function useGlobalRealtime() {
     }
 
     const invalidateDisponibilidad = (payload: DisponibilidadSocketPayload) => {
+      queryClient.invalidateQueries({ queryKey: ["dashboard-overview"] })
+      queryClient.invalidateQueries({ queryKey: ["users-guides"] })
+      queryClient.invalidateQueries({ queryKey: ["guide-availability", "me"] })
+      if (payload.userId && payload.userId === currentUserId) {
+        queryClient.invalidateQueries({ queryKey: ["me"] })
+      }
       if (payload.atencionId) {
         queryClient.invalidateQueries({ queryKey: ["disponibilidad-queue", payload.atencionId] })
         queryClient.invalidateQueries({ queryKey: ["disponibilidad-me", payload.atencionId] })
       }
+    }
+
+    const invalidateOperationalConfig = (_payload: OperationalConfigPayload) => {
+      queryClient.invalidateQueries({ queryKey: ["operational-config"] })
+      queryClient.invalidateQueries({ queryKey: ["dashboard-overview"] })
+      queryClient.invalidateQueries({ queryKey: ["me"] })
+      queryClient.invalidateQueries({ queryKey: ["users-guides"] })
     }
 
     const handleAtencionNueva = (_payload: AtencionNuevaPayload) => {
@@ -164,7 +182,9 @@ export function useGlobalRealtime() {
 
     socket.on("disponibilidad:marcada", invalidateDisponibilidad)
     socket.on("disponibilidad:desmarcada", invalidateDisponibilidad)
+    socket.on("disponibilidad:globalChanged", invalidateDisponibilidad)
     socket.on("disponibilidad:penalizado", handlePenalizado)
+    socket.on("operational-config:changed", invalidateOperationalConfig)
     socket.on("atencion:nueva", handleAtencionNueva)
 
     socket.on("auth:sessionRevoked", forceLogout)
@@ -211,7 +231,9 @@ export function useGlobalRealtime() {
     return () => {
       socket.off("disponibilidad:marcada", invalidateDisponibilidad)
       socket.off("disponibilidad:desmarcada", invalidateDisponibilidad)
+      socket.off("disponibilidad:globalChanged", invalidateDisponibilidad)
       socket.off("disponibilidad:penalizado", handlePenalizado)
+      socket.off("operational-config:changed", invalidateOperationalConfig)
       socket.off("atencion:nueva", handleAtencionNueva)
 
       socket.off("auth:sessionRevoked", forceLogout)

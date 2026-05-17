@@ -18,6 +18,7 @@ import { useToast } from "@/shared/components/feedback/Toast"
 import { useAuthStore } from "@/app/stores/auth-store"
 import { usersApi } from "@/core/api"
 import { useMe } from "@/hooks/use-me"
+import { useGuideAvailability } from "@/hooks/use-guide-availability"
 import {
   updateProfileSchema,
   changePasswordSchema,
@@ -27,8 +28,9 @@ import type {
   ChangePasswordFormData,
 } from "@/core/utils/validation"
 import { DocumentType } from "@/core/models/auth"
+import { Rol } from "@/core/models/auth"
 import type { UpdateMeRequest } from "@/core/models/users"
-import { User, Lock, Monitor, Save } from "lucide-react"
+import { User, Lock, Monitor, Save, CheckCircle2, AlertTriangle } from "lucide-react"
 import { SessionsCard } from "./SessionsCard"
 
 export function ProfilePage() {
@@ -36,6 +38,12 @@ export function ProfilePage() {
   const { showToast } = useToast()
   const queryClient = useQueryClient()
   const { me } = useMe()
+  const isGuia = user?.rol === Rol.GUIA
+  const {
+    availability,
+    setAvailabilityAsync,
+    isUpdating: isUpdatingAvailability,
+  } = useGuideAvailability({ enabled: isGuia })
   const [activeTab, setActiveTab] = useState<"profile" | "password" | "sessions">(
     "profile"
   )
@@ -122,6 +130,22 @@ export function ProfilePage() {
     changePasswordMutation.mutate(data)
   }
 
+  const disponibilidadActiva =
+    availability?.disponibleParaTurnos ?? me?.disponibleParaTurnos ?? user?.disponibleParaTurnos ?? false
+  const pendingPenalty =
+    availability?.pendingPenalty ?? me?.pendingPenalty ?? user?.pendingPenalty ?? false
+
+  const handleAvailabilityChange = async (disponible: boolean) => {
+    try {
+      await setAvailabilityAsync(disponible)
+      showToast("success", disponible ? "Disponibilidad activada" : "Disponibilidad desactivada")
+    } catch (error: any) {
+      const message =
+        error?.response?.data?.error?.message ?? "No fue posible actualizar tu disponibilidad"
+      showToast("error", message)
+    }
+  }
+
   const tabs = [
     { id: "profile" as const, label: "Perfil", icon: User },
     { id: "password" as const, label: "Contrasena", icon: Lock },
@@ -169,6 +193,68 @@ export function ProfilePage() {
               <GlassCardTitle>Informacion Personal</GlassCardTitle>
             </GlassCardHeader>
             <GlassCardContent>
+              {isGuia && (
+                <div className="mb-5 glass-subtle rounded-xl p-4">
+                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                    <div className="flex items-start gap-3">
+                      <div
+                        className={`mt-0.5 flex h-9 w-9 items-center justify-center rounded-xl ${
+                          pendingPenalty
+                            ? "bg-[rgb(var(--color-warning)/0.12)]"
+                            : disponibilidadActiva
+                              ? "bg-[rgb(var(--color-success)/0.12)]"
+                              : "bg-[rgb(var(--color-border)/0.08)]"
+                        }`}
+                      >
+                        {pendingPenalty ? (
+                          <AlertTriangle className="h-4 w-4 text-[rgb(var(--color-warning))]" />
+                        ) : (
+                          <CheckCircle2
+                            className={`h-4 w-4 ${
+                              disponibilidadActiva
+                                ? "text-[rgb(var(--color-success))]"
+                                : "text-[rgb(var(--color-muted))]"
+                            }`}
+                          />
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-[rgb(var(--color-fg))]">
+                          Disponibilidad para turnos
+                        </p>
+                        <p className="mt-1 text-xs text-[rgb(var(--color-muted))]">
+                          {pendingPenalty
+                            ? "Tienes una penalización pendiente y no puedes tomar turnos."
+                            : disponibilidadActiva
+                              ? "Estás disponible para reclamo manual o asignación FIFO."
+                              : "Marca disponibilidad para poder tomar turnos."}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <GlassButton
+                        type="button"
+                        variant={disponibilidadActiva ? "primary" : "ghost"}
+                        disabled={pendingPenalty || isUpdatingAvailability}
+                        loading={isUpdatingAvailability && !disponibilidadActiva}
+                        onClick={() => handleAvailabilityChange(true)}
+                      >
+                        Disponible
+                      </GlassButton>
+                      <GlassButton
+                        type="button"
+                        variant={!disponibilidadActiva ? "primary" : "ghost"}
+                        disabled={isUpdatingAvailability}
+                        loading={isUpdatingAvailability && disponibilidadActiva}
+                        onClick={() => handleAvailabilityChange(false)}
+                      >
+                        No disponible
+                      </GlassButton>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <form
                 onSubmit={handleSubmitProfile(onSubmitProfile)}
                 className="space-y-5"

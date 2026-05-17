@@ -1,3 +1,4 @@
+import { useEffect } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { usersApi } from "@/core/api"
 import { useAuthStore } from "@/app/stores/auth-store"
@@ -17,6 +18,12 @@ export function useMe() {
     enabled: isAuthenticated,
     staleTime: 60000, // 1 minute
   })
+
+  useEffect(() => {
+    if (data) {
+      updateUser(data as any)
+    }
+  }, [data, updateUser])
 
   // Update current user mutation (basic data: nombres, apellidos, telefono)
   const updateMeMutation = useMutation({

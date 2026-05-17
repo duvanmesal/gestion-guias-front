@@ -18,6 +18,8 @@ import {
   Clock,
   PlayCircle,
   AlertTriangle,
+  Settings,
+  CheckCircle2,
 } from "lucide-react"
 
 import { AppShell } from "@/shared/components/layout/AppShell"
@@ -108,6 +110,13 @@ export function DashboardPage() {
       roles: [Rol.SUPER_ADMIN, Rol.SUPERVISOR],
     },
     {
+      to: "/configuracion-operativa",
+      icon: Settings,
+      label: "Config. operativa",
+      description: "Modo manual o FIFO",
+      roles: [Rol.SUPER_ADMIN, Rol.SUPERVISOR],
+    },
+    {
       to: "/invitations",
       icon: UserPlus,
       label: "Invitaciones",
@@ -121,6 +130,11 @@ export function DashboardPage() {
   const guiaNextTurno = (overview as any)?.nextTurno ?? (overview as any)?.guia?.nextTurno
   const guiaActiveTurno = (overview as any)?.activeTurno ?? (overview as any)?.guia?.activeTurno
   const guiaDisponibles = (overview as any)?.atencionesDisponibles ?? (overview as any)?.guia?.atencionesDisponibles
+  const assignmentMode = (overview as any)?.turnoAssignmentMode ?? (overview as any)?.guia?.assignmentMode ?? user?.turnoAssignmentMode ?? "MANUAL_RECLAMO"
+  const guiaDisponibilidad = (overview as any)?.guia?.disponibilidad
+  const guiaDisponible =
+    guiaDisponibilidad?.disponibleParaTurnos ?? user?.disponibleParaTurnos ?? false
+  const guiaPenalizado = guiaDisponibilidad?.pendingPenalty ?? user?.pendingPenalty ?? false
 
   const overdueRecaladasCount: number = (() => {
     const fromCounts = (overview as any)?.counts?.overdueRecaladas
@@ -262,11 +276,36 @@ export function DashboardPage() {
                   </div>
 
                   <div className="glass-subtle rounded-xl p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-xs text-[rgb(var(--color-muted))]">Disponibilidad</p>
+                        <p className="text-sm font-semibold text-[rgb(var(--color-fg))]">
+                          {guiaPenalizado
+                            ? "Penalizado"
+                            : guiaDisponible
+                              ? "Disponible"
+                              : "No disponible"}
+                        </p>
+                      </div>
+                      <CheckCircle2
+                        className={`h-4 w-4 ${
+                          guiaDisponible && !guiaPenalizado
+                            ? "text-[rgb(var(--color-success))]"
+                            : "text-[rgb(var(--color-muted))]"
+                        }`}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="glass-subtle rounded-xl p-4">
                     <p className="text-xs text-[rgb(var(--color-muted))]">Siguiente turno</p>
                     <p className="text-sm font-semibold text-[rgb(var(--color-fg))]">
                       {guiaNextTurno
                         ? `#${(guiaNextTurno as any).numero ?? (guiaNextTurno as any).id ?? "—"} · ${(guiaNextTurno as any).status ?? "ASSIGNED"}`
-                        : "No tienes un turno próximo"}
+                      : "No tienes un turno próximo"}
+                    </p>
+                    <p className="mt-1 text-xs text-[rgb(var(--color-muted))]">
+                      {assignmentMode === "FIFO_GLOBAL" ? "FIFO automático activo" : "Reclamo manual activo"}
                     </p>
                   </div>
                 </div>
@@ -378,7 +417,13 @@ export function DashboardPage() {
               ) : disponiblesOrdered.length === 0 ? (
                 <div className="glass-subtle rounded-xl p-5">
                   <p className="text-sm text-[rgb(var(--color-muted))]">
-                    No hay atenciones disponibles en este momento.
+                    {assignmentMode === "FIFO_GLOBAL"
+                      ? "FIFO automático está activo. Los turnos se asignan por disponibilidad global."
+                      : guiaPenalizado
+                        ? "Tienes una penalización pendiente y no puedes tomar turnos."
+                        : !guiaDisponible
+                          ? "Marca disponibilidad en Mi Perfil para ver turnos reclamables."
+                          : "No hay atenciones disponibles en este momento."}
                   </p>
                 </div>
               ) : (
