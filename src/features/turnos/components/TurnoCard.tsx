@@ -13,6 +13,7 @@ import { useMe } from "@/hooks/use-me"
 import { useAuthStore } from "@/app/stores/auth-store"
 import { Rol } from "@/core/models/auth"
 import type { TurnoListItem, TurnoStatus } from "@/core/models/turnos"
+import { extractApiError } from "@/core/utils/api-error"
 import { TurnoStatusBadge } from "./TurnoStatusBadge"
 import { AssignTurnoDialog } from "./AssignTurnoDialog"
 
@@ -21,6 +22,11 @@ interface TurnoCardProps {
   index?: number
   canOperate?: boolean
   onRefresh?: () => void
+  /**
+   * When provided, used to enforce that a guía can only claim the turno
+   * that matches the first available `numero` of its atencion.
+   */
+  firstAvailableTurnoId?: number | null
 }
 
 const statusColors: Record<TurnoStatus, string> = {
@@ -32,7 +38,13 @@ const statusColors: Record<TurnoStatus, string> = {
   NO_SHOW: "border-red-500/30 bg-red-500/5",
 }
 
-export function TurnoCard({ turno, index = 0, canOperate = false, onRefresh }: TurnoCardProps) {
+export function TurnoCard({
+  turno,
+  index = 0,
+  canOperate = false,
+  onRefresh,
+  firstAvailableTurnoId,
+}: TurnoCardProps) {
   const navigate = useNavigate()
   const { user } = useAuthStore()
   const { me } = useMe()
@@ -108,7 +120,7 @@ export function TurnoCard({ turno, index = 0, canOperate = false, onRefresh }: T
       showToast("success", "Turno reclamado exitosamente")
       onRefresh?.()
     } catch (error) {
-      showToast("error", "Error al reclamar turno")
+      showToast("error", extractApiError(error))
     }
   }
 
@@ -136,13 +148,16 @@ export function TurnoCard({ turno, index = 0, canOperate = false, onRefresh }: T
   const assignmentMode = me?.turnoAssignmentMode ?? user?.turnoAssignmentMode ?? "MANUAL_RECLAMO"
   const guiaDisponible = me?.disponibleParaTurnos ?? user?.disponibleParaTurnos ?? false
   const guiaPenalizado = me?.pendingPenalty ?? user?.pendingPenalty ?? false
+  const isFirstAvailableTurno =
+    firstAvailableTurnoId == null ? true : firstAvailableTurnoId === turno.id
   const canClaim =
     actionsEnabled &&
     isGuia &&
     assignmentMode === "MANUAL_RECLAMO" &&
     guiaDisponible &&
     !guiaPenalizado &&
-    turno.status === "AVAILABLE"
+    turno.status === "AVAILABLE" &&
+    isFirstAvailableTurno
   const canAssign = actionsEnabled && isSupervisor && turno.status === "AVAILABLE"
   const canUnassign = actionsEnabled && isSupervisor && turno.status === "ASSIGNED"
   const canMarkNoShow = actionsEnabled && isSupervisor && turno.status === "ASSIGNED"

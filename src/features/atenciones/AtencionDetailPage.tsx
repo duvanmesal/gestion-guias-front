@@ -22,6 +22,7 @@ import { useAtencion, useAtencionTurnos, useAtencionSummary } from "@/hooks/use-
 import { useAuthStore } from "@/app/stores/auth-store"
 import { Rol } from "@/core/models/auth"
 import { useMe } from "@/hooks/use-me"
+import { extractApiError } from "@/core/utils/api-error"
 import { useTurnoSocket } from "@/hooks/use-turno-socket"
 import { AtencionStatusBadge } from "./components/AtencionStatusBadge"
 import { AtencionFormDialog } from "./components/AtencionFormDialog"
@@ -103,8 +104,8 @@ const handleClaim = async () => {
       showToast("success", "Turno asignado exitosamente")
       refetchTurnos()
       refetchSummary()
-    } catch {
-      // global handler shows error toast
+    } catch (error) {
+      showToast("error", extractApiError(error))
     }
   }
 
@@ -153,6 +154,12 @@ const handleClaim = async () => {
     )
   }
 
+  const guiaAlreadyHasTurnoInAtencion = isGuia
+    ? turnos.some((t) => t.guia?.usuario?.id === user?.id)
+    : false
+  const firstAvailableTurnoId = [...turnos]
+    .filter((t) => t.status === "AVAILABLE" && !t.guia)
+    .sort((a, b) => a.numero - b.numero)[0]?.id ?? null
   const canCloseAtencion = atencion.operationalStatus === "OPEN"
   const canCancelAtencion = atencion.operationalStatus === "OPEN"
   const canClaimTurno =
@@ -160,6 +167,7 @@ const handleClaim = async () => {
     assignmentMode === "MANUAL_RECLAMO" &&
     guiaDisponible &&
     !guiaPenalizado &&
+    !guiaAlreadyHasTurnoInAtencion &&
     atencion.operationalStatus === "OPEN" &&
     turnoStats.available > 0
 
@@ -318,6 +326,7 @@ const handleClaim = async () => {
                       index={index}
                       canOperate={canOperate}
                       onRefresh={refetchTurnos}
+                      firstAvailableTurnoId={firstAvailableTurnoId}
                     />
                   ))}
                 </div>
@@ -342,7 +351,7 @@ const handleClaim = async () => {
                   {canClaimTurno && (
                     <GlassButton variant="primary" fullWidth onClick={handleClaim} loading={isClaiming}>
                       <Hand className="w-4 h-4" />
-                      Reclamar Turno
+                      Tomar primer turno disponible
                     </GlassButton>
                   )}
                   {canOperate && canCloseAtencion && (

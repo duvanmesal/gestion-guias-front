@@ -21,7 +21,9 @@ import { useAuthStore } from "@/app/stores/auth-store"
 import { Rol } from "@/core/models/auth"
 import { useMe } from "@/hooks/use-me"
 import { useTurno } from "@/hooks/use-turnos"
+import { useAtencionTurnos } from "@/hooks/use-atenciones"
 import { useTurnoSocket } from "@/hooks/use-turno-socket"
+import { extractApiError } from "@/core/utils/api-error"
 import { AppShell } from "@/shared/components/layout/AppShell"
 import {
   GlassCard,
@@ -80,6 +82,13 @@ export function TurnoDetailPage() {
     atencionId: turno?.atencionId,
   })
 
+  const { turnos: atencionTurnos } = useAtencionTurnos(turno?.atencionId ?? null)
+  const firstAvailableTurnoId = [...atencionTurnos]
+    .filter((t) => t.status === "AVAILABLE" && !t.guia)
+    .sort((a, b) => a.numero - b.numero)[0]?.id ?? null
+  const isFirstAvailableTurno =
+    firstAvailableTurnoId == null ? false : firstAvailableTurnoId === turno?.id
+
   const isSupervisor = user?.rol === Rol.SUPER_ADMIN || user?.rol === Rol.SUPERVISOR
   const isGuia = user?.rol === Rol.GUIA
   const isMyTurno = turno?.guia?.usuario?.id === user?.id
@@ -101,7 +110,16 @@ export function TurnoDetailPage() {
     assignmentMode === "MANUAL_RECLAMO" &&
     guiaDisponible &&
     !guiaPenalizado &&
-    turno?.status === "AVAILABLE"
+    turno?.status === "AVAILABLE" &&
+    isFirstAvailableTurno
+  const showClaimBlockedHint =
+    isGuia &&
+    assignmentMode === "MANUAL_RECLAMO" &&
+    guiaDisponible &&
+    !guiaPenalizado &&
+    turno?.status === "AVAILABLE" &&
+    firstAvailableTurnoId != null &&
+    !isFirstAvailableTurno
   const canAssign = isSupervisor && turno?.status === "AVAILABLE"
   const canUnassign = isSupervisor && turno?.status === "ASSIGNED"
   const canMarkNoShow = isSupervisor && turno?.status === "ASSIGNED"
@@ -112,8 +130,8 @@ export function TurnoDetailPage() {
       await action()
       showToast("success", successMessage)
       refetch()
-    } catch {
-      showToast("error", errorMessage)
+    } catch (error) {
+      showToast("error", extractApiError(error) || errorMessage)
     }
   }
 
@@ -299,7 +317,22 @@ export function TurnoDetailPage() {
                       Cancelar
                     </GlassButton>
                   )}
-                  {!canCheckIn && !canCheckOut && !canClaim && !canAssign && !canUnassign && !canMarkNoShow && !canCancel && (
+                  {showClaimBlockedHint && (
+                    <div className="w-full flex flex-col gap-2 rounded-lg border border-[rgb(var(--color-border)/0.12)] bg-[rgb(var(--color-bg)/0.4)] p-3 text-sm text-[rgb(var(--color-muted))]">
+                      <span>
+                        Este no es el primer turno disponible de la atención. Debes tomar primero el cupo más antiguo.
+                      </span>
+                      {turno?.atencionId && (
+                        <Link
+                          to={`/atenciones/${turno.atencionId}`}
+                          className="self-start text-xs font-semibold text-[rgb(var(--color-primary))]"
+                        >
+                          Ir a la atención
+                        </Link>
+                      )}
+                    </div>
+                  )}
+                  {!canCheckIn && !canCheckOut && !canClaim && !canAssign && !canUnassign && !canMarkNoShow && !canCancel && !showClaimBlockedHint && (
                     <p className="text-sm text-[rgb(var(--color-muted))]">
                       No hay acciones disponibles para tu rol y el estado actual.
                     </p>
