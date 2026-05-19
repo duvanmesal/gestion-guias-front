@@ -116,7 +116,14 @@ export function useAtencion(id: number | null) {
     mutationFn: () => (id ? atencionesApi.claimTurno(id) : Promise.reject("No ID")),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["atencion", id] })
+      queryClient.invalidateQueries({ queryKey: ["atencion-turnos", id] })
+      queryClient.invalidateQueries({ queryKey: ["atencion-summary", id] })
+      queryClient.invalidateQueries({ queryKey: ["atenciones"] })
       queryClient.invalidateQueries({ queryKey: ["turnos"] })
+      queryClient.invalidateQueries({ queryKey: ["turnos-me"] })
+      queryClient.invalidateQueries({ queryKey: ["turnos-me-next"] })
+      queryClient.invalidateQueries({ queryKey: ["turnos-me-active"] })
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] })
     },
   })
 

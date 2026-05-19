@@ -73,9 +73,12 @@ export function useTurnos(params?: TurnosQueryParams, options?: UseTurnosOptions
     queryClient.invalidateQueries({ queryKey: ["turnos-me"] })
     queryClient.invalidateQueries({ queryKey: ["turno"] })
     queryClient.invalidateQueries({ queryKey: ["atencion-turnos"] })
+    queryClient.invalidateQueries({ queryKey: ["atencion-summary"] })
+    queryClient.invalidateQueries({ queryKey: ["atencion"] })
     // para dashboard guia
     queryClient.invalidateQueries({ queryKey: ["turnos-me-next"] })
     queryClient.invalidateQueries({ queryKey: ["turnos-me-active"] })
+    queryClient.invalidateQueries({ queryKey: ["dashboard"] })
   }
 
   const assignMutation = useMutation({
@@ -187,8 +190,11 @@ export function useTurno(id: number | null) {
     queryClient.invalidateQueries({ queryKey: ["turnos"] })
     queryClient.invalidateQueries({ queryKey: ["turnos-me"] })
     queryClient.invalidateQueries({ queryKey: ["atencion-turnos"] })
+    queryClient.invalidateQueries({ queryKey: ["atencion-summary"] })
+    queryClient.invalidateQueries({ queryKey: ["atencion"] })
     queryClient.invalidateQueries({ queryKey: ["turnos-me-next"] })
     queryClient.invalidateQueries({ queryKey: ["turnos-me-active"] })
+    queryClient.invalidateQueries({ queryKey: ["dashboard"] })
   }
 
   const assignMutation = useMutation({
