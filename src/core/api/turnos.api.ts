@@ -8,6 +8,8 @@ import type {
   AssignTurnoRequest,
   UnassignTurnoRequest,
   NoShowTurnoRequest,
+  RejectCheckInRequest,
+  PendingCheckInsQueryParams,
 } from "@/core/models/turnos";
 
 function cleanParams<T extends object>(params?: T): T | undefined {
@@ -86,11 +88,43 @@ export const turnosApi = {
     return response.data;
   },
 
-  // Check-in turno (guia mode)
+  // Request check-in (guia mode). Epica 5: registra solicitud, no inicia el turno.
   async checkInTurno(id: number): Promise<ApiResponse<Turno>> {
     const response = await http.patch<ApiResponse<Turno>>(
       `/turnos/${id}/check-in`,
     );
+    return response.data;
+  },
+
+  // Confirm pending check-in (supervisor). Pasa el turno a IN_PROGRESS.
+  async confirmCheckInTurno(id: number): Promise<ApiResponse<Turno>> {
+    const response = await http.patch<ApiResponse<Turno>>(
+      `/turnos/${id}/check-in/confirm`,
+    );
+    return response.data;
+  },
+
+  // Reject pending check-in (supervisor). Motivo obligatorio.
+  async rejectCheckInTurno(
+    id: number,
+    data: RejectCheckInRequest,
+  ): Promise<ApiResponse<Turno>> {
+    const response = await http.patch<ApiResponse<Turno>>(
+      `/turnos/${id}/check-in/reject`,
+      data,
+    );
+    return response.data;
+  },
+
+  // List pending check-ins (supervisor).
+  async getPendingCheckIns(
+    params?: PendingCheckInsQueryParams,
+  ): Promise<ApiResponse<TurnoListItem[]> & { meta: MetaPage }> {
+    const response = await http.get<
+      ApiResponse<TurnoListItem[]> & { meta: MetaPage }
+    >("/turnos/check-ins/pending", {
+      params: cleanParams(params),
+    });
     return response.data;
   },
 

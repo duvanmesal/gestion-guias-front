@@ -38,6 +38,12 @@ export interface Turno {
   status: TurnoStatus
   checkInAt?: string | null
   checkOutAt?: string | null
+  checkInRequestedAt?: string | null
+  checkInConfirmedAt?: string | null
+  checkInConfirmedById?: string | null
+  checkInRejectedAt?: string | null
+  checkInRejectedById?: string | null
+  checkInRejectReason?: string | null
   canceledAt?: string | null
   createdById: string
   createdAt: string
@@ -53,6 +59,10 @@ export interface TurnoListItem {
   guia?: GuiaMini | null
   checkInAt?: string | null
   checkOutAt?: string | null
+  checkInRequestedAt?: string | null
+  checkInConfirmedAt?: string | null
+  checkInRejectedAt?: string | null
+  checkInRejectReason?: string | null
 }
 
 export type TurnoDateField = "overlap" | "createdAt" | "checkInAt" | "checkOutAt" | "canceledAt"
@@ -84,6 +94,19 @@ export interface UnassignTurnoRequest {
 // No Show Request
 export interface NoShowTurnoRequest {
   reason?: string
+}
+
+// Reject check-in request (Epica 5)
+export interface RejectCheckInRequest {
+  reason: string
+}
+
+// Query for pending check-ins
+export interface PendingCheckInsQueryParams {
+  atencionId?: number
+  recaladaId?: number
+  page?: number
+  pageSize?: number
 }
 
 // Turno Stats (for dashboard/summaries)

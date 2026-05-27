@@ -13,7 +13,7 @@ import { SearchableCombobox } from "@/shared/components/glass/SearchableCombobox
 import { FilterChips } from "@/shared/components/glass/FilterChips"
 import { Skeleton } from "@/shared/components/feedback/Skeleton"
 
-import { useTurnos } from "@/hooks/use-turnos"
+import { useTurnos, usePendingCheckIns } from "@/hooks/use-turnos"
 import { useGuidesLookup } from "@/hooks/use-guides"
 import { useBuquesLookup } from "@/hooks/use-buques"
 import { useTurnoSocket } from "@/hooks/use-turno-socket"
@@ -84,6 +84,12 @@ export function TurnosPage() {
       rolOverride: user?.rol ?? null,
     },
   )
+
+  // Epica 5: check-ins pendientes (solo supervisor)
+  const { data: pendingResp, refetch: refetchPending } = usePendingCheckIns(
+    isSupervisor ? { pageSize: 20 } : undefined,
+  )
+  const pendingItems = isSupervisor ? pendingResp?.data ?? [] : []
 
   const hasActiveFilters = !!(statusFilter || atencionFilter || guiaFilter || buqueFilter || dateFrom || dateTo)
 
@@ -195,6 +201,56 @@ export function TurnosPage() {
           </div>
         </div>
 
+        {/* Pending check-ins (Epica 5) */}
+        {isSupervisor && pendingItems.length > 0 && (
+          <section
+            className="animate-fade-in-up"
+            style={{ animationDelay: "0.02s" }}
+            aria-label="Check-ins pendientes de confirmación"
+          >
+            <GlassCard className="border border-[rgb(var(--color-warning)/0.28)] bg-[rgb(var(--color-warning)/0.04)]">
+              <div className="space-y-4">
+                <header className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <span
+                      className="relative flex h-2 w-2"
+                      aria-hidden="true"
+                    >
+                      <span className="absolute inset-0 animate-ping rounded-full bg-[rgb(var(--color-warning)/0.55)]" />
+                      <span className="relative inline-flex h-2 w-2 rounded-full bg-[rgb(var(--color-warning))]" />
+                    </span>
+                    <div className="leading-tight">
+                      <p className="text-sm font-semibold text-[rgb(var(--color-fg))]">
+                        Check-ins pendientes
+                      </p>
+                      <p className="text-xs text-[rgb(var(--color-muted))]">
+                        Confirma o rechaza para que el turno inicie oficialmente.
+                      </p>
+                    </div>
+                  </div>
+                  <span className="inline-flex h-6 min-w-[1.5rem] items-center justify-center rounded-full bg-[rgb(var(--color-warning)/0.16)] px-2 text-xs font-semibold text-[rgb(var(--color-warning))]">
+                    {pendingItems.length}
+                  </span>
+                </header>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                  {pendingItems.map((t, i) => (
+                    <TurnoCard
+                      key={`pending-${t.id}`}
+                      turno={t}
+                      index={i}
+                      canOperate
+                      onRefresh={() => {
+                        refetchPending()
+                        refetch()
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+            </GlassCard>
+          </section>
+        )}
+
         {/* Stats Cards */}
         {isSupervisor && (
           <div
@@ -209,25 +265,25 @@ export function TurnosPage() {
             </GlassCard>
             <GlassCard variant="subtle" className="p-3">
               <div className="text-center">
-                <p className="text-2xl font-bold text-green-500">{stats.available}</p>
+                <p className="text-2xl font-bold text-[rgb(var(--color-success))]">{stats.available}</p>
                 <p className="text-xs text-[rgb(var(--color-muted))]">Libres</p>
               </div>
             </GlassCard>
             <GlassCard variant="subtle" className="p-3">
               <div className="text-center">
-                <p className="text-2xl font-bold text-blue-500">{stats.assigned}</p>
+                <p className="text-2xl font-bold text-[rgb(var(--color-info))]">{stats.assigned}</p>
                 <p className="text-xs text-[rgb(var(--color-muted))]">Asignados</p>
               </div>
             </GlassCard>
             <GlassCard variant="subtle" className="p-3">
               <div className="text-center">
-                <p className="text-2xl font-bold text-yellow-500">{stats.inProgress}</p>
+                <p className="text-2xl font-bold text-[rgb(var(--color-warning))]">{stats.inProgress}</p>
                 <p className="text-xs text-[rgb(var(--color-muted))]">En curso</p>
               </div>
             </GlassCard>
             <GlassCard variant="subtle" className="p-3">
               <div className="text-center">
-                <p className="text-2xl font-bold text-purple-500">{stats.completed}</p>
+                <p className="text-2xl font-bold text-[rgb(var(--color-primary))]">{stats.completed}</p>
                 <p className="text-xs text-[rgb(var(--color-muted))]">Completados</p>
               </div>
             </GlassCard>

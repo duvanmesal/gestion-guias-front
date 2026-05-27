@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { Eye, User, Play, Square, UserX, UserPlus, UserMinus, Hand, XCircle } from "lucide-react"
+import { Eye, User, Square, UserX, UserPlus, UserMinus, Hand, LogIn, XCircle, CheckCircle2, Clock } from "lucide-react"
 import { GlassCard } from "@/shared/components/glass/GlassCard"
 import { GlassButton } from "@/shared/components/glass/GlassButton"
 import { GlassModal, GlassModalFooter } from "@/shared/components/glass/GlassModal"
@@ -30,12 +30,12 @@ interface TurnoCardProps {
 }
 
 const statusColors: Record<TurnoStatus, string> = {
-  AVAILABLE: "border-green-500/30 bg-green-500/5",
-  ASSIGNED: "border-blue-500/30 bg-blue-500/5",
-  IN_PROGRESS: "border-yellow-500/30 bg-yellow-500/5",
-  COMPLETED: "border-purple-500/30 bg-purple-500/5",
-  CANCELED: "border-gray-500/30 bg-gray-500/5",
-  NO_SHOW: "border-red-500/30 bg-red-500/5",
+  AVAILABLE: "border-[rgb(var(--color-success)/0.28)] bg-[rgb(var(--color-success)/0.04)]",
+  ASSIGNED: "border-[rgb(var(--color-info)/0.28)] bg-[rgb(var(--color-info)/0.04)]",
+  IN_PROGRESS: "border-[rgb(var(--color-warning)/0.32)] bg-[rgb(var(--color-warning)/0.05)]",
+  COMPLETED: "border-[rgb(var(--color-primary)/0.28)] bg-[rgb(var(--color-primary)/0.04)]",
+  CANCELED: "border-[rgb(var(--color-border)/0.6)] bg-[rgb(var(--color-bg)/0.4)]",
+  NO_SHOW: "border-[rgb(var(--color-danger)/0.28)] bg-[rgb(var(--color-danger)/0.04)]",
 }
 
 export function TurnoCard({
@@ -51,12 +51,16 @@ export function TurnoCard({
   const { showToast } = useToast()
   const {
     checkInTurnoAsync,
+    confirmCheckInTurnoAsync,
+    rejectCheckInTurnoAsync,
     checkOutTurnoAsync,
     unassignTurnoAsync,
     noShowTurnoAsync,
     cancelTurnoAsync,
     claimTurnoAsync,
     isCheckingIn,
+    isConfirmingCheckIn,
+    isRejectingCheckIn,
     isCheckingOut,
     isUnassigning,
     isMarkingNoShow,
@@ -68,6 +72,9 @@ export function TurnoCard({
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false)
   const [cancelReason, setCancelReason] = useState("")
   const [cancelError, setCancelError] = useState<string | null>(null)
+  const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false)
+  const [rejectReason, setRejectReason] = useState("")
+  const [rejectError, setRejectError] = useState<string | null>(null)
 
   const isSupervisor = user?.rol === Rol.SUPER_ADMIN || user?.rol === Rol.SUPERVISOR
   const isGuia = user?.rol === Rol.GUIA
@@ -77,10 +84,38 @@ export function TurnoCard({
   const handleCheckIn = async () => {
     try {
       await checkInTurnoAsync()
-      showToast("success", "Check-in realizado")
+      showToast("success", "Solicitud de check-in enviada")
       onRefresh?.()
     } catch (error) {
-      showToast("error", "Error al realizar check-in")
+      showToast("error", extractApiError(error) || "Error al solicitar check-in")
+    }
+  }
+
+  const handleConfirmCheckIn = async () => {
+    try {
+      await confirmCheckInTurnoAsync()
+      showToast("success", "Check-in confirmado")
+      onRefresh?.()
+    } catch (error) {
+      showToast("error", extractApiError(error) || "Error al confirmar check-in")
+    }
+  }
+
+  const handleRejectCheckIn = async () => {
+    const reason = rejectReason.trim()
+    if (reason.length < 3) {
+      setRejectError("Ingresa un motivo de al menos 3 caracteres")
+      return
+    }
+    try {
+      await rejectCheckInTurnoAsync({ reason })
+      showToast("success", "Check-in rechazado")
+      setIsRejectDialogOpen(false)
+      setRejectReason("")
+      setRejectError(null)
+      onRefresh?.()
+    } catch (error) {
+      showToast("error", extractApiError(error) || "Error al rechazar check-in")
     }
   }
 
@@ -143,7 +178,21 @@ export function TurnoCard({
     }
   }
 
-  const canCheckIn = actionsEnabled && isGuia && isMyTurno && turno.status === "ASSIGNED"
+  const hasPendingCheckIn = Boolean(
+    turno.checkInRequestedAt && !turno.checkInConfirmedAt && !turno.checkInRejectedAt,
+  )
+  const wasRejected = Boolean(turno.checkInRejectedAt)
+  const canRequestCheckIn =
+    actionsEnabled &&
+    isGuia &&
+    isMyTurno &&
+    turno.status === "ASSIGNED" &&
+    !hasPendingCheckIn &&
+    !wasRejected
+  const canConfirmCheckIn =
+    actionsEnabled && isSupervisor && turno.status === "ASSIGNED" && hasPendingCheckIn
+  const canRejectCheckIn =
+    actionsEnabled && isSupervisor && turno.status === "ASSIGNED" && hasPendingCheckIn
   const canCheckOut = actionsEnabled && isGuia && isMyTurno && turno.status === "IN_PROGRESS"
   const assignmentMode = me?.turnoAssignmentMode ?? user?.turnoAssignmentMode ?? "MANUAL_RECLAMO"
   const guiaDisponible = me?.disponibleParaTurnos ?? user?.disponibleParaTurnos ?? false
@@ -159,7 +208,8 @@ export function TurnoCard({
     turno.status === "AVAILABLE" &&
     isFirstAvailableTurno
   const canAssign = actionsEnabled && isSupervisor && turno.status === "AVAILABLE"
-  const canUnassign = actionsEnabled && isSupervisor && turno.status === "ASSIGNED"
+  const canUnassign =
+    actionsEnabled && isSupervisor && turno.status === "ASSIGNED" && !hasPendingCheckIn
   const canMarkNoShow = actionsEnabled && isSupervisor && turno.status === "ASSIGNED"
   const canCancel = actionsEnabled && isSupervisor && (turno.status === "AVAILABLE" || turno.status === "ASSIGNED")
 
@@ -188,13 +238,27 @@ export function TurnoCard({
 
           {/* Times */}
           {turno.checkInAt && (
-            <p className="text-xs text-green-500">
-              In: {new Date(turno.checkInAt).toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" })}
+            <p className="text-xs font-medium text-[rgb(var(--color-success))]">
+              In · {new Date(turno.checkInAt).toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" })}
+            </p>
+          )}
+          {!turno.checkInAt && turno.checkInRequestedAt && !turno.checkInRejectedAt && (
+            <div
+              className="inline-flex items-center gap-1 rounded-md border border-[rgb(var(--color-warning)/0.28)] bg-[rgb(var(--color-warning)/0.1)] px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--color-warning))]"
+              role="status"
+            >
+              <Clock className="h-3 w-3" />
+              Pendiente
+            </div>
+          )}
+          {turno.checkInRejectedAt && (
+            <p className="text-xs font-medium text-[rgb(var(--color-danger))]">
+              Check-in rechazado
             </p>
           )}
           {turno.checkOutAt && (
-            <p className="text-xs text-purple-500">
-              Out: {new Date(turno.checkOutAt).toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" })}
+            <p className="text-xs font-medium text-[rgb(var(--color-primary))]">
+              Out · {new Date(turno.checkOutAt).toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" })}
             </p>
           )}
 
@@ -208,7 +272,7 @@ export function TurnoCard({
             >
               <Eye className="w-3 h-3" />
             </GlassButton>
-            {canCheckIn && (
+            {canRequestCheckIn && (
               <GlassButton
                 variant="primary"
                 size="sm"
@@ -216,8 +280,32 @@ export function TurnoCard({
                 loading={isCheckingIn}
                 className="flex-1"
               >
-                <Play className="w-3 h-3" />
-                Iniciar
+                <LogIn className="w-3 h-3" />
+                Solicitar
+              </GlassButton>
+            )}
+            {canConfirmCheckIn && (
+              <GlassButton
+                variant="primary"
+                size="sm"
+                onClick={handleConfirmCheckIn}
+                loading={isConfirmingCheckIn}
+                className="flex-1"
+                aria-label={`Confirmar check-in del turno ${turno.numero}`}
+              >
+                <CheckCircle2 className="w-3 h-3" />
+                Confirmar
+              </GlassButton>
+            )}
+            {canRejectCheckIn && (
+              <GlassButton
+                variant="danger"
+                size="sm"
+                onClick={() => setIsRejectDialogOpen(true)}
+                loading={isRejectingCheckIn}
+                aria-label={`Rechazar check-in del turno ${turno.numero}`}
+              >
+                <XCircle className="w-3 h-3" />
               </GlassButton>
             )}
             {canCheckOut && (
@@ -250,6 +338,7 @@ export function TurnoCard({
                 size="sm"
                 onClick={() => setIsAssignDialogOpen(true)}
                 className="flex-1"
+                aria-label={`Asignar guía al turno ${turno.numero}`}
               >
                 <UserPlus className="w-3 h-3" />
               </GlassButton>
@@ -260,6 +349,7 @@ export function TurnoCard({
                 size="sm"
                 onClick={handleUnassign}
                 loading={isUnassigning}
+                aria-label={`Liberar turno ${turno.numero}`}
               >
                 <UserMinus className="w-3 h-3" />
               </GlassButton>
@@ -270,6 +360,7 @@ export function TurnoCard({
                 size="sm"
                 onClick={handleNoShow}
                 loading={isMarkingNoShow}
+                aria-label={`Marcar no-show al turno ${turno.numero}`}
               >
                 <UserX className="w-3 h-3" />
               </GlassButton>
@@ -280,6 +371,7 @@ export function TurnoCard({
                 size="sm"
                 onClick={() => setIsCancelDialogOpen(true)}
                 loading={isCanceling}
+                aria-label={`Cancelar turno ${turno.numero}`}
               >
                 <XCircle className="w-3 h-3" />
               </GlassButton>
@@ -298,6 +390,48 @@ export function TurnoCard({
           onRefresh?.()
         }}
       />
+
+      <GlassModal
+        isOpen={isRejectDialogOpen}
+        onClose={() => {
+          if (!isRejectingCheckIn) {
+            setIsRejectDialogOpen(false)
+            setRejectReason("")
+            setRejectError(null)
+          }
+        }}
+        title={`Rechazar check-in turno #${turno.numero}`}
+        description="Indica un motivo claro para auditoría. El turno permanecerá ASSIGNED."
+      >
+        <div className="space-y-4">
+          <GlassTextarea
+            label="Motivo del rechazo"
+            value={rejectReason}
+            onChange={(event) => {
+              setRejectReason(event.target.value)
+              setRejectError(null)
+            }}
+            error={rejectError ?? undefined}
+            placeholder="Describe por qué se rechaza..."
+          />
+        </div>
+        <GlassModalFooter>
+          <GlassButton
+            variant="ghost"
+            onClick={() => {
+              setIsRejectDialogOpen(false)
+              setRejectReason("")
+              setRejectError(null)
+            }}
+            disabled={isRejectingCheckIn}
+          >
+            Volver
+          </GlassButton>
+          <GlassButton variant="danger" onClick={handleRejectCheckIn} loading={isRejectingCheckIn}>
+            Rechazar
+          </GlassButton>
+        </GlassModalFooter>
+      </GlassModal>
 
       <GlassModal
         isOpen={isCancelDialogOpen}

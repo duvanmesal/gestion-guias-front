@@ -6,8 +6,9 @@ import { Link, useNavigate, useParams } from "react-router-dom"
 import {
   ArrowLeft,
   CalendarClock,
+  CheckCircle2,
   Hand,
-  Play,
+  LogIn,
   Ship,
   Square,
   User,
@@ -58,6 +59,9 @@ export function TurnoDetailPage() {
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false)
   const [cancelReason, setCancelReason] = useState("")
   const [cancelError, setCancelError] = useState<string | null>(null)
+  const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false)
+  const [rejectReason, setRejectReason] = useState("")
+  const [rejectError, setRejectError] = useState<string | null>(null)
 
   const {
     turno,
@@ -65,12 +69,16 @@ export function TurnoDetailPage() {
     error,
     refetch,
     checkInTurnoAsync,
+    confirmCheckInTurnoAsync,
+    rejectCheckInTurnoAsync,
     checkOutTurnoAsync,
     unassignTurnoAsync,
     noShowTurnoAsync,
     cancelTurnoAsync,
     claimTurnoAsync,
     isCheckingIn,
+    isConfirmingCheckIn,
+    isRejectingCheckIn,
     isCheckingOut,
     isUnassigning,
     isMarkingNoShow,
@@ -94,13 +102,24 @@ export function TurnoDetailPage() {
   const isMyTurno = turno?.guia?.usuario?.id === user?.id
   const isBusy =
     isCheckingIn ||
+    isConfirmingCheckIn ||
+    isRejectingCheckIn ||
     isCheckingOut ||
     isUnassigning ||
     isMarkingNoShow ||
     isCanceling ||
     isClaiming
 
-  const canCheckIn = isGuia && isMyTurno && turno?.status === "ASSIGNED"
+  const hasPendingCheckIn = Boolean(
+    turno?.checkInRequestedAt && !turno?.checkInConfirmedAt && !turno?.checkInRejectedAt,
+  )
+  const wasRejected = Boolean(turno?.checkInRejectedAt)
+  // Epica 5: el guía solo puede solicitar si está ASSIGNED, sin solicitud previa
+  // pendiente y sin rechazo (el reintento queda fuera de esta épica).
+  const canRequestCheckIn =
+    isGuia && isMyTurno && turno?.status === "ASSIGNED" && !hasPendingCheckIn && !wasRejected
+  const canConfirmCheckIn = isSupervisor && turno?.status === "ASSIGNED" && hasPendingCheckIn
+  const canRejectCheckIn = isSupervisor && turno?.status === "ASSIGNED" && hasPendingCheckIn
   const canCheckOut = isGuia && isMyTurno && turno?.status === "IN_PROGRESS"
   const assignmentMode = me?.turnoAssignmentMode ?? user?.turnoAssignmentMode ?? "MANUAL_RECLAMO"
   const guiaDisponible = me?.disponibleParaTurnos ?? user?.disponibleParaTurnos ?? false
@@ -121,7 +140,7 @@ export function TurnoDetailPage() {
     firstAvailableTurnoId != null &&
     !isFirstAvailableTurno
   const canAssign = isSupervisor && turno?.status === "AVAILABLE"
-  const canUnassign = isSupervisor && turno?.status === "ASSIGNED"
+  const canUnassign = isSupervisor && turno?.status === "ASSIGNED" && !hasPendingCheckIn
   const canMarkNoShow = isSupervisor && turno?.status === "ASSIGNED"
   const canCancel = isSupervisor && (turno?.status === "AVAILABLE" || turno?.status === "ASSIGNED")
 
@@ -132,6 +151,25 @@ export function TurnoDetailPage() {
       refetch()
     } catch (error) {
       showToast("error", extractApiError(error) || errorMessage)
+    }
+  }
+
+  const handleRejectCheckIn = async () => {
+    const reason = rejectReason.trim()
+    if (reason.length < 3) {
+      setRejectError("Ingresa un motivo de al menos 3 caracteres")
+      return
+    }
+
+    try {
+      await rejectCheckInTurnoAsync({ reason })
+      showToast("success", "Check-in rechazado")
+      refetch()
+      setIsRejectDialogOpen(false)
+      setRejectReason("")
+      setRejectError(null)
+    } catch (error) {
+      showToast("error", extractApiError(error) || "Error al rechazar check-in")
     }
   }
 
@@ -197,9 +235,52 @@ export function TurnoDetailPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <InfoItem icon={<CalendarClock className="w-4 h-4" />} label="Inicio" value={formatDateTime(turno.fechaInicio)} />
                     <InfoItem icon={<CalendarClock className="w-4 h-4" />} label="Fin" value={formatDateTime(turno.fechaFin)} />
-                    <InfoItem icon={<Play className="w-4 h-4" />} label="Check-in" value={formatDateTime(turno.checkInAt)} />
-                    <InfoItem icon={<Square className="w-4 h-4" />} label="Check-out" value={formatDateTime(turno.checkOutAt)} />
                   </div>
+
+                  <CheckInTimeline
+                    requestedAt={turno.checkInRequestedAt}
+                    confirmedAt={turno.checkInConfirmedAt}
+                    checkInAt={turno.checkInAt}
+                    checkOutAt={turno.checkOutAt}
+                    rejectedAt={turno.checkInRejectedAt}
+                  />
+
+                  {hasPendingCheckIn && (
+                    <div
+                      className="mt-4 flex items-start gap-3 rounded-xl border border-[rgb(var(--color-warning)/0.28)] bg-[rgb(var(--color-warning)/0.06)] p-3"
+                      role="status"
+                    >
+                      <span
+                        className="relative mt-1.5 flex h-2 w-2 flex-shrink-0"
+                        aria-hidden="true"
+                      >
+                        <span className="absolute inset-0 animate-ping rounded-full bg-[rgb(var(--color-warning)/0.55)]" />
+                        <span className="relative inline-flex h-2 w-2 rounded-full bg-[rgb(var(--color-warning))]" />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-[rgb(var(--color-fg))]">
+                          Check-in pendiente de confirmación
+                        </p>
+                        <p className="mt-0.5 text-xs text-[rgb(var(--color-muted))]">
+                          El guía solicitó su check-in. Un supervisor debe confirmarlo para que el turno inicie oficialmente.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  {wasRejected && (
+                    <div
+                      className="mt-4 flex items-start gap-3 rounded-xl border border-[rgb(var(--color-danger)/0.28)] bg-[rgb(var(--color-danger)/0.06)] p-3"
+                      role="alert"
+                    >
+                      <XCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-[rgb(var(--color-danger))]" />
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-[rgb(var(--color-fg))]">Check-in rechazado</p>
+                        <p className="mt-0.5 text-xs text-[rgb(var(--color-muted))]">
+                          Motivo: {turno.checkInRejectReason ?? "No registrado"}
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </GlassCardContent>
               </GlassCard>
 
@@ -275,10 +356,62 @@ export function TurnoDetailPage() {
               </GlassCardHeader>
               <GlassCardContent>
                 <div className="flex flex-wrap gap-2">
-                  {canCheckIn && (
-                    <GlassButton loading={isCheckingIn} disabled={isBusy} onClick={() => runAction(() => checkInTurnoAsync(), "Check-in realizado", "Error al realizar check-in")}>
-                      <Play className="w-4 h-4" />
-                      Iniciar
+                  {canRequestCheckIn && (
+                    <GlassButton
+                      loading={isCheckingIn}
+                      disabled={isBusy}
+                      onClick={() =>
+                        runAction(
+                          () => checkInTurnoAsync(),
+                          "Solicitud de check-in enviada",
+                          "Error al solicitar check-in",
+                        )
+                      }
+                    >
+                      <LogIn className="w-4 h-4" />
+                      Solicitar check-in
+                    </GlassButton>
+                  )}
+                  {isGuia && isMyTurno && hasPendingCheckIn && (
+                    <div
+                      className="inline-flex items-center gap-2 rounded-xl border border-[rgb(var(--color-warning)/0.28)] bg-[rgb(var(--color-warning)/0.08)] px-3 py-2 text-sm font-medium text-[rgb(var(--color-fg))]"
+                      role="status"
+                    >
+                      <span
+                        className="relative flex h-2 w-2"
+                        aria-hidden="true"
+                      >
+                        <span className="absolute inset-0 animate-ping rounded-full bg-[rgb(var(--color-warning)/0.55)]" />
+                        <span className="relative inline-flex h-2 w-2 rounded-full bg-[rgb(var(--color-warning))]" />
+                      </span>
+                      Pendiente de confirmación del supervisor
+                    </div>
+                  )}
+                  {canConfirmCheckIn && (
+                    <GlassButton
+                      loading={isConfirmingCheckIn}
+                      disabled={isBusy}
+                      onClick={() =>
+                        runAction(
+                          () => confirmCheckInTurnoAsync(),
+                          "Check-in confirmado",
+                          "Error al confirmar check-in",
+                        )
+                      }
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
+                      Confirmar check-in
+                    </GlassButton>
+                  )}
+                  {canRejectCheckIn && (
+                    <GlassButton
+                      variant="danger"
+                      loading={isRejectingCheckIn}
+                      disabled={isBusy}
+                      onClick={() => setIsRejectDialogOpen(true)}
+                    >
+                      <XCircle className="w-4 h-4" />
+                      Rechazar check-in
                     </GlassButton>
                   )}
                   {canCheckOut && (
@@ -332,11 +465,21 @@ export function TurnoDetailPage() {
                       )}
                     </div>
                   )}
-                  {!canCheckIn && !canCheckOut && !canClaim && !canAssign && !canUnassign && !canMarkNoShow && !canCancel && !showClaimBlockedHint && (
-                    <p className="text-sm text-[rgb(var(--color-muted))]">
-                      No hay acciones disponibles para tu rol y el estado actual.
-                    </p>
-                  )}
+                  {!canRequestCheckIn &&
+                    !canConfirmCheckIn &&
+                    !canRejectCheckIn &&
+                    !canCheckOut &&
+                    !canClaim &&
+                    !canAssign &&
+                    !canUnassign &&
+                    !canMarkNoShow &&
+                    !canCancel &&
+                    !showClaimBlockedHint &&
+                    !(isGuia && isMyTurno && hasPendingCheckIn) && (
+                      <p className="text-sm text-[rgb(var(--color-muted))]">
+                        No hay acciones disponibles para tu rol y el estado actual.
+                      </p>
+                    )}
                 </div>
               </GlassCardContent>
             </GlassCard>
@@ -355,6 +498,44 @@ export function TurnoDetailPage() {
             refetch()
           }}
         />
+      )}
+
+      {turno && (
+        <GlassModal
+          isOpen={isRejectDialogOpen}
+          onClose={() => {
+            if (!isRejectingCheckIn) {
+              setIsRejectDialogOpen(false)
+              setRejectReason("")
+              setRejectError(null)
+            }
+          }}
+          title={`Rechazar check-in turno #${turno.numero}`}
+          description="El turno permanecerá ASSIGNED. Indica un motivo claro para auditoría."
+        >
+          <GlassTextarea
+            label="Motivo del rechazo"
+            value={rejectReason}
+            onChange={(event) => {
+              setRejectReason(event.target.value)
+              setRejectError(null)
+            }}
+            error={rejectError ?? undefined}
+            placeholder="Describe por qué se rechaza el check-in..."
+          />
+          <GlassModalFooter>
+            <GlassButton
+              variant="ghost"
+              disabled={isRejectingCheckIn}
+              onClick={() => setIsRejectDialogOpen(false)}
+            >
+              Volver
+            </GlassButton>
+            <GlassButton variant="danger" loading={isRejectingCheckIn} onClick={handleRejectCheckIn}>
+              Rechazar check-in
+            </GlassButton>
+          </GlassModalFooter>
+        </GlassModal>
       )}
 
       {turno && (
@@ -391,6 +572,93 @@ export function TurnoDetailPage() {
         </GlassModal>
       )}
     </AppShell>
+  )
+}
+
+function CheckInTimeline({
+  requestedAt,
+  confirmedAt,
+  checkInAt,
+  checkOutAt,
+  rejectedAt,
+}: {
+  requestedAt?: string | null
+  confirmedAt?: string | null
+  checkInAt?: string | null
+  checkOutAt?: string | null
+  rejectedAt?: string | null
+}) {
+  const steps: { label: string; time: string | null | undefined; tone: "done" | "active" | "pending" | "rejected" }[] = [
+    {
+      label: "Solicitado",
+      time: requestedAt,
+      tone: rejectedAt ? "rejected" : requestedAt ? (confirmedAt ? "done" : "active") : "pending",
+    },
+    {
+      label: "Confirmado",
+      time: confirmedAt,
+      tone: rejectedAt ? "rejected" : confirmedAt ? "done" : "pending",
+    },
+    {
+      label: "Inicio oficial",
+      time: checkInAt,
+      tone: checkInAt ? "done" : "pending",
+    },
+    {
+      label: "Check-out",
+      time: checkOutAt,
+      tone: checkOutAt ? "done" : "pending",
+    },
+  ]
+
+  return (
+    <div
+      className="mt-4 border-t border-[rgb(var(--color-border)/0.5)] pt-4"
+      aria-label="Cronología del check-in"
+    >
+      <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-[rgb(var(--color-muted))]">
+        Cronología del check-in
+      </p>
+      <ol className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {steps.map((step) => {
+          const dotClass =
+            step.tone === "done"
+              ? "bg-[rgb(var(--color-success))]"
+              : step.tone === "active"
+                ? "bg-[rgb(var(--color-warning))]"
+                : step.tone === "rejected"
+                  ? "bg-[rgb(var(--color-danger))]"
+                  : "bg-[rgb(var(--color-border))]"
+          const labelClass =
+            step.tone === "pending"
+              ? "text-[rgb(var(--color-muted))]"
+              : "text-[rgb(var(--color-fg))]"
+          return (
+            <li key={step.label} className="flex flex-col gap-1">
+              <div className="flex items-center gap-2">
+                <span
+                  className={`h-1.5 w-1.5 rounded-full ${dotClass}`}
+                  aria-hidden="true"
+                />
+                <span className={`text-xs font-semibold ${labelClass}`}>
+                  {step.label}
+                </span>
+              </div>
+              <span className="text-xs text-[rgb(var(--color-muted))]">
+                {step.time
+                  ? new Date(step.time).toLocaleString("es-CO", {
+                      day: "2-digit",
+                      month: "short",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })
+                  : "—"}
+              </span>
+            </li>
+          )
+        })}
+      </ol>
+    </div>
   )
 }
 
