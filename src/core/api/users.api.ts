@@ -51,6 +51,10 @@ export type GuideLookupItem = {
   disponibleParaTurnos: boolean;
   disponibilidadUpdatedAt: string | null;
   pendingPenalty: boolean;
+  /** Epica 6: expiración de la penalización vigente (null si no hay). */
+  penaltyExpiresAt?: string | null;
+  /** Epica 6: motivo de la penalización vigente (null si no hay). */
+  penaltyReason?: string | null;
 };
 
 export const usersApi = {

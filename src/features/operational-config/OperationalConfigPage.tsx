@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react"
 import {
-  AlertTriangle,
   CheckCircle2,
   Clock3,
   Hand,
@@ -15,6 +14,7 @@ import {
   GlassCard,
   GlassCardContent,
 } from "@/shared/components/glass/GlassCard"
+import { GlassButton } from "@/shared/components/glass/GlassButton"
 import { Skeleton } from "@/shared/components/feedback/Skeleton"
 import { useToast } from "@/shared/components/feedback/Toast"
 import { useGuidesLookup } from "@/hooks/use-guides"
@@ -85,7 +85,14 @@ function buildInitials(nombres?: string | null, apellidos?: string | null, email
 
 export function OperationalConfigPage() {
   const { showToast } = useToast()
-  const { config, isLoading, updateModeAsync, isUpdatingMode } = useOperationalConfig()
+  const {
+    config,
+    isLoading,
+    updateModeAsync,
+    isUpdatingMode,
+    updateNoShowPenaltyDurationAsync,
+    isUpdatingNoShowPenaltyDuration,
+  } = useOperationalConfig()
   const { guides, isLoading: isLoadingGuides } = useGuidesLookup({
     activo: true,
     pageSize: 500,
@@ -93,6 +100,8 @@ export function OperationalConfigPage() {
 
   const [filter, setFilter] = useState<GuideFilter>("todos")
   const [query, setQuery] = useState("")
+  const [penaltyDurationDraft, setPenaltyDurationDraft] = useState<string>("")
+  const [penaltyDurationError, setPenaltyDurationError] = useState<string | null>(null)
 
   const currentMode = config?.turnoAssignmentMode ?? "MANUAL_RECLAMO"
   const disponibles = useMemo(
@@ -119,6 +128,30 @@ export function OperationalConfigPage() {
       return name.includes(q) || g.email?.toLowerCase().includes(q)
     })
   }, [guides, filter, query])
+
+  const currentPenaltyHours = config?.noShowPenaltyDurationHours ?? 48
+  const handleSavePenaltyDuration = async () => {
+    const parsed = Number.parseInt(penaltyDurationDraft, 10)
+    if (!Number.isFinite(parsed) || parsed < 1 || parsed > 720) {
+      setPenaltyDurationError("Debe ser un entero entre 1 y 720 horas")
+      return
+    }
+    if (parsed === currentPenaltyHours) {
+      setPenaltyDurationError(null)
+      return
+    }
+    try {
+      await updateNoShowPenaltyDurationAsync(parsed)
+      setPenaltyDurationError(null)
+      setPenaltyDurationDraft("")
+      showToast("success", "Duración de penalización actualizada")
+    } catch (error: any) {
+      const message =
+        error?.response?.data?.error?.message ??
+        "No fue posible actualizar la duración de la penalización"
+      showToast("error", message)
+    }
+  }
 
   const handleModeChange = async (mode: TurnoAssignmentMode) => {
     if (mode === currentMode) return
@@ -291,6 +324,105 @@ export function OperationalConfigPage() {
             <Clock3 className="w-3 h-3" />
             Última actualización: {formatDateTime(config?.updatedAt)}
           </p>
+        </div>
+
+        {/* Penalty duration */}
+        <div className="animate-fade-in-up" style={{ animationDelay: "0.12s" }}>
+          <SectionTitle
+            eyebrow="Penalizaciones"
+            title="Duración por NO_SHOW"
+            description="Tiempo durante el cual un guía no puede reclamar turnos tras una inasistencia."
+          />
+
+          <div
+            className="mt-4 rounded-2xl p-4 flex flex-col gap-4 md:flex-row md:items-end md:justify-between"
+            style={{
+              background: "rgb(var(--color-bg-elevated))",
+              border: "1px solid rgba(var(--color-border), 0.07)",
+              boxShadow: "var(--shadow-sm)",
+            }}
+          >
+            <div>
+              <p
+                className="text-[11px] font-semibold uppercase"
+                style={{ color: "rgb(var(--color-muted))", letterSpacing: "0.1em" }}
+              >
+                Duración actual
+              </p>
+              <p
+                className="mt-1 text-3xl font-bold tabular-nums"
+                style={{ color: "rgb(var(--color-fg))", letterSpacing: "-0.02em" }}
+              >
+                {currentPenaltyHours}
+                <span
+                  className="ml-1 text-base font-medium"
+                  style={{ color: "rgb(var(--color-muted))" }}
+                >
+                  horas
+                </span>
+              </p>
+              <p
+                className="mt-1 text-xs"
+                style={{ color: "rgb(var(--color-muted))" }}
+              >
+                Aplica solo a nuevas penalizaciones. Las vigentes mantienen su expiración.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-2 w-full md:w-64">
+              <label
+                htmlFor="penalty-hours"
+                className="text-xs font-semibold"
+                style={{ color: "rgb(var(--color-fg))" }}
+              >
+                Nueva duración (1–720 h)
+              </label>
+              <div className="flex gap-2">
+                <input
+                  id="penalty-hours"
+                  type="number"
+                  min={1}
+                  max={720}
+                  step={1}
+                  inputMode="numeric"
+                  value={penaltyDurationDraft}
+                  onChange={(e) => {
+                    setPenaltyDurationDraft(e.target.value)
+                    setPenaltyDurationError(null)
+                  }}
+                  placeholder={String(currentPenaltyHours)}
+                  className="w-full px-3 py-2 text-sm rounded-xl focus-ring tabular-nums"
+                  style={{
+                    background: "rgb(var(--color-bg))",
+                    border: `1px solid ${penaltyDurationError ? "rgb(var(--color-danger))" : "rgba(var(--color-border), 0.12)"}`,
+                    color: "rgb(var(--color-fg))",
+                  }}
+                  aria-invalid={penaltyDurationError ? "true" : "false"}
+                  aria-describedby={penaltyDurationError ? "penalty-hours-error" : undefined}
+                />
+                <GlassButton
+                  variant="primary"
+                  size="sm"
+                  onClick={handleSavePenaltyDuration}
+                  loading={isUpdatingNoShowPenaltyDuration}
+                  disabled={!penaltyDurationDraft}
+                  aria-label="Guardar nueva duración de penalización"
+                >
+                  Guardar
+                </GlassButton>
+              </div>
+              {penaltyDurationError && (
+                <p
+                  id="penalty-hours-error"
+                  className="text-xs"
+                  style={{ color: "rgb(var(--color-danger))" }}
+                  role="alert"
+                >
+                  {penaltyDurationError}
+                </p>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Guides */}
@@ -479,11 +611,29 @@ export function OperationalConfigPage() {
                       </span>
                       {guide.pendingPenalty && (
                         <span
-                          className="flex items-center gap-1"
+                          className="inline-flex items-center gap-1.5"
                           style={{ color: "rgb(var(--color-warning))" }}
+                          title={
+                            guide.penaltyReason
+                              ? `Motivo: ${guide.penaltyReason}`
+                              : undefined
+                          }
                         >
-                          <AlertTriangle className="w-3 h-3" />
-                          Penalización pendiente
+                          <span
+                            className="relative flex h-2 w-2"
+                            aria-hidden="true"
+                          >
+                            <span className="absolute inset-0 animate-ping rounded-full bg-[rgb(var(--color-warning)/0.55)]" />
+                            <span className="relative inline-flex h-2 w-2 rounded-full bg-[rgb(var(--color-warning))]" />
+                          </span>
+                          {guide.penaltyExpiresAt
+                            ? `Hasta ${new Date(guide.penaltyExpiresAt).toLocaleString("es-CO", {
+                                day: "2-digit",
+                                month: "short",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}`
+                            : "Penalización pendiente"}
                         </span>
                       )}
                     </div>

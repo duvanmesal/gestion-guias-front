@@ -21,6 +21,10 @@ export interface UserMeResponse {
   pendingPenalty?: boolean | null
   disponibleParaTurnos?: boolean | null
   disponibilidadUpdatedAt?: string | null
+  /** Epica 6: expiración de la penalización vigente. */
+  penaltyExpiresAt?: string | null
+  /** Epica 6: motivo de la penalización vigente. */
+  penaltyReason?: string | null
   turnoAssignmentMode?: TurnoAssignmentMode
   createdAt: string
   updatedAt: string
@@ -31,6 +35,8 @@ export interface GuideAvailabilityResponse {
   disponibleParaTurnos: boolean
   disponibilidadUpdatedAt: string | null
   pendingPenalty: boolean
+  penaltyExpiresAt?: string | null
+  penaltyReason?: string | null
   turnoAssignmentMode?: TurnoAssignmentMode
 }
 
