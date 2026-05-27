@@ -6,6 +6,8 @@ import type {
   AssignTurnoRequest,
   UnassignTurnoRequest,
   NoShowTurnoRequest,
+  RejectCheckInRequest,
+  PendingCheckInsQueryParams,
 } from "@/core/models/turnos"
 
 // ✅ Mimi: intentamos leer el rol desde tu auth si existe.
@@ -79,6 +81,8 @@ export function useTurnos(params?: TurnosQueryParams, options?: UseTurnosOptions
     queryClient.invalidateQueries({ queryKey: ["turnos-me-next"] })
     queryClient.invalidateQueries({ queryKey: ["turnos-me-active"] })
     queryClient.invalidateQueries({ queryKey: ["dashboard"] })
+    // Epica 5: pendientes de check-in
+    queryClient.invalidateQueries({ queryKey: ["turnos-checkins-pending"] })
   }
 
   const assignMutation = useMutation({
@@ -95,6 +99,17 @@ export function useTurnos(params?: TurnosQueryParams, options?: UseTurnosOptions
 
   const checkInMutation = useMutation({
     mutationFn: (id: number) => turnosApi.checkInTurno(id),
+    onSuccess: invalidateAllTurnosLists,
+  })
+
+  const confirmCheckInMutation = useMutation({
+    mutationFn: (id: number) => turnosApi.confirmCheckInTurno(id),
+    onSuccess: invalidateAllTurnosLists,
+  })
+
+  const rejectCheckInMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: RejectCheckInRequest }) =>
+      turnosApi.rejectCheckInTurno(id, data),
     onSuccess: invalidateAllTurnosLists,
   })
 
@@ -148,10 +163,20 @@ export function useTurnos(params?: TurnosQueryParams, options?: UseTurnosOptions
     unassignTurnoAsync: unassignMutation.mutateAsync,
     isUnassigning: unassignMutation.isPending,
 
-    // Check-in
+    // Check-in (Epica 5: solicita)
     checkInTurno: checkInMutation.mutate,
     checkInTurnoAsync: checkInMutation.mutateAsync,
     isCheckingIn: checkInMutation.isPending,
+
+    // Confirm check-in (supervisor)
+    confirmCheckInTurno: confirmCheckInMutation.mutate,
+    confirmCheckInTurnoAsync: confirmCheckInMutation.mutateAsync,
+    isConfirmingCheckIn: confirmCheckInMutation.isPending,
+
+    // Reject check-in (supervisor)
+    rejectCheckInTurno: rejectCheckInMutation.mutate,
+    rejectCheckInTurnoAsync: rejectCheckInMutation.mutateAsync,
+    isRejectingCheckIn: rejectCheckInMutation.isPending,
 
     // Check-out
     checkOutTurno: checkOutMutation.mutate,
@@ -195,6 +220,7 @@ export function useTurno(id: number | null) {
     queryClient.invalidateQueries({ queryKey: ["turnos-me-next"] })
     queryClient.invalidateQueries({ queryKey: ["turnos-me-active"] })
     queryClient.invalidateQueries({ queryKey: ["dashboard"] })
+    queryClient.invalidateQueries({ queryKey: ["turnos-checkins-pending"] })
   }
 
   const assignMutation = useMutation({
@@ -211,6 +237,17 @@ export function useTurno(id: number | null) {
 
   const checkInMutation = useMutation({
     mutationFn: () => (id ? turnosApi.checkInTurno(id) : Promise.reject("No ID")),
+    onSuccess: invalidateAllTurnosLists,
+  })
+
+  const confirmCheckInMutation = useMutation({
+    mutationFn: () => (id ? turnosApi.confirmCheckInTurno(id) : Promise.reject("No ID")),
+    onSuccess: invalidateAllTurnosLists,
+  })
+
+  const rejectCheckInMutation = useMutation({
+    mutationFn: (payload: RejectCheckInRequest) =>
+      id ? turnosApi.rejectCheckInTurno(id, payload) : Promise.reject("No ID"),
     onSuccess: invalidateAllTurnosLists,
   })
 
@@ -252,10 +289,20 @@ export function useTurno(id: number | null) {
     unassignTurnoAsync: unassignMutation.mutateAsync,
     isUnassigning: unassignMutation.isPending,
 
-    // Check-in
+    // Check-in (Epica 5: solicita)
     checkInTurno: checkInMutation.mutate,
     checkInTurnoAsync: checkInMutation.mutateAsync,
     isCheckingIn: checkInMutation.isPending,
+
+    // Confirm check-in (supervisor)
+    confirmCheckInTurno: confirmCheckInMutation.mutate,
+    confirmCheckInTurnoAsync: confirmCheckInMutation.mutateAsync,
+    isConfirmingCheckIn: confirmCheckInMutation.isPending,
+
+    // Reject check-in (supervisor)
+    rejectCheckInTurno: rejectCheckInMutation.mutate,
+    rejectCheckInTurnoAsync: rejectCheckInMutation.mutateAsync,
+    isRejectingCheckIn: rejectCheckInMutation.isPending,
 
     // Check-out
     checkOutTurno: checkOutMutation.mutate,
@@ -277,6 +324,17 @@ export function useTurno(id: number | null) {
     claimTurnoAsync: claimMutation.mutateAsync,
     isClaiming: claimMutation.isPending,
   }
+}
+
+/**
+ * Epica 5 — Lista de check-ins pendientes de confirmación por supervisor.
+ */
+export function usePendingCheckIns(params?: PendingCheckInsQueryParams) {
+  return useQuery({
+    queryKey: ["turnos-checkins-pending", params],
+    queryFn: () => turnosApi.getPendingCheckIns(params),
+    staleTime: 10_000,
+  })
 }
 
 /**
