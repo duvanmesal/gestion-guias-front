@@ -3,6 +3,7 @@ import type { ApiResponse } from "@/core/models/api"
 import type {
   OperationalConfig,
   UpdateTurnoAssignmentModeRequest,
+  UpdateNoShowPenaltyDurationRequest,
 } from "@/core/models/operational-config"
 
 export const operationalConfigApi = {
@@ -16,6 +17,16 @@ export const operationalConfigApi = {
   ): Promise<ApiResponse<OperationalConfig>> {
     const response = await http.patch<ApiResponse<OperationalConfig>>(
       "/operational-config/turnos-assignment-mode",
+      data,
+    )
+    return response.data
+  },
+
+  async updateNoShowPenaltyDuration(
+    data: UpdateNoShowPenaltyDurationRequest,
+  ): Promise<ApiResponse<OperationalConfig>> {
+    const response = await http.patch<ApiResponse<OperationalConfig>>(
+      "/operational-config/no-show-penalty-duration",
       data,
     )
     return response.data

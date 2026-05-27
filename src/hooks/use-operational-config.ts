@@ -28,6 +28,14 @@ export function useOperationalConfig(options?: { enabled?: boolean }) {
     },
   })
 
+  const updateNoShowPenaltyDurationMutation = useMutation({
+    mutationFn: (durationHours: number) =>
+      operationalConfigApi.updateNoShowPenaltyDuration({ durationHours }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: operationalConfigKeys.root })
+    },
+  })
+
   return {
     config: query.data?.data ?? null,
     isLoading: query.isLoading,
@@ -36,5 +44,8 @@ export function useOperationalConfig(options?: { enabled?: boolean }) {
     updateMode: updateModeMutation.mutate,
     updateModeAsync: updateModeMutation.mutateAsync,
     isUpdatingMode: updateModeMutation.isPending,
+    updateNoShowPenaltyDuration: updateNoShowPenaltyDurationMutation.mutate,
+    updateNoShowPenaltyDurationAsync: updateNoShowPenaltyDurationMutation.mutateAsync,
+    isUpdatingNoShowPenaltyDuration: updateNoShowPenaltyDurationMutation.isPending,
   }
 }

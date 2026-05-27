@@ -23,6 +23,7 @@ import { Rol } from "@/core/models/auth"
 import { useMe } from "@/hooks/use-me"
 import { useTurno } from "@/hooks/use-turnos"
 import { useAtencionTurnos } from "@/hooks/use-atenciones"
+import { useOperationalConfig } from "@/hooks/use-operational-config"
 import { useTurnoSocket } from "@/hooks/use-turno-socket"
 import { extractApiError } from "@/core/utils/api-error"
 import { AppShell } from "@/shared/components/layout/AppShell"
@@ -62,6 +63,9 @@ export function TurnoDetailPage() {
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false)
   const [rejectReason, setRejectReason] = useState("")
   const [rejectError, setRejectError] = useState<string | null>(null)
+  const [isNoShowDialogOpen, setIsNoShowDialogOpen] = useState(false)
+  const [noShowReason, setNoShowReason] = useState("")
+  const [noShowError, setNoShowError] = useState<string | null>(null)
 
   const {
     turno,
@@ -100,6 +104,10 @@ export function TurnoDetailPage() {
   const isSupervisor = user?.rol === Rol.SUPER_ADMIN || user?.rol === Rol.SUPERVISOR
   const isGuia = user?.rol === Rol.GUIA
   const isMyTurno = turno?.guia?.usuario?.id === user?.id
+
+  // Epica 6: traer duración de penalización para informar al supervisor en el modal NO_SHOW.
+  const { config: opConfig } = useOperationalConfig({ enabled: isSupervisor })
+  const penaltyHours = opConfig?.noShowPenaltyDurationHours ?? 48
   const isBusy =
     isCheckingIn ||
     isConfirmingCheckIn ||
@@ -151,6 +159,25 @@ export function TurnoDetailPage() {
       refetch()
     } catch (error) {
       showToast("error", extractApiError(error) || errorMessage)
+    }
+  }
+
+  const handleNoShow = async () => {
+    const reason = noShowReason.trim()
+    if (reason.length < 3) {
+      setNoShowError("Ingresa un motivo de al menos 3 caracteres")
+      return
+    }
+
+    try {
+      await noShowTurnoAsync({ reason })
+      showToast("success", "Turno marcado como NO_SHOW")
+      refetch()
+      setIsNoShowDialogOpen(false)
+      setNoShowReason("")
+      setNoShowError(null)
+    } catch (error) {
+      showToast("error", extractApiError(error) || "Error al marcar NO_SHOW")
     }
   }
 
@@ -439,9 +466,14 @@ export function TurnoDetailPage() {
                     </GlassButton>
                   )}
                   {canMarkNoShow && (
-                    <GlassButton variant="danger" loading={isMarkingNoShow} disabled={isBusy} onClick={() => runAction(() => noShowTurnoAsync({ reason: "No se presento" }), "Turno marcado como no-show", "Error al marcar no-show")}>
+                    <GlassButton
+                      variant="danger"
+                      loading={isMarkingNoShow}
+                      disabled={isBusy}
+                      onClick={() => setIsNoShowDialogOpen(true)}
+                    >
                       <UserX className="w-4 h-4" />
-                      No-show
+                      Marcar NO_SHOW
                     </GlassButton>
                   )}
                   {canCancel && (
@@ -533,6 +565,40 @@ export function TurnoDetailPage() {
             </GlassButton>
             <GlassButton variant="danger" loading={isRejectingCheckIn} onClick={handleRejectCheckIn}>
               Rechazar check-in
+            </GlassButton>
+          </GlassModalFooter>
+        </GlassModal>
+      )}
+
+      {turno && (
+        <GlassModal
+          isOpen={isNoShowDialogOpen}
+          onClose={() => {
+            if (!isMarkingNoShow) {
+              setIsNoShowDialogOpen(false)
+              setNoShowReason("")
+              setNoShowError(null)
+            }
+          }}
+          title={`Marcar NO_SHOW turno #${turno.numero}`}
+          description={`Aplica una penalización al guía de ${penaltyHours} h y registra el evento en su historial. Indica un motivo claro para auditoría.`}
+        >
+          <GlassTextarea
+            label="Motivo del NO_SHOW"
+            value={noShowReason}
+            onChange={(event) => {
+              setNoShowReason(event.target.value)
+              setNoShowError(null)
+            }}
+            error={noShowError ?? undefined}
+            placeholder="Describe por qué se marca NO_SHOW..."
+          />
+          <GlassModalFooter>
+            <GlassButton variant="ghost" disabled={isMarkingNoShow} onClick={() => setIsNoShowDialogOpen(false)}>
+              Volver
+            </GlassButton>
+            <GlassButton variant="danger" loading={isMarkingNoShow} onClick={handleNoShow}>
+              Confirmar NO_SHOW
             </GlassButton>
           </GlassModalFooter>
         </GlassModal>

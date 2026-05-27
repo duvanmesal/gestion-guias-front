@@ -10,6 +10,7 @@ import { GlassTextarea } from "@/shared/components/glass/GlassTextarea"
 import { useToast } from "@/shared/components/feedback/Toast"
 import { useTurno } from "@/hooks/use-turnos"
 import { useMe } from "@/hooks/use-me"
+import { useOperationalConfig } from "@/hooks/use-operational-config"
 import { useAuthStore } from "@/app/stores/auth-store"
 import { Rol } from "@/core/models/auth"
 import type { TurnoListItem, TurnoStatus } from "@/core/models/turnos"
@@ -75,8 +76,13 @@ export function TurnoCard({
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false)
   const [rejectReason, setRejectReason] = useState("")
   const [rejectError, setRejectError] = useState<string | null>(null)
+  const [isNoShowDialogOpen, setIsNoShowDialogOpen] = useState(false)
+  const [noShowReason, setNoShowReason] = useState("")
+  const [noShowError, setNoShowError] = useState<string | null>(null)
 
   const isSupervisor = user?.rol === Rol.SUPER_ADMIN || user?.rol === Rol.SUPERVISOR
+  const { config: opConfig } = useOperationalConfig({ enabled: isSupervisor })
+  const penaltyHours = opConfig?.noShowPenaltyDurationHours ?? 48
   const isGuia = user?.rol === Rol.GUIA
   const isMyTurno = turno.guia?.usuario?.id === user?.id
   const actionsEnabled = canOperate
@@ -140,12 +146,20 @@ export function TurnoCard({
   }
 
   const handleNoShow = async () => {
+    const reason = noShowReason.trim()
+    if (reason.length < 3) {
+      setNoShowError("Ingresa un motivo de al menos 3 caracteres")
+      return
+    }
     try {
-      await noShowTurnoAsync({ reason: "No se presento" })
-      showToast("success", "Turno marcado como no-show")
+      await noShowTurnoAsync({ reason })
+      showToast("success", "Turno marcado como NO_SHOW")
+      setIsNoShowDialogOpen(false)
+      setNoShowReason("")
+      setNoShowError(null)
       onRefresh?.()
     } catch (error) {
-      showToast("error", "Error al marcar no-show")
+      showToast("error", extractApiError(error) || "Error al marcar NO_SHOW")
     }
   }
 
@@ -358,9 +372,9 @@ export function TurnoCard({
               <GlassButton
                 variant="danger"
                 size="sm"
-                onClick={handleNoShow}
+                onClick={() => setIsNoShowDialogOpen(true)}
                 loading={isMarkingNoShow}
-                aria-label={`Marcar no-show al turno ${turno.numero}`}
+                aria-label={`Marcar NO_SHOW al turno ${turno.numero}`}
               >
                 <UserX className="w-3 h-3" />
               </GlassButton>
@@ -390,6 +404,48 @@ export function TurnoCard({
           onRefresh?.()
         }}
       />
+
+      <GlassModal
+        isOpen={isNoShowDialogOpen}
+        onClose={() => {
+          if (!isMarkingNoShow) {
+            setIsNoShowDialogOpen(false)
+            setNoShowReason("")
+            setNoShowError(null)
+          }
+        }}
+        title={`Marcar NO_SHOW turno #${turno.numero}`}
+        description={`Aplica una penalización de ${penaltyHours} h al guía. Indica un motivo claro.`}
+      >
+        <div className="space-y-4">
+          <GlassTextarea
+            label="Motivo del NO_SHOW"
+            value={noShowReason}
+            onChange={(event) => {
+              setNoShowReason(event.target.value)
+              setNoShowError(null)
+            }}
+            error={noShowError ?? undefined}
+            placeholder="Describe por qué se marca NO_SHOW..."
+          />
+        </div>
+        <GlassModalFooter>
+          <GlassButton
+            variant="ghost"
+            onClick={() => {
+              setIsNoShowDialogOpen(false)
+              setNoShowReason("")
+              setNoShowError(null)
+            }}
+            disabled={isMarkingNoShow}
+          >
+            Volver
+          </GlassButton>
+          <GlassButton variant="danger" onClick={handleNoShow} loading={isMarkingNoShow}>
+            Confirmar NO_SHOW
+          </GlassButton>
+        </GlassModalFooter>
+      </GlassModal>
 
       <GlassModal
         isOpen={isRejectDialogOpen}
