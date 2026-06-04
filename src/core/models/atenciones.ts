@@ -4,6 +4,25 @@ import type { TurnoListItem } from "./turnos"
 
 // Atencion Operative Status
 export type AtencionOperativeStatus = "OPEN" | "CLOSED" | "CANCELED"
+export type AtencionEvaluationEstadoFinal = "SATISFACTORIA" | "CON_NOVEDADES" | "NO_SATISFACTORIA"
+
+export interface AtencionEvaluation {
+  id: number
+  atencionId: number
+  calificacion: number
+  estadoFinal: AtencionEvaluationEstadoFinal
+  observaciones?: string | null
+  evaluatedById: string
+  evaluatedAt: string
+  evaluatedBy?: {
+    id: string
+    email: string
+    nombres?: string | null
+    apellidos?: string | null
+  } | null
+  createdAt?: string
+  updatedAt?: string
+}
 
 // Atencion Entity
 export interface Atencion {
@@ -33,6 +52,7 @@ export interface Atencion {
   canceledById?: string | null
   createdById: string
   turnos?: TurnoListItem[]
+  evaluation?: AtencionEvaluation | null
   createdAt: string
   updatedAt: string
 }
@@ -87,6 +107,16 @@ export interface UpdateAtencionRequest {
 // Cancel Atencion Request
 export interface CancelAtencionRequest {
   reason: string
+}
+
+export interface AtencionEvaluationRequest {
+  calificacion: number
+  estadoFinal: AtencionEvaluationEstadoFinal
+  observaciones?: string | null
+}
+
+export interface CloseAtencionRequest {
+  evaluation?: AtencionEvaluationRequest
 }
 
 // Atencion Summary (for turnero dashboard)

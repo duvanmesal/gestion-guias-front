@@ -246,9 +246,19 @@ export function RecaladaDetailPage() {
                 )}
               </div>
 
-              {(recalada.terminal || recalada.muelle) && (
+              {(recalada.terminal || recalada.muelle || recalada.puerto || recalada.muelleCatalogo) && (
                 <div className="mt-4 pt-4 border-t border-[rgb(var(--color-border)/0.06)]">
                   <div className="flex gap-4">
+                    {recalada.puerto && (
+                      <span className="text-sm bg-[rgb(var(--color-glass)/0.5)] px-3 py-1 rounded-lg">
+                        Puerto: {recalada.puerto.nombre}
+                      </span>
+                    )}
+                    {recalada.muelleCatalogo && (
+                      <span className="text-sm bg-[rgb(var(--color-glass)/0.5)] px-3 py-1 rounded-lg">
+                        Muelle catálogo: {recalada.muelleCatalogo.nombre}
+                      </span>
+                    )}
                     {recalada.terminal && (
                       <span className="text-sm bg-[rgb(var(--color-glass)/0.5)] px-3 py-1 rounded-lg">
                         Terminal: {recalada.terminal}

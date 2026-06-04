@@ -26,6 +26,8 @@ interface UserSocketPayload {
 interface CatalogSocketPayload {
   paisId?: number
   buqueId?: number
+  puertoId?: number
+  muelleId?: number
 }
 
 interface DisponibilidadSocketPayload {
@@ -191,6 +193,24 @@ export function useGlobalRealtime() {
       }
     }
 
+    const invalidatePuerto = (payload: CatalogSocketPayload) => {
+      queryClient.invalidateQueries({ queryKey: ["puertos"] })
+      queryClient.invalidateQueries({ queryKey: ["puertos", "lookup"] })
+      queryClient.invalidateQueries({ queryKey: ["recaladas"] })
+      if (payload.puertoId) {
+        queryClient.invalidateQueries({ queryKey: ["puerto", payload.puertoId] })
+      }
+    }
+
+    const invalidateMuelle = (payload: CatalogSocketPayload) => {
+      queryClient.invalidateQueries({ queryKey: ["muelles"] })
+      queryClient.invalidateQueries({ queryKey: ["muelles", "lookup"] })
+      queryClient.invalidateQueries({ queryKey: ["recaladas"] })
+      if (payload.muelleId) {
+        queryClient.invalidateQueries({ queryKey: ["muelle", payload.muelleId] })
+      }
+    }
+
     socket.on("disponibilidad:marcada", invalidateDisponibilidad)
     socket.on("disponibilidad:desmarcada", invalidateDisponibilidad)
     socket.on("disponibilidad:globalChanged", invalidateDisponibilidad)
@@ -213,6 +233,7 @@ export function useGlobalRealtime() {
     socket.on("atencion:updated", invalidateAtenciones)
     socket.on("atencion:canceled", invalidateAtenciones)
     socket.on("atencion:closed", invalidateAtenciones)
+    socket.on("atencion:evaluation:updated", invalidateAtenciones)
 
     socket.on("recalada:created", invalidateRecaladas)
     socket.on("recalada:updated", invalidateRecaladas)
@@ -238,6 +259,12 @@ export function useGlobalRealtime() {
     socket.on("catalog:buque:updated", invalidateBuque)
     socket.on("catalog:buque:removed", invalidateBuque)
     socket.on("catalog:buque:bulkChanged", invalidateBuque)
+    socket.on("catalog:puerto:created", invalidatePuerto)
+    socket.on("catalog:puerto:updated", invalidatePuerto)
+    socket.on("catalog:puerto:removed", invalidatePuerto)
+    socket.on("catalog:muelle:created", invalidateMuelle)
+    socket.on("catalog:muelle:updated", invalidateMuelle)
+    socket.on("catalog:muelle:removed", invalidateMuelle)
 
     // Epica 7 — Notificaciones operativas. Cada handler dispara un toast
     // informacional y refresca la cache de la entidad afectada para que la
@@ -321,6 +348,7 @@ export function useGlobalRealtime() {
       socket.off("atencion:updated", invalidateAtenciones)
       socket.off("atencion:canceled", invalidateAtenciones)
       socket.off("atencion:closed", invalidateAtenciones)
+      socket.off("atencion:evaluation:updated", invalidateAtenciones)
 
       socket.off("recalada:created", invalidateRecaladas)
       socket.off("recalada:updated", invalidateRecaladas)
@@ -346,6 +374,12 @@ export function useGlobalRealtime() {
       socket.off("catalog:buque:updated", invalidateBuque)
       socket.off("catalog:buque:removed", invalidateBuque)
       socket.off("catalog:buque:bulkChanged", invalidateBuque)
+      socket.off("catalog:puerto:created", invalidatePuerto)
+      socket.off("catalog:puerto:updated", invalidatePuerto)
+      socket.off("catalog:puerto:removed", invalidatePuerto)
+      socket.off("catalog:muelle:created", invalidateMuelle)
+      socket.off("catalog:muelle:updated", invalidateMuelle)
+      socket.off("catalog:muelle:removed", invalidateMuelle)
 
       socket.off("notif:atencion:available", handleOpNotifAtencionAvailable)
       socket.off("notif:turno:claimed", handleOpNotifTurno)

@@ -12,10 +12,15 @@ import {
   XCircle,
   Hand,
   Ship,
+  Star,
 } from "lucide-react"
 import { AppShell } from "@/shared/components/layout/AppShell"
 import { GlassCard, GlassCardContent } from "@/shared/components/glass/GlassCard"
 import { GlassButton } from "@/shared/components/glass/GlassButton"
+import { GlassInput } from "@/shared/components/glass/GlassInput"
+import { GlassTextarea } from "@/shared/components/glass/GlassTextarea"
+import { GlassModal, GlassModalFooter } from "@/shared/components/glass/GlassModal"
+import { SearchableCombobox } from "@/shared/components/glass/SearchableCombobox"
 import { Skeleton } from "@/shared/components/feedback/Skeleton"
 import { useToast } from "@/shared/components/feedback/Toast"
 import { useAtencion, useAtencionTurnos, useAtencionSummary } from "@/hooks/use-atenciones"
@@ -43,8 +48,10 @@ const atencionId = id ? Number(id) : null
     atencion,
     isLoading,
     closeAtencionAsync,
+    upsertEvaluationAsync,
     claimTurnoAsync,
     isClosing,
+    isEvaluating,
     isClaiming,
   } = useAtencion(atencionId)
   const { turnos, isLoading: loadingTurnos, refetch: refetchTurnos } = useAtencionTurnos(atencionId)
@@ -52,6 +59,12 @@ const atencionId = id ? Number(id) : null
 
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false)
+  const [isEvaluationDialogOpen, setIsEvaluationDialogOpen] = useState(false)
+  const [evaluationForm, setEvaluationForm] = useState({
+    calificacion: "",
+    estadoFinal: "SATISFACTORIA",
+    observaciones: "",
+  })
 
   const canEdit = user?.rol === Rol.SUPER_ADMIN || user?.rol === Rol.SUPERVISOR
   const canOperate = user?.rol === Rol.SUPER_ADMIN || user?.rol === Rol.SUPERVISOR
@@ -91,10 +104,47 @@ const atencionId = id ? Number(id) : null
 
   const handleClose = async () => {
     try {
-      await closeAtencionAsync()
+      await closeAtencionAsync(undefined)
+      setIsEvaluationDialogOpen(false)
       showToast("success", "Atencion cerrada exitosamente")
     } catch {
       // global handler shows error toast
+    }
+  }
+
+  const openEvaluationDialog = () => {
+    setEvaluationForm({
+      calificacion: atencion?.evaluation?.calificacion ? String(atencion.evaluation.calificacion) : "",
+      estadoFinal: atencion?.evaluation?.estadoFinal ?? "SATISFACTORIA",
+      observaciones: atencion?.evaluation?.observaciones ?? "",
+    })
+    setIsEvaluationDialogOpen(true)
+  }
+
+  const handleSaveEvaluation = async (closeAfterSave: boolean) => {
+    const calificacion = Number(evaluationForm.calificacion)
+    if (!Number.isInteger(calificacion) || calificacion < 1 || calificacion > 5) {
+      showToast("error", "La calificación debe estar entre 1 y 5")
+      return
+    }
+
+    const evaluation = {
+      calificacion,
+      estadoFinal: evaluationForm.estadoFinal as any,
+      observaciones: evaluationForm.observaciones.trim() || undefined,
+    }
+
+    try {
+      if (closeAfterSave) {
+        await closeAtencionAsync({ evaluation })
+        showToast("success", "Atencion cerrada con evaluación")
+      } else {
+        await upsertEvaluationAsync(evaluation)
+        showToast("success", "Evaluación guardada")
+      }
+      setIsEvaluationDialogOpen(false)
+    } catch (error) {
+      showToast("error", extractApiError(error))
     }
   }
 
@@ -355,9 +405,9 @@ const handleClaim = async () => {
                     </GlassButton>
                   )}
                   {canOperate && canCloseAtencion && (
-                    <GlassButton variant="secondary" fullWidth onClick={handleClose} loading={isClosing}>
+                    <GlassButton variant="secondary" fullWidth onClick={openEvaluationDialog} loading={isClosing}>
                       <Lock className="w-4 h-4" />
-                      Cerrar Atencion
+                      Cerrar y evaluar
                     </GlassButton>
                   )}
                   {canOperate && canCancelAtencion && (
@@ -386,6 +436,30 @@ const handleClaim = async () => {
                   <p className="font-medium text-[rgb(var(--color-fg))]">{turnoStats.canceled}</p>
                 </div>
               </div>
+            </GlassCard>
+
+            <GlassCard className="animate-fade-in-up" style={{ animationDelay: "0.15s" }}>
+              <div className="flex items-center justify-between gap-3 mb-3">
+                <h3 className="text-sm font-semibold text-[rgb(var(--color-fg))]">Evaluación</h3>
+                {canOperate && (
+                  <GlassButton variant="ghost" size="sm" onClick={openEvaluationDialog}>
+                    <Star className="w-4 h-4" />
+                    {atencion.evaluation ? "Editar" : "Evaluar"}
+                  </GlassButton>
+                )}
+              </div>
+              {atencion.evaluation ? (
+                <div className="space-y-2 text-sm">
+                  <p className="font-medium text-[rgb(var(--color-fg))]">
+                    {atencion.evaluation.calificacion}/5 · {atencion.evaluation.estadoFinal.replace("_", " ")}
+                  </p>
+                  {atencion.evaluation.observaciones && (
+                    <p className="text-[rgb(var(--color-muted))]">{atencion.evaluation.observaciones}</p>
+                  )}
+                </div>
+              ) : (
+                <p className="text-sm text-[rgb(var(--color-muted))]">Sin evaluación registrada.</p>
+              )}
             </GlassCard>
           </div>
         </div>
@@ -419,6 +493,61 @@ const handleClaim = async () => {
           showToast("success", "Atencion cancelada")
         }}
       />
+
+      <GlassModal
+        isOpen={isEvaluationDialogOpen}
+        onClose={() => setIsEvaluationDialogOpen(false)}
+        title={canCloseAtencion ? "Cerrar y evaluar atención" : "Evaluar atención"}
+        size="md"
+      >
+        <div className="space-y-4">
+          <GlassInput
+            label="Calificación"
+            type="number"
+            min="1"
+            max="5"
+            value={evaluationForm.calificacion}
+            onChange={(e) => setEvaluationForm({ ...evaluationForm, calificacion: e.target.value })}
+          />
+          <SearchableCombobox
+            label="Estado final"
+            searchable={false}
+            options={[
+              { value: "SATISFACTORIA", label: "Satisfactoria" },
+              { value: "CON_NOVEDADES", label: "Con novedades" },
+              { value: "NO_SATISFACTORIA", label: "No satisfactoria" },
+            ]}
+            value={evaluationForm.estadoFinal}
+            onChange={(estadoFinal) => setEvaluationForm({ ...evaluationForm, estadoFinal })}
+          />
+          <GlassTextarea
+            label="Observaciones"
+            rows={4}
+            value={evaluationForm.observaciones}
+            onChange={(e) => setEvaluationForm({ ...evaluationForm, observaciones: e.target.value })}
+          />
+          <GlassModalFooter>
+            <GlassButton type="button" variant="ghost" onClick={() => setIsEvaluationDialogOpen(false)}>
+              Cancelar
+            </GlassButton>
+            {!canCloseAtencion && (
+              <GlassButton type="button" variant="primary" onClick={() => handleSaveEvaluation(false)} loading={isEvaluating}>
+                Guardar evaluación
+              </GlassButton>
+            )}
+            {canCloseAtencion && (
+              <>
+                <GlassButton type="button" variant="ghost" onClick={handleClose} loading={isClosing}>
+                  Cerrar sin evaluación
+                </GlassButton>
+                <GlassButton type="button" variant="primary" onClick={() => handleSaveEvaluation(true)} loading={isClosing}>
+                  Cerrar con evaluación
+                </GlassButton>
+              </>
+            )}
+          </GlassModalFooter>
+        </div>
+      </GlassModal>
     </AppShell>
   )
 }

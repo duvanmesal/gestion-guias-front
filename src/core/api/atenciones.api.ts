@@ -8,6 +8,8 @@ import type {
   CreateAtencionRequest,
   UpdateAtencionRequest,
   CancelAtencionRequest,
+  AtencionEvaluationRequest,
+  CloseAtencionRequest,
 } from "@/core/models/atenciones";
 import type { Turno } from "@/core/models/turnos";
 
@@ -79,9 +81,21 @@ export const atencionesApi = {
   // Use cancelAtencion or closeAtencion instead
 
   // Close atencion
-  async closeAtencion(id: number): Promise<ApiResponse<Atencion>> {
+  async closeAtencion(id: number, data?: CloseAtencionRequest): Promise<ApiResponse<Atencion>> {
     const response = await http.patch<ApiResponse<Atencion>>(
       `/atenciones/${id}/close`,
+      data ?? {},
+    );
+    return response.data;
+  },
+
+  async upsertEvaluation(
+    id: number,
+    data: AtencionEvaluationRequest,
+  ): Promise<ApiResponse<Atencion>> {
+    const response = await http.patch<ApiResponse<Atencion>>(
+      `/atenciones/${id}/evaluation`,
+      data,
     );
     return response.data;
   },

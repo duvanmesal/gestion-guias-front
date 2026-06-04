@@ -344,6 +344,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       items: [
         { to: "/catalog/paises", icon: MapPin, label: "Países", roles: [Rol.SUPER_ADMIN, Rol.SUPERVISOR] },
         { to: "/catalog/buques", icon: Ship, label: "Buques", roles: [Rol.SUPER_ADMIN, Rol.SUPERVISOR] },
+        { to: "/catalog/puertos", icon: Anchor, label: "Puertos", roles: [Rol.SUPER_ADMIN, Rol.SUPERVISOR] },
+        { to: "/catalog/muelles", icon: ShipWheel, label: "Muelles", roles: [Rol.SUPER_ADMIN, Rol.SUPERVISOR] },
       ],
     },
     {
