@@ -10,6 +10,8 @@ import { SearchableCombobox } from "@/shared/components/glass/SearchableCombobox
 import { GlassDateTimeInput } from "@/shared/components/glass/GlassDateTimeInput";
 import { useBuquesLookup } from "@/hooks/use-buques";
 import { usePaisesLookup } from "@/hooks/use-paises";
+import { usePuertosLookup } from "@/hooks/use-puertos";
+import { useMuellesLookup } from "@/hooks/use-muelles";
 import { useRecaladas } from "@/hooks/use-recaladas";
 import type {
   Recalada,
@@ -27,6 +29,8 @@ interface RecaladaFormDialogProps {
 type FormState = {
   buqueId: string;
   paisOrigenId: string;
+  puertoId: string;
+  muelleId: string;
   fechaLlegada: string;
   fechaSalida: string;
   terminal: string;
@@ -44,6 +48,7 @@ export function RecaladaFormDialog({
 }: RecaladaFormDialogProps) {
   const { buques, isLoading: loadingBuques } = useBuquesLookup();
   const { paises, isLoading: loadingPaises } = usePaisesLookup();
+  const { puertos, isLoading: loadingPuertos } = usePuertosLookup();
   const { createRecaladaAsync, updateRecaladaAsync, isCreating, isUpdating } =
     useRecaladas();
 
@@ -52,6 +57,8 @@ export function RecaladaFormDialog({
   const [formData, setFormData] = useState<FormState>({
     buqueId: "",
     paisOrigenId: "",
+    puertoId: "",
+    muelleId: "",
     fechaLlegada: "",
     fechaSalida: "",
     terminal: "",
@@ -72,6 +79,8 @@ export function RecaladaFormDialog({
         paisOrigenId: recalada.paisOrigenId
           ? String(recalada.paisOrigenId)
           : "",
+        puertoId: recalada.puertoId ? String(recalada.puertoId) : "",
+        muelleId: recalada.muelleId ? String(recalada.muelleId) : "",
         fechaLlegada: recalada.fechaLlegada
           ? recalada.fechaLlegada.slice(0, 16)
           : "",
@@ -94,6 +103,8 @@ export function RecaladaFormDialog({
       setFormData({
         buqueId: "",
         paisOrigenId: "",
+        puertoId: "",
+        muelleId: "",
         fechaLlegada: "",
         fechaSalida: "",
         terminal: "",
@@ -146,6 +157,8 @@ export function RecaladaFormDialog({
     const common = {
       buqueId: formData.buqueId,
       paisOrigenId: formData.paisOrigenId,
+      puertoId: formData.puertoId || undefined,
+      muelleId: formData.muelleId || undefined,
       fechaLlegada: new Date(formData.fechaLlegada).toISOString(),
       fechaSalida: formData.fechaSalida
         ? new Date(formData.fechaSalida).toISOString()
@@ -185,6 +198,17 @@ export function RecaladaFormDialog({
   const paisOptions = paises.map((p) => ({
     value: String(p.id),
     label: `${p.nombre} (${p.codigo})`,
+  }));
+
+  const puertoOptions = puertos.map((p) => ({
+    value: String(p.id),
+    label: `${p.nombre} (${p.codigo})`,
+  }));
+
+  const { muelles, isLoading: loadingMuelles } = useMuellesLookup(formData.puertoId || undefined);
+  const muelleOptions = muelles.map((m) => ({
+    value: String(m.id),
+    label: `${m.nombre} (${m.codigo})`,
   }));
 
   return (
@@ -237,6 +261,32 @@ export function RecaladaFormDialog({
             onChange={(v) => setFormData({ ...formData, fechaSalida: v })}
             error={errors.fechaSalida}
           />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <SearchableCombobox
+              label="Puerto"
+              options={puertoOptions}
+              value={formData.puertoId}
+              onChange={(val) =>
+                setFormData({ ...formData, puertoId: val, muelleId: "" })
+              }
+              placeholder="Seleccionar puerto..."
+              disabled={loadingPuertos}
+            />
+          </div>
+
+          <div>
+            <SearchableCombobox
+              label="Muelle de catálogo"
+              options={muelleOptions}
+              value={formData.muelleId}
+              onChange={(val) => setFormData({ ...formData, muelleId: val })}
+              placeholder={formData.puertoId ? "Seleccionar muelle..." : "Selecciona un puerto primero"}
+              disabled={!formData.puertoId || loadingMuelles}
+            />
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -1,5 +1,5 @@
 // src/core/models/recaladas.ts
-import type { StatusType, Buque, PaisMini } from "./catalog"
+import type { StatusType, Buque, Muelle, PaisMini, Puerto } from "./catalog"
 
 // Recalada Operative Status
 export type RecaladaOperativeStatus = "SCHEDULED" | "ARRIVED" | "DEPARTED" | "CANCELED"
@@ -28,6 +28,11 @@ export interface Recalada {
 
   paisOrigenId: string
   paisOrigen?: PaisMini | null
+
+  puertoId?: string | null
+  puerto?: Puerto | null
+  muelleId?: string | null
+  muelleCatalogo?: Muelle | null
 
   supervisorId?: string | null
   supervisor?: SupervisorMini | null
@@ -67,6 +72,10 @@ export interface RecaladaListItem {
   operationalStatus: RecaladaOperativeStatus
   terminal?: string | null
   muelle?: string | null
+  puertoId?: string | null
+  puerto?: Pick<Puerto, "id" | "codigo" | "nombre" | "ciudad"> | null
+  muelleId?: string | null
+  muelleCatalogo?: Pick<Muelle, "id" | "codigo" | "nombre" | "capacidadCruceros"> | null
   observaciones?: string | null
   buque: {
     id: string
@@ -89,6 +98,8 @@ export interface RecaladasQueryParams {
   operationalStatus?: RecaladaOperativeStatus
   buqueId?: string | number
   paisOrigenId?: string | number
+  puertoId?: string | number
+  muelleId?: string | number
   status?: StatusType
   // Filtro operativo: recaladas ARRIVED cuyo zarpe programado ya venció.
   overdueDeparture?: boolean
@@ -98,6 +109,8 @@ export interface RecaladasQueryParams {
 export interface CreateRecaladaRequest {
   buqueId: string
   paisOrigenId: string
+  puertoId?: string
+  muelleId?: string
   fechaLlegada: string
   fechaSalida?: string
   terminal?: string
@@ -112,6 +125,8 @@ export interface CreateRecaladaRequest {
 export interface UpdateRecaladaRequest {
   buqueId?: string
   paisOrigenId?: string
+  puertoId?: string | null
+  muelleId?: string | null
   fechaLlegada?: string
   fechaSalida?: string
   terminal?: string

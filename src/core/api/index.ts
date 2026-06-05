@@ -7,6 +7,8 @@ export * from "./emails.api";
 export * from "./health.api";
 export * from "./paises.api";
 export * from "./buques.api";
+export * from "./puertos.api";
+export * from "./muelles.api";
 export * from "./recaladas.api";
 export * from "./atenciones.api";
 export * from "./turnos.api";

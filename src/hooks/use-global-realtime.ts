@@ -26,6 +26,8 @@ interface UserSocketPayload {
 interface CatalogSocketPayload {
   paisId?: number
   buqueId?: number
+  puertoId?: number
+  muelleId?: number
 }
 
 interface DisponibilidadSocketPayload {
@@ -49,6 +51,17 @@ interface AtencionNuevaPayload {
   fechaInicio?: string
   fechaFin?: string
   turnosTotal?: number
+}
+
+interface OpNotifPayload {
+  notificationId: string
+  type: string
+  route: string
+  title: string
+  body: string
+  recaladaId?: number | null
+  atencionId?: number | null
+  turnoId?: number | null
 }
 
 export function useGlobalRealtime() {
@@ -180,6 +193,24 @@ export function useGlobalRealtime() {
       }
     }
 
+    const invalidatePuerto = (payload: CatalogSocketPayload) => {
+      queryClient.invalidateQueries({ queryKey: ["puertos"] })
+      queryClient.invalidateQueries({ queryKey: ["puertos", "lookup"] })
+      queryClient.invalidateQueries({ queryKey: ["recaladas"] })
+      if (payload.puertoId) {
+        queryClient.invalidateQueries({ queryKey: ["puerto", payload.puertoId] })
+      }
+    }
+
+    const invalidateMuelle = (payload: CatalogSocketPayload) => {
+      queryClient.invalidateQueries({ queryKey: ["muelles"] })
+      queryClient.invalidateQueries({ queryKey: ["muelles", "lookup"] })
+      queryClient.invalidateQueries({ queryKey: ["recaladas"] })
+      if (payload.muelleId) {
+        queryClient.invalidateQueries({ queryKey: ["muelle", payload.muelleId] })
+      }
+    }
+
     socket.on("disponibilidad:marcada", invalidateDisponibilidad)
     socket.on("disponibilidad:desmarcada", invalidateDisponibilidad)
     socket.on("disponibilidad:globalChanged", invalidateDisponibilidad)
@@ -202,6 +233,7 @@ export function useGlobalRealtime() {
     socket.on("atencion:updated", invalidateAtenciones)
     socket.on("atencion:canceled", invalidateAtenciones)
     socket.on("atencion:closed", invalidateAtenciones)
+    socket.on("atencion:evaluation:updated", invalidateAtenciones)
 
     socket.on("recalada:created", invalidateRecaladas)
     socket.on("recalada:updated", invalidateRecaladas)
@@ -227,6 +259,71 @@ export function useGlobalRealtime() {
     socket.on("catalog:buque:updated", invalidateBuque)
     socket.on("catalog:buque:removed", invalidateBuque)
     socket.on("catalog:buque:bulkChanged", invalidateBuque)
+    socket.on("catalog:puerto:created", invalidatePuerto)
+    socket.on("catalog:puerto:updated", invalidatePuerto)
+    socket.on("catalog:puerto:removed", invalidatePuerto)
+    socket.on("catalog:muelle:created", invalidateMuelle)
+    socket.on("catalog:muelle:updated", invalidateMuelle)
+    socket.on("catalog:muelle:removed", invalidateMuelle)
+
+    // Epica 7 — Notificaciones operativas. Cada handler dispara un toast
+    // informacional y refresca la cache de la entidad afectada para que la
+    // UI quede al día sin esperar al próximo poll.
+    const opNotifInfo = (payload: OpNotifPayload) => {
+      showToast("info", payload.body, 6000)
+    }
+    const opNotifWarning = (payload: OpNotifPayload) => {
+      showToast("warning", payload.body, 8000)
+    }
+    const handleOpNotifAtencionAvailable = (payload: OpNotifPayload) => {
+      showToast("success", payload.body, 6000)
+      queryClient.invalidateQueries({ queryKey: ["atenciones"] })
+      queryClient.invalidateQueries({ queryKey: ["dashboard-overview"] })
+      if (payload.atencionId) {
+        queryClient.invalidateQueries({ queryKey: ["atencion", payload.atencionId] })
+      }
+    }
+    const handleOpNotifTurno = (payload: OpNotifPayload) => {
+      opNotifInfo(payload)
+      queryClient.invalidateQueries({ queryKey: ["turnos"] })
+      queryClient.invalidateQueries({ queryKey: ["turnos-me"] })
+      queryClient.invalidateQueries({ queryKey: ["turnos-me-next"] })
+      queryClient.invalidateQueries({ queryKey: ["turnos-me-active"] })
+      if (payload.turnoId) {
+        queryClient.invalidateQueries({ queryKey: ["turno", payload.turnoId] })
+      }
+    }
+    const handleOpNotifCheckInPending = (payload: OpNotifPayload) => {
+      opNotifWarning(payload)
+      queryClient.invalidateQueries({ queryKey: ["turnos-check-ins-pending"] })
+      queryClient.invalidateQueries({ queryKey: ["dashboard-overview"] })
+    }
+    const handleOpNotifPenalty = (payload: OpNotifPayload) => {
+      opNotifWarning(payload)
+      queryClient.invalidateQueries({ queryKey: ["me"] })
+      queryClient.invalidateQueries({ queryKey: ["users-guides"] })
+    }
+    const handleOpNotifRecaladaOverdue = (payload: OpNotifPayload) => {
+      opNotifWarning(payload)
+      queryClient.invalidateQueries({ queryKey: ["recaladas"] })
+      queryClient.invalidateQueries({ queryKey: ["dashboard-overview"] })
+    }
+    const handleOpNotifAtencionNear = (payload: OpNotifPayload) => {
+      opNotifWarning(payload)
+      queryClient.invalidateQueries({ queryKey: ["atenciones"] })
+      queryClient.invalidateQueries({ queryKey: ["dashboard-overview"] })
+    }
+
+    socket.on("notif:atencion:available", handleOpNotifAtencionAvailable)
+    socket.on("notif:turno:claimed", handleOpNotifTurno)
+    socket.on("notif:turno:assigned", handleOpNotifTurno)
+    socket.on("notif:turno:canceled", handleOpNotifTurno)
+    socket.on("notif:turno:changed", handleOpNotifTurno)
+    socket.on("notif:turno:checkInReminder", handleOpNotifTurno)
+    socket.on("notif:guide:penalized", handleOpNotifPenalty)
+    socket.on("notif:supervisor:checkInPending", handleOpNotifCheckInPending)
+    socket.on("notif:recalada:overdue", handleOpNotifRecaladaOverdue)
+    socket.on("notif:atencion:nearWithFreeTurnos", handleOpNotifAtencionNear)
 
     return () => {
       socket.off("disponibilidad:marcada", invalidateDisponibilidad)
@@ -251,6 +348,7 @@ export function useGlobalRealtime() {
       socket.off("atencion:updated", invalidateAtenciones)
       socket.off("atencion:canceled", invalidateAtenciones)
       socket.off("atencion:closed", invalidateAtenciones)
+      socket.off("atencion:evaluation:updated", invalidateAtenciones)
 
       socket.off("recalada:created", invalidateRecaladas)
       socket.off("recalada:updated", invalidateRecaladas)
@@ -276,6 +374,23 @@ export function useGlobalRealtime() {
       socket.off("catalog:buque:updated", invalidateBuque)
       socket.off("catalog:buque:removed", invalidateBuque)
       socket.off("catalog:buque:bulkChanged", invalidateBuque)
+      socket.off("catalog:puerto:created", invalidatePuerto)
+      socket.off("catalog:puerto:updated", invalidatePuerto)
+      socket.off("catalog:puerto:removed", invalidatePuerto)
+      socket.off("catalog:muelle:created", invalidateMuelle)
+      socket.off("catalog:muelle:updated", invalidateMuelle)
+      socket.off("catalog:muelle:removed", invalidateMuelle)
+
+      socket.off("notif:atencion:available", handleOpNotifAtencionAvailable)
+      socket.off("notif:turno:claimed", handleOpNotifTurno)
+      socket.off("notif:turno:assigned", handleOpNotifTurno)
+      socket.off("notif:turno:canceled", handleOpNotifTurno)
+      socket.off("notif:turno:changed", handleOpNotifTurno)
+      socket.off("notif:turno:checkInReminder", handleOpNotifTurno)
+      socket.off("notif:guide:penalized", handleOpNotifPenalty)
+      socket.off("notif:supervisor:checkInPending", handleOpNotifCheckInPending)
+      socket.off("notif:recalada:overdue", handleOpNotifRecaladaOverdue)
+      socket.off("notif:atencion:nearWithFreeTurnos", handleOpNotifAtencionNear)
     }
   }, [accessToken, clearSession, currentUserId, queryClient, showToast])
 }

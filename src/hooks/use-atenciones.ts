@@ -3,6 +3,8 @@ import { atencionesApi } from "@/core/api"
 import type {
   AtencionesQueryParams,
   AtencionSummary,
+  AtencionEvaluationRequest,
+  CloseAtencionRequest,
   CreateAtencionRequest,
   UpdateAtencionRequest,
   CancelAtencionRequest,
@@ -96,7 +98,8 @@ export function useAtencion(id: number | null) {
   })
 
   const closeMutation = useMutation({
-    mutationFn: () => (id ? atencionesApi.closeAtencion(id) : Promise.reject("No ID")),
+    mutationFn: (payload?: CloseAtencionRequest) =>
+      id ? atencionesApi.closeAtencion(id, payload) : Promise.reject("No ID"),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["atencion", id] })
       queryClient.invalidateQueries({ queryKey: ["atenciones"] })
@@ -127,6 +130,15 @@ export function useAtencion(id: number | null) {
     },
   })
 
+  const evaluationMutation = useMutation({
+    mutationFn: (payload: AtencionEvaluationRequest) =>
+      id ? atencionesApi.upsertEvaluation(id, payload) : Promise.reject("No ID"),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["atencion", id] })
+      queryClient.invalidateQueries({ queryKey: ["atenciones"] })
+    },
+  })
+
   return {
     atencion: data?.data ?? null,
     isLoading,
@@ -140,6 +152,10 @@ export function useAtencion(id: number | null) {
     closeAtencion: closeMutation.mutate,
     closeAtencionAsync: closeMutation.mutateAsync,
     isClosing: closeMutation.isPending,
+    // Evaluation
+    upsertEvaluation: evaluationMutation.mutate,
+    upsertEvaluationAsync: evaluationMutation.mutateAsync,
+    isEvaluating: evaluationMutation.isPending,
     // Cancel
     cancelAtencion: cancelMutation.mutate,
     cancelAtencionAsync: cancelMutation.mutateAsync,

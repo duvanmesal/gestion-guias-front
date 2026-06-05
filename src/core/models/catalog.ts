@@ -14,6 +14,31 @@ export interface PaisMini {
   codigo: string
   nombre?: string
 }
+
+export interface Puerto {
+  id: string
+  codigo: string
+  nombre: string
+  ciudad: string
+  paisId?: string
+  pais?: PaisMini | null
+  status: StatusType
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface Muelle {
+  id: string
+  codigo: string
+  nombre: string
+  puertoId?: string
+  puerto?: Pick<Puerto, "id" | "codigo" | "nombre" | "ciudad"> & { pais?: PaisMini | null }
+  capacidadCruceros?: number | null
+  status: StatusType
+  createdAt?: string
+  updatedAt?: string
+}
+
 export interface Buque {
   id: string
   codigo: string
@@ -43,6 +68,22 @@ export interface BuquesQueryParams {
   status?: StatusType
 }
 
+export interface PuertosQueryParams {
+  page?: number
+  pageSize?: number
+  q?: string
+  paisId?: string
+  status?: StatusType
+}
+
+export interface MuellesQueryParams {
+  page?: number
+  pageSize?: number
+  q?: string
+  puertoId?: string
+  status?: StatusType
+}
+
 export interface CreatePaisRequest {
   codigo: string
   nombre: string
@@ -61,6 +102,38 @@ export interface CreateBuqueRequest {
   paisId?: string | null
   capacidad?: number | null
   naviera?: string | null
+  status?: StatusType
+}
+
+export interface CreatePuertoRequest {
+  codigo: string
+  nombre: string
+  ciudad: string
+  paisId: string
+  status?: StatusType
+}
+
+export interface UpdatePuertoRequest {
+  codigo?: string
+  nombre?: string
+  ciudad?: string
+  paisId?: string
+  status?: StatusType
+}
+
+export interface CreateMuelleRequest {
+  codigo: string
+  nombre: string
+  puertoId: string
+  capacidadCruceros?: number | null
+  status?: StatusType
+}
+
+export interface UpdateMuelleRequest {
+  codigo?: string
+  nombre?: string
+  puertoId?: string
+  capacidadCruceros?: number | null
   status?: StatusType
 }
 
