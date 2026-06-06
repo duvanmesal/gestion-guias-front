@@ -295,7 +295,7 @@ export function useGlobalRealtime() {
     }
     const handleOpNotifCheckInPending = (payload: OpNotifPayload) => {
       opNotifWarning(payload)
-      queryClient.invalidateQueries({ queryKey: ["turnos-check-ins-pending"] })
+      queryClient.invalidateQueries({ queryKey: ["turnos-checkins-pending"] })
       queryClient.invalidateQueries({ queryKey: ["dashboard-overview"] })
     }
     const handleOpNotifPenalty = (payload: OpNotifPayload) => {

@@ -101,6 +101,28 @@ export function useTurnoSocket({ atencionId }: UseTurnoSocketOptions = {}) {
       if (isSupervisor) showToast("error", `Turno #${p.turnoId} cancelado`)
     }
 
+    const invalidatePendingCheckIns = () => {
+      queryClient.invalidateQueries({ queryKey: ["turnos-checkins-pending"] })
+    }
+
+    const onCheckInRequested = (p: TurnoSocketPayload) => {
+      invalidateTurnos(p)
+      invalidatePendingCheckIns()
+      if (isSupervisor) showToast("info", `Turno #${p.turnoId}: check-in solicitado`)
+    }
+
+    const onCheckInConfirmed = (p: TurnoSocketPayload) => {
+      invalidateTurnos(p)
+      invalidatePendingCheckIns()
+      if (isSupervisor) showToast("success", `Turno #${p.turnoId}: check-in confirmado`)
+    }
+
+    const onCheckInRejected = (p: TurnoSocketPayload) => {
+      invalidateTurnos(p)
+      invalidatePendingCheckIns()
+      if (isSupervisor) showToast("error", `Turno #${p.turnoId}: check-in rechazado`)
+    }
+
     const onAtencionClosed = (p: AtencionSocketPayload) => {
       invalidateAtencion(p)
       showToast("info", `Atención #${p.atencionId} cerrada`)
@@ -122,6 +144,9 @@ export function useTurnoSocket({ atencionId }: UseTurnoSocketOptions = {}) {
     socket.on("turno:unassigned", onUnassigned)
     socket.on("turno:noShow", onNoShow)
     socket.on("turno:canceled", onCanceled)
+    socket.on("turno:checkInRequested", onCheckInRequested)
+    socket.on("turno:checkInConfirmed", onCheckInConfirmed)
+    socket.on("turno:checkInRejected", onCheckInRejected)
     socket.on("atencion:closed", onAtencionClosed)
     socket.on("atencion:canceled", onAtencionCanceled)
     socket.on("atencion:created", onAtencionCreated)
@@ -136,6 +161,9 @@ export function useTurnoSocket({ atencionId }: UseTurnoSocketOptions = {}) {
       socket.off("turno:unassigned", onUnassigned)
       socket.off("turno:noShow", onNoShow)
       socket.off("turno:canceled", onCanceled)
+      socket.off("turno:checkInRequested", onCheckInRequested)
+      socket.off("turno:checkInConfirmed", onCheckInConfirmed)
+      socket.off("turno:checkInRejected", onCheckInRejected)
       socket.off("atencion:closed", onAtencionClosed)
       socket.off("atencion:canceled", onAtencionCanceled)
       socket.off("atencion:created", onAtencionCreated)
