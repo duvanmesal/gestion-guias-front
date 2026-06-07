@@ -1,5 +1,75 @@
 export type DashboardRole = "SUPER_ADMIN" | "SUPERVISOR" | "GUIA"
 
+// ─── Analytics types ──────────────────────────────────────────────────────────
+
+export interface WorkloadTrendDay {
+  date: string
+  atenciones: number
+  turnos: number
+  completed: number
+  noShows: number
+  canceled: number
+  checkInsConfirmed: number
+}
+
+export interface CheckInFlowStats {
+  solicitados: number
+  pendientes: number
+  confirmados: number
+  rechazados: number
+  avgResponseTimeMin: number | null
+  pendientesAntiguos: number
+}
+
+export interface GuideCapacityStats {
+  activos: number
+  disponibles: number
+  asignados: number
+  libres: number
+  noDisponibles: number
+  penalizados: number
+  disponibilidadRate: number
+  utilizacionRate: number
+  penalizacionRate: number
+}
+
+export interface EvaluationStats {
+  atencionesEnRango: number
+  evaluadas: number
+  pendientesEval: number
+  avgCalificacion: number | null
+  distribucion: { SATISFACTORIA: number; CON_NOVEDADES: number; NO_SATISFACTORIA: number }
+}
+
+export interface PriorityAction {
+  type: "OVERDUE_RECALADAS" | "UNASSIGNED_TURNOS" | "PENDING_CHECKINS" | "OLD_PENDING_CHECKINS" | "PENDING_EVALS"
+  count: number
+  label: string
+  to: string
+}
+
+export interface SupervisorAnalytics {
+  range: { startDate: string; endDate: string; days: number; tz: string }
+  kpis: {
+    assignmentRate: number
+    executionRate: number
+    noShowRate: number
+    guideAvailabilityRate: number
+    utilizacionRate: number
+    penalizacionRate: number
+    pendingCheckIns: number
+    overdueRecaladas: number
+    unresolvedTurnos: number
+    pendientesEval: number
+  }
+  workloadTrend: WorkloadTrendDay[]
+  turnoStatus: Record<string, number>
+  checkInFlow: CheckInFlowStats
+  guideCapacity: GuideCapacityStats
+  evaluations: EvaluationStats
+  priorityActions: PriorityAction[]
+}
+
 export type DashboardMilestoneKind =
   | "RECALADA_ARRIVAL"
   | "RECALADA_DEPARTURE"
@@ -71,6 +141,7 @@ export interface SupervisorOverview {
   pendingWork?: SupervisorPendingWork
   rates?: SupervisorRates
   trend7d?: { days: TrendDay[] }
+  analytics?: SupervisorAnalytics
 }
 
 export interface GuiaTurnoLite {
@@ -143,4 +214,5 @@ export interface DashboardOverviewParams {
   tzOffsetMinutes?: number
   upcomingLimit?: number
   availableAtencionesLimit?: number
+  rangeDays?: 7 | 30
 }

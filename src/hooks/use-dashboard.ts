@@ -12,6 +12,7 @@ export function useDashboardOverview(options?: { enabled?: boolean; params?: Das
   const params: DashboardOverviewParams = {
     tzOffsetMinutes,
     upcomingLimit: 8,
+    rangeDays: 30,
     ...options?.params,
   }
 

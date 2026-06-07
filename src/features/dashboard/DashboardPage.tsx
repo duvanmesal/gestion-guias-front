@@ -1,7 +1,7 @@
 // src/features/dashboard/DashboardPage.tsx
 "use client"
 
-import { useMemo, type CSSProperties } from "react"
+import { useMemo, useState, type CSSProperties } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { Link, useNavigate } from "react-router-dom"
 import {
@@ -22,6 +22,7 @@ import {
   CheckCircle2,
   TrendingUp,
   Timer,
+  Star,
   type LucideIcon,
 } from "lucide-react"
 
@@ -44,8 +45,9 @@ import { useRecaladaSocket } from "@/hooks/use-recalada-socket"
 import type {
   DashboardOverview,
   SupervisorOverview,
+  SupervisorAnalytics,
   GuiaOverview,
-  TrendDay,
+  WorkloadTrendDay,
   DashboardMilestone,
 } from "@/core/models/dashboard"
 
@@ -73,11 +75,6 @@ function formatRange(fechaInicio: string, fechaFin: string) {
   return `${date} · ${t1} – ${t2}`
 }
 
-function shortDayLabel(dateStr: string): string {
-  const d = new Date(dateStr + "T12:00:00")
-  return d.toLocaleDateString("es-CO", { weekday: "short" }).slice(0, 3)
-}
-
 // ─── main page ───────────────────────────────────────────────────────────────
 
 export function DashboardPage() {
@@ -85,6 +82,8 @@ export function DashboardPage() {
   const { user } = useAuthStore()
   const isSupervisor = user?.rol === Rol.SUPER_ADMIN || user?.rol === Rol.SUPERVISOR
   const isGuia = user?.rol === Rol.GUIA
+
+  const [rangeDays, setRangeDays] = useState<7 | 30>(30)
 
   useTurnoSocket()
   useRecaladaSocket()
@@ -96,7 +95,10 @@ export function DashboardPage() {
   })
   const apiOk = !!healthData
 
-  const { overview, isLoading } = useDashboardOverview({ enabled: !!user })
+  const { overview, isLoading, refetch } = useDashboardOverview({
+    enabled: !!user,
+    params: isSupervisor ? { rangeDays } : undefined,
+  })
 
   const quickLinks = [
     { to: "/profile",               icon: User,      label: "Mi Perfil",        description: "Ver y editar tu perfil",    roles: [Rol.SUPER_ADMIN, Rol.SUPERVISOR, Rol.GUIA] },
@@ -140,6 +142,9 @@ export function DashboardPage() {
               apiOk={apiOk}
               quickLinks={quickLinks}
               navigate={navigate}
+              rangeDays={rangeDays}
+              onRangeChange={setRangeDays}
+              onRefresh={refetch}
             />
           : null
       }
@@ -149,7 +154,7 @@ export function DashboardPage() {
 
 // ─── SupervisorDashboard ──────────────────────────────────────────────────────
 
-interface DashProps {
+interface BaseDashProps {
   overview: DashboardOverview | null
   isLoadingHealth: boolean
   apiOk: boolean
@@ -157,28 +162,29 @@ interface DashProps {
   navigate: (to: string) => void
 }
 
-function SupervisorDashboard({ overview, isLoadingHealth, apiOk, quickLinks, navigate }: DashProps) {
+interface DashProps extends BaseDashProps {
+  rangeDays: 7 | 30
+  onRangeChange: (r: 7 | 30) => void
+  onRefresh: () => void
+}
+
+function SupervisorDashboard({ overview, isLoadingHealth, apiOk, quickLinks, navigate, rangeDays, onRangeChange, onRefresh }: DashProps) {
   const sup: SupervisorOverview | undefined = overview?.supervisor
-  const counts = sup?.counts
-  const guides = sup?.guides
-  const rates  = sup?.rates
-  const pending = sup?.pendingWork
-  const trend  = sup?.trend7d?.days ?? []
+  const counts  = sup?.counts
   const upcoming = sup?.upcoming ?? []
+  const analytics: SupervisorAnalytics | undefined = sup?.analytics
 
   const operativeDate = overview?.dateContext?.date
     ? formatDateOperative(overview.dateContext.date + "T12:00:00")
     : null
 
-  const hasPendingAlerts = pending
-    ? pending.pendingCheckIns > 0 || pending.overdueRecaladas > 0 || pending.unresolvedTurnos > 0
-    : false
+  const priorityActions = analytics?.priorityActions ?? []
 
   return (
     <div className="space-y-5">
 
-      {/* ── Header bar ─────────────────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center justify-between gap-3 animate-fade-in-up">
+      {/* ── Row 1: Header ──────────────────────────────────────────────────── */}
+      <div className="flex flex-wrap items-start justify-between gap-3 animate-fade-in-up">
         <div>
           <p className="text-xs font-medium text-[rgb(var(--color-muted))] uppercase tracking-widest">
             Dashboard operativo
@@ -188,11 +194,36 @@ function SupervisorDashboard({ overview, isLoadingHealth, apiOk, quickLinks, nav
           </h1>
           {overview?.serverTime && (
             <p className="text-xs text-[rgb(var(--color-muted))] mt-0.5">
-              Actualizado a las {formatTime(overview.serverTime)} · {overview.dateContext?.timezoneHint ?? ""}
+              Actualizado {formatTime(overview.serverTime)} · {overview.dateContext?.timezoneHint ?? ""}
             </p>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Range selector */}
+          <div className="inline-flex rounded-lg overflow-hidden border border-[rgb(var(--color-border)/0.2)]">
+            {([7, 30] as const).map((d) => (
+              <button
+                key={d}
+                type="button"
+                onClick={() => onRangeChange(d)}
+                className="px-3 py-1.5 text-xs font-medium transition-colors"
+                style={rangeDays === d
+                  ? { background: "rgb(var(--color-primary))", color: "rgb(var(--color-bg))" }
+                  : { background: "transparent", color: "rgb(var(--color-muted))" }}
+              >
+                {d}d
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={onRefresh}
+            className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors hover:opacity-80 focus-ring"
+            style={{ background: "rgb(var(--color-glass-subtle))", color: "rgb(var(--color-muted))" }}
+          >
+            Actualizar
+          </button>
+          {/* API status */}
           {isLoadingHealth ? (
             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-[rgb(var(--color-glass-subtle))] text-[rgb(var(--color-muted))]">
               <span className="w-1.5 h-1.5 rounded-full bg-[rgb(var(--color-muted))]" /> Verificando
@@ -209,80 +240,138 @@ function SupervisorDashboard({ overview, isLoadingHealth, apiOk, quickLinks, nav
         </div>
       </div>
 
-      {/* ── Pending work alerts ────────────────────────────────────────────── */}
-      {hasPendingAlerts && pending && (
-        <div className="flex flex-col sm:flex-row gap-2 animate-fade-in-up" style={{ animationDelay: "0.03s" }}>
-          {pending.overdueRecaladas > 0 && (
-            <button
-              type="button"
-              onClick={() => navigate("/recaladas")}
-              className="flex-1 flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors hover:opacity-90 focus-ring"
-              style={{ background: "rgb(var(--color-danger)/0.08)", border: "1px solid rgb(var(--color-danger)/0.22)" }}
-            >
-              <AlertTriangle className="w-4 h-4 shrink-0 text-[rgb(var(--color-danger))]" />
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-[rgb(var(--color-fg))]">
-                  {pending.overdueRecaladas === 1 ? "1 recalada vencida" : `${pending.overdueRecaladas} recaladas vencidas`}
-                </p>
-                <p className="text-xs text-[rgb(var(--color-muted))]">Pendientes de zarpe · Revisar</p>
-              </div>
-              <ArrowRight className="w-3.5 h-3.5 shrink-0 text-[rgb(var(--color-danger))] ml-auto" />
-            </button>
-          )}
-          {pending.pendingCheckIns > 0 && (
-            <button
-              type="button"
-              onClick={() => navigate("/turnos")}
-              className="flex-1 flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors hover:opacity-90 focus-ring"
-              style={{ background: "rgb(var(--color-warning)/0.08)", border: "1px solid rgb(var(--color-warning)/0.22)" }}
-            >
-              <Timer className="w-4 h-4 shrink-0 text-[rgb(var(--color-warning))]" />
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-[rgb(var(--color-fg))]">
-                  {pending.pendingCheckIns === 1 ? "1 check-in pendiente" : `${pending.pendingCheckIns} check-ins pendientes`}
-                </p>
-                <p className="text-xs text-[rgb(var(--color-muted))]">Requieren confirmación · Ver turnos</p>
-              </div>
-              <ArrowRight className="w-3.5 h-3.5 shrink-0 text-[rgb(var(--color-warning))] ml-auto" />
-            </button>
-          )}
-          {pending.unresolvedTurnos > 0 && (
-            <button
-              type="button"
-              onClick={() => navigate("/turnos")}
-              className="flex-1 flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors hover:opacity-90 focus-ring"
-              style={{ background: "rgb(var(--color-info)/0.07)", border: "1px solid rgb(var(--color-info)/0.20)" }}
-            >
-              <Activity className="w-4 h-4 shrink-0 text-[rgb(var(--color-info))]" />
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-[rgb(var(--color-fg))]">
-                  {pending.unresolvedTurnos === 1 ? "1 turno sin asignar" : `${pending.unresolvedTurnos} turnos sin asignar`}
-                </p>
-                <p className="text-xs text-[rgb(var(--color-muted))]">Disponibles · Ver turnos</p>
-              </div>
-              <ArrowRight className="w-3.5 h-3.5 shrink-0 text-[rgb(var(--color-info))] ml-auto" />
-            </button>
-          )}
-        </div>
-      )}
+      {/* ── Row 1b: Priority actions + KPIs críticos ────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 animate-fade-in-up" style={{ animationDelay: "0.03s" }}>
+        {/* Priority actions */}
+        {priorityActions.length > 0 ? (
+          <div className="flex flex-col gap-2">
+            {priorityActions.map((action) => {
+              const isUrgent = action.type === "OVERDUE_RECALADAS" || action.type === "OLD_PENDING_CHECKINS"
+              return (
+                <button
+                  key={action.type}
+                  type="button"
+                  onClick={() => navigate(action.to)}
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors hover:opacity-90 focus-ring"
+                  style={{
+                    background: isUrgent ? "rgb(var(--color-danger)/0.08)" : "rgb(var(--color-warning)/0.08)",
+                    border: `1px solid ${isUrgent ? "rgb(var(--color-danger)/0.22)" : "rgb(var(--color-warning)/0.20)"}`,
+                  }}
+                >
+                  <AlertTriangle className={`w-4 h-4 shrink-0 ${isUrgent ? "text-[rgb(var(--color-danger))]" : "text-[rgb(var(--color-warning))]"}`} />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-[rgb(var(--color-fg))]">{action.label}</p>
+                  </div>
+                  <ArrowRight className={`w-3.5 h-3.5 shrink-0 ml-auto ${isUrgent ? "text-[rgb(var(--color-danger))]" : "text-[rgb(var(--color-warning))]"}`} />
+                </button>
+              )
+            })}
+          </div>
+        ) : (
+          <div className="flex items-center gap-3 px-4 py-3 rounded-xl" style={{ background: "rgb(var(--color-success)/0.08)", border: "1px solid rgb(var(--color-success)/0.18)" }}>
+            <CheckCircle className="w-4 h-4 text-[rgb(var(--color-success))] shrink-0" />
+            <p className="text-sm font-medium text-[rgb(var(--color-fg))]">Sin alertas pendientes</p>
+          </div>
+        )}
 
-      {/* ── KPI row ─────────────────────────────────────────────────────────── */}
-      <div
-        className="grid gap-3 animate-fade-in-up"
-        style={{ gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", animationDelay: "0.05s" }}
-      >
-        <KpiCard label="Recaladas" value={counts?.recaladas} color="info" />
-        <KpiCard label="Atenciones" value={counts?.atenciones} color="info" />
-        <KpiCard label="Turnos" value={counts?.turnos} color="neutral" />
-        <KpiCard label="En curso" value={counts?.turnosInProgress} color="warning" />
-        <KpiCard label="Completados" value={counts?.turnosDone} color="success" />
-        <KpiCard label="No-shows" value={counts?.turnosNoShow} color="danger" />
+        {/* KPIs críticos */}
+        <div className="grid grid-cols-3 lg:grid-cols-2 gap-2 lg:min-w-[200px]">
+          <KpiCard label="Recaladas" value={counts?.recaladas} color="info" />
+          <KpiCard label="Atenciones" value={counts?.atenciones} color="info" />
+          <KpiCard label="En curso" value={counts?.turnosInProgress} color="warning" />
+          <KpiCard label="Completados" value={counts?.turnosDone} color="success" />
+          <KpiCard label="No-shows" value={counts?.turnosNoShow} color="danger" />
+          <KpiCard label="Sin asignar" value={counts?.turnosAvailable} color="neutral" />
+        </div>
       </div>
 
-      {/* ── Guides + Rates ──────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 animate-fade-in-up" style={{ animationDelay: "0.08s" }}>
+      {/* ── Row 2: Tendencia Nd + distribución de turnos ─────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-4 animate-fade-in-up" style={{ animationDelay: "0.06s" }}>
+        <GlassCard>
+          <GlassCardHeader>
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-[rgb(var(--color-primary)/0.12)] flex items-center justify-center">
+                  <Activity className="w-4 h-4 text-[rgb(var(--color-primary))]" />
+                </div>
+                <div>
+                  <GlassCardTitle>Tendencia {rangeDays} días</GlassCardTitle>
+                  <p className="text-xs text-[rgb(var(--color-muted))] mt-0.5">
+                    {analytics?.range.startDate ?? "—"} → {analytics?.range.endDate ?? "—"}
+                  </p>
+                </div>
+              </div>
+              <div className="hidden sm:flex items-center gap-3 text-[11px] text-[rgb(var(--color-muted))]">
+                {[
+                  { label: "Completados", color: "success" },
+                  { label: "No-shows",    color: "danger" },
+                  { label: "Cancelados",  color: "warning" },
+                  { label: "Otros",       color: "info" },
+                ].map((l) => (
+                  <span key={l.label} className="flex items-center gap-1">
+                    <span className={`inline-block w-2 h-2 rounded-sm bg-[rgb(var(--color-${l.color}))]`} />
+                    {l.label}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </GlassCardHeader>
+          <GlassCardContent>
+            {analytics?.workloadTrend ? (
+              <WorkloadTrendChart days={analytics.workloadTrend} />
+            ) : (
+              <Skeleton height="5rem" />
+            )}
+          </GlassCardContent>
+        </GlassCard>
 
-        {/* Guides card */}
+        <GlassCard>
+          <GlassCardHeader>
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-[rgb(var(--color-accent)/0.12)] flex items-center justify-center">
+                <TrendingUp className="w-4 h-4 text-[rgb(var(--color-accent))]" />
+              </div>
+              <div>
+                <GlassCardTitle>Distribución turnos</GlassCardTitle>
+                <p className="text-xs text-[rgb(var(--color-muted))] mt-0.5">Estado actual del día</p>
+              </div>
+            </div>
+          </GlassCardHeader>
+          <GlassCardContent>
+            {analytics?.turnoStatus ? (
+              <TurnoStatusBars status={analytics.turnoStatus} navigate={navigate} />
+            ) : (
+              <Skeleton height="6rem" />
+            )}
+          </GlassCardContent>
+        </GlassCard>
+      </div>
+
+      {/* ── Row 3: Check-in flow + capacidad guías ──────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 animate-fade-in-up" style={{ animationDelay: "0.09s" }}>
+        <GlassCard>
+          <GlassCardHeader>
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-[rgb(var(--color-info)/0.12)] flex items-center justify-center">
+                <Timer className="w-4 h-4 text-[rgb(var(--color-info))]" />
+              </div>
+              <div>
+                <GlassCardTitle>Embudo de check-in</GlassCardTitle>
+                <p className="text-xs text-[rgb(var(--color-muted))] mt-0.5">
+                  {analytics?.range.days ?? rangeDays} días · tiempo medio de respuesta
+                </p>
+              </div>
+            </div>
+          </GlassCardHeader>
+          <GlassCardContent>
+            {analytics?.checkInFlow ? (
+              <CheckInFlowPanel flow={analytics.checkInFlow} navigate={navigate} />
+            ) : (
+              <Skeleton height="7rem" />
+            )}
+          </GlassCardContent>
+        </GlassCard>
+
         <GlassCard>
           <GlassCardHeader>
             <div className="flex items-center gap-2.5">
@@ -290,24 +379,16 @@ function SupervisorDashboard({ overview, isLoadingHealth, apiOk, quickLinks, nav
                 <Users className="w-4 h-4 text-[rgb(var(--color-primary))]" />
               </div>
               <div>
-                <GlassCardTitle>Guías operativos</GlassCardTitle>
-                <p className="text-xs text-[rgb(var(--color-muted))] mt-0.5">Capacidad del día</p>
+                <GlassCardTitle>Capacidad de guías</GlassCardTitle>
+                <p className="text-xs text-[rgb(var(--color-muted))] mt-0.5">Estado operativo actual</p>
               </div>
             </div>
           </GlassCardHeader>
           <GlassCardContent>
-            {guides ? (
-              <div className="space-y-2.5">
-                <GuideStatRow label="Activos" value={guides.activos} total={guides.activos} color="fg" />
-                <GuideStatRow label="Disponibles" value={guides.disponibles ?? 0} total={guides.activos} color="success" />
-                <GuideStatRow label="Asignados" value={guides.asignados} total={guides.activos} color="primary" />
-                <GuideStatRow label="Sin turno" value={guides.libres} total={guides.activos} color="muted" />
-                {(guides.penalizados ?? 0) > 0 && (
-                  <GuideStatRow label="Penalizados" value={guides.penalizados ?? 0} total={guides.activos} color="danger" />
-                )}
-              </div>
+            {analytics?.guideCapacity ? (
+              <GuideCapacityPanel capacity={analytics.guideCapacity} />
             ) : (
-              <Skeleton height="6rem" />
+              <Skeleton height="7rem" />
             )}
             <div className="mt-3 pt-3 border-t border-[rgb(var(--color-border)/0.5)]">
               <Link to="/users" className="text-xs font-medium text-[rgb(var(--color-primary))] hover:underline">
@@ -316,112 +397,65 @@ function SupervisorDashboard({ overview, isLoadingHealth, apiOk, quickLinks, nav
             </div>
           </GlassCardContent>
         </GlassCard>
+      </div>
 
-        {/* Rates card */}
+      {/* ── Row 4: Evaluaciones + próximos hitos ────────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.5fr] gap-4 animate-fade-in-up" style={{ animationDelay: "0.12s" }}>
         <GlassCard>
           <GlassCardHeader>
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-[rgb(var(--color-accent)/0.12)] flex items-center justify-center">
-                <TrendingUp className="w-4 h-4 text-[rgb(var(--color-accent))]" />
+              <div className="w-9 h-9 rounded-xl bg-[rgb(var(--color-success)/0.12)] flex items-center justify-center">
+                <Star className="w-4 h-4 text-[rgb(var(--color-success))]" />
               </div>
               <div>
-                <GlassCardTitle>Tasas operativas</GlassCardTitle>
-                <p className="text-xs text-[rgb(var(--color-muted))] mt-0.5">Del día en curso</p>
+                <GlassCardTitle>Evaluaciones</GlassCardTitle>
+                <p className="text-xs text-[rgb(var(--color-muted))] mt-0.5">Cierre de atenciones · {rangeDays}d</p>
               </div>
             </div>
           </GlassCardHeader>
           <GlassCardContent>
-            {rates ? (
-              <div className="grid grid-cols-2 gap-3">
-                <RateCell label="Asignación" value={rates.assignmentRate} color="primary" />
-                <RateCell label="Ejecución" value={rates.executionRate} color="success" />
-                <RateCell label="No-show" value={rates.noShowRate} color="danger" />
-                <RateCell label="Disponibilidad" value={rates.guideAvailabilityRate} color="info" />
-              </div>
+            {analytics?.evaluations ? (
+              <EvaluationsPanel evals={analytics.evaluations} navigate={navigate} />
             ) : (
-              <div className="grid grid-cols-2 gap-3">
-                <Skeleton height="4rem" />
-                <Skeleton height="4rem" />
-                <Skeleton height="4rem" />
-                <Skeleton height="4rem" />
-              </div>
+              <Skeleton height="7rem" />
             )}
           </GlassCardContent>
         </GlassCard>
 
-      </div>
-
-      {/* ── Trend 7d ────────────────────────────────────────────────────────── */}
-      {trend.length > 0 && (
-        <GlassCard className="animate-fade-in-up" style={{ animationDelay: "0.11s" } as CSSProperties}>
+        <GlassCard>
           <GlassCardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-[rgb(var(--color-primary)/0.12)] flex items-center justify-center">
-                  <Activity className="w-4 h-4 text-[rgb(var(--color-primary))]" />
-                </div>
-                <div>
-                  <GlassCardTitle>Tendencia 7 días</GlassCardTitle>
-                  <p className="text-xs text-[rgb(var(--color-muted))] mt-0.5">Turnos completados vs. no-shows</p>
-                </div>
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-[rgb(var(--color-primary)/0.12)] flex items-center justify-center">
+                <CalendarClock className="w-4 h-4 text-[rgb(var(--color-primary))]" />
               </div>
-              <div className="flex items-center gap-3 text-[11px] text-[rgb(var(--color-muted))]">
-                <span className="flex items-center gap-1">
-                  <span className="inline-block w-2 h-2 rounded-sm bg-[rgb(var(--color-success))]" /> Completados
-                </span>
-                <span className="flex items-center gap-1">
-                  <span className="inline-block w-2 h-2 rounded-sm bg-[rgb(var(--color-info))]" /> Otros
-                </span>
-                <span className="flex items-center gap-1">
-                  <span className="inline-block w-2 h-2 rounded-sm bg-[rgb(var(--color-danger))]" /> No-shows
-                </span>
+              <div>
+                <GlassCardTitle>Próximos hitos</GlassCardTitle>
+                <p className="text-xs text-[rgb(var(--color-muted))] mt-0.5">Llegadas, salidas, aperturas y cierres</p>
               </div>
             </div>
           </GlassCardHeader>
           <GlassCardContent>
-            <Trend7dChart days={trend} />
+            {upcoming.length === 0 ? (
+              <p className="text-sm text-[rgb(var(--color-muted))] py-2">No hay hitos próximos registrados.</p>
+            ) : (
+              <div className="space-y-1">
+                {upcoming.map((m, i) => (
+                  <MilestoneRow key={i} milestone={m} navigate={navigate} />
+                ))}
+              </div>
+            )}
           </GlassCardContent>
         </GlassCard>
-      )}
+      </div>
 
-      {/* ── Bottom row: upcoming + quick links ─────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 animate-fade-in-up" style={{ animationDelay: "0.14s" }}>
-
-        {/* Upcoming milestones (2/3 width) */}
-        <div className="lg:col-span-2">
-          <GlassCard>
-            <GlassCardHeader>
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-[rgb(var(--color-primary)/0.12)] flex items-center justify-center">
-                  <CalendarClock className="w-4 h-4 text-[rgb(var(--color-primary))]" />
-                </div>
-                <div>
-                  <GlassCardTitle>Próximos hitos</GlassCardTitle>
-                  <p className="text-xs text-[rgb(var(--color-muted))] mt-0.5">Llegadas, salidas, aperturas y cierres</p>
-                </div>
-              </div>
-            </GlassCardHeader>
-            <GlassCardContent>
-              {upcoming.length === 0 ? (
-                <p className="text-sm text-[rgb(var(--color-muted))] py-2">No hay hitos próximos registrados.</p>
-              ) : (
-                <div className="space-y-1">
-                  {upcoming.map((m, i) => (
-                    <MilestoneRow key={i} milestone={m} navigate={navigate} />
-                  ))}
-                </div>
-              )}
-            </GlassCardContent>
-          </GlassCard>
-        </div>
-
-        {/* Quick links */}
-        <GlassCard>
+      {/* ── Accesos rápidos ──────────────────────────────────────────────────── */}
+      {quickLinks.length > 0 && (
+        <GlassCard className="animate-fade-in-up" style={{ animationDelay: "0.15s" } as CSSProperties}>
           <GlassCardHeader>
             <GlassCardTitle>Accesos rápidos</GlassCardTitle>
           </GlassCardHeader>
           <GlassCardContent>
-            <div className="space-y-1.5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
               {quickLinks.map((l) => {
                 const Icon = l.icon
                 return (
@@ -443,15 +477,14 @@ function SupervisorDashboard({ overview, isLoadingHealth, apiOk, quickLinks, nav
             </div>
           </GlassCardContent>
         </GlassCard>
-
-      </div>
+      )}
     </div>
   )
 }
 
 // ─── GuiaDashboard ────────────────────────────────────────────────────────────
 
-function GuiaDashboard({ overview, isLoadingHealth, apiOk, quickLinks, navigate }: DashProps) {
+function GuiaDashboard({ overview, isLoadingHealth, apiOk, quickLinks, navigate }: BaseDashProps) {
   const guia: GuiaOverview | undefined = overview?.guia
 
   const guiaActiveTurno = guia?.activeTurno
@@ -652,7 +685,220 @@ function GuiaDashboard({ overview, isLoadingHealth, apiOk, quickLinks, navigate 
   )
 }
 
-// ─── Sub-components ──────────────────────────────────────────────────────────
+// ─── Sub-components — analytics ──────────────────────────────────────────────
+
+function WorkloadTrendChart({ days }: { days: WorkloadTrendDay[] }) {
+  const maxTurnos = Math.max(...days.map((d) => d.turnos), 1)
+  const BAR_H = 80
+
+  return (
+    <div className="flex items-end gap-1" style={{ height: BAR_H + 32 }}>
+      {days.map((day) => {
+        const completedH = Math.round((day.completed / maxTurnos) * BAR_H)
+        const noShowH    = Math.round((day.noShows / maxTurnos) * BAR_H)
+        const canceledH  = Math.round((day.canceled / maxTurnos) * BAR_H)
+        const otherH     = Math.max(0, Math.round((day.turnos / maxTurnos) * BAR_H) - completedH - noShowH - canceledH)
+        const totalH     = completedH + noShowH + canceledH + otherH
+        const label      = day.date.slice(5) // MM-DD
+
+        return (
+          <div key={day.date} className="flex-1 flex flex-col items-center gap-1 min-w-0" title={`${day.date}\n${day.atenciones} atenciones · ${day.turnos} turnos\n${day.completed} completados · ${day.noShows} no-shows · ${day.canceled} cancelados`}>
+            <div
+              className="w-full flex flex-col justify-end rounded-sm overflow-hidden"
+              style={{ height: BAR_H, background: "rgb(var(--color-glass-subtle))" }}
+            >
+              {totalH > 0 && (
+                <div className="w-full flex flex-col" style={{ height: totalH }}>
+                  {noShowH > 0 && <div style={{ height: noShowH, background: "rgb(var(--color-danger))", opacity: 0.75 }} />}
+                  {canceledH > 0 && <div style={{ height: canceledH, background: "rgb(var(--color-warning))", opacity: 0.65 }} />}
+                  {otherH > 0 && <div style={{ height: otherH, background: "rgb(var(--color-info))", opacity: 0.45 }} />}
+                  {completedH > 0 && <div style={{ height: completedH, background: "rgb(var(--color-success))", opacity: 0.8 }} />}
+                </div>
+              )}
+            </div>
+            {days.length <= 14 && (
+              <span className="text-[9px] text-[rgb(var(--color-muted))] truncate w-full text-center">{label}</span>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+const TURNO_STATUS_CONFIG: Record<string, { label: string; color: string; to: string }> = {
+  AVAILABLE:   { label: "Sin asignar",  color: "info",    to: "/turnos?status=AVAILABLE" },
+  ASSIGNED:    { label: "Asignados",    color: "primary", to: "/turnos?status=ASSIGNED" },
+  IN_PROGRESS: { label: "En curso",     color: "warning", to: "/turnos?status=IN_PROGRESS" },
+  COMPLETED:   { label: "Completados",  color: "success", to: "/turnos?status=COMPLETED" },
+  CANCELED:    { label: "Cancelados",   color: "muted",   to: "/turnos?status=CANCELED" },
+  NO_SHOW:     { label: "No-shows",     color: "danger",  to: "/turnos?status=NO_SHOW" },
+}
+
+function TurnoStatusBars({ status, navigate }: { status: Record<string, number>; navigate: (to: string) => void }) {
+  const total = Object.values(status).reduce((s, v) => s + v, 0) || 1
+  const entries = Object.entries(status).sort((a, b) => b[1] - a[1])
+
+  return (
+    <div className="space-y-2.5">
+      {entries.map(([key, count]) => {
+        const cfg = TURNO_STATUS_CONFIG[key] ?? { label: key, color: "muted", to: "/turnos" }
+        const pct = Math.round((count / total) * 100)
+        return (
+          <button
+            key={key}
+            type="button"
+            onClick={() => navigate(cfg.to)}
+            className="w-full text-left hover:opacity-80 transition-opacity"
+          >
+            <div className="flex justify-between mb-1">
+              <span className="text-xs text-[rgb(var(--color-muted))]">{cfg.label}</span>
+              <span className="text-xs font-semibold tabular-nums text-[rgb(var(--color-fg))]">
+                {count} <span className="text-[rgb(var(--color-muted))] font-normal">({pct}%)</span>
+              </span>
+            </div>
+            <div className="h-1.5 rounded-full overflow-hidden bg-[rgb(var(--color-glass-subtle))]">
+              <div
+                className="h-full rounded-full transition-all duration-500"
+                style={{ width: `${pct}%`, background: `rgb(var(--color-${cfg.color}))` }}
+              />
+            </div>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+function CheckInFlowPanel({ flow, navigate }: { flow: import("@/core/models/dashboard").CheckInFlowStats; navigate: (to: string) => void }) {
+  const total = Math.max(flow.solicitados, 1)
+  const steps = [
+    { label: "Solicitados",  value: flow.solicitados,  pct: 100,                                    color: "info" },
+    { label: "Confirmados",  value: flow.confirmados,  pct: Math.round((flow.confirmados / total) * 100),  color: "success" },
+    { label: "Rechazados",   value: flow.rechazados,   pct: Math.round((flow.rechazados  / total) * 100),  color: "danger" },
+    { label: "Pendientes",   value: flow.pendientes,   pct: Math.round((flow.pendientes  / total) * 100),  color: "warning" },
+  ]
+
+  return (
+    <div className="space-y-2.5">
+      {steps.map((s) => (
+        <button key={s.label} type="button" onClick={() => navigate("/turnos?checkInPending=1")} className="w-full text-left hover:opacity-80 transition-opacity">
+          <div className="flex justify-between mb-1">
+            <span className="text-xs text-[rgb(var(--color-muted))]">{s.label}</span>
+            <span className="text-xs font-semibold tabular-nums text-[rgb(var(--color-fg))]">{s.value}</span>
+          </div>
+          <div className="h-1.5 rounded-full overflow-hidden bg-[rgb(var(--color-glass-subtle))]">
+            <div className="h-full rounded-full transition-all duration-500" style={{ width: `${s.pct}%`, background: `rgb(var(--color-${s.color}))` }} />
+          </div>
+        </button>
+      ))}
+      <div className="pt-2 flex flex-wrap gap-3 text-[11px] text-[rgb(var(--color-muted))]">
+        {flow.avgResponseTimeMin !== null && (
+          <span>Tiempo respuesta: <strong className="text-[rgb(var(--color-fg))]">{flow.avgResponseTimeMin} min</strong></span>
+        )}
+        {flow.pendientesAntiguos > 0 && (
+          <button type="button" onClick={() => navigate("/turnos?checkInPending=1")} className="text-[rgb(var(--color-danger))] font-medium hover:underline">
+            {flow.pendientesAntiguos} sin respuesta &gt;15 min
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function GuideCapacityPanel({ capacity }: { capacity: import("@/core/models/dashboard").GuideCapacityStats }) {
+  const bars = [
+    { label: "Disponibles",    value: capacity.disponibles,   rate: capacity.disponibilidadRate, color: "success" },
+    { label: "Asignados",      value: capacity.asignados,     rate: capacity.utilizacionRate,    color: "primary" },
+    { label: "No disponibles", value: capacity.noDisponibles, rate: Math.round((capacity.noDisponibles / Math.max(capacity.activos, 1)) * 100), color: "muted" },
+  ]
+
+  return (
+    <div className="space-y-2.5">
+      <div className="flex gap-3 mb-3 flex-wrap">
+        {[
+          { label: "Activos", value: capacity.activos },
+          { label: "Libres",  value: capacity.libres },
+          { label: "Penalizados", value: capacity.penalizados },
+        ].map((k) => (
+          <div key={k.label} className="glass-subtle rounded-lg px-3 py-2 text-center min-w-[64px]">
+            <p className="text-lg font-bold tabular-nums text-[rgb(var(--color-fg))]">{k.value}</p>
+            <p className="text-[10px] text-[rgb(var(--color-muted))]">{k.label}</p>
+          </div>
+        ))}
+      </div>
+      {bars.map((b) => (
+        <div key={b.label}>
+          <div className="flex justify-between mb-1">
+            <span className="text-xs text-[rgb(var(--color-muted))]">{b.label}</span>
+            <span className="text-xs font-semibold tabular-nums text-[rgb(var(--color-fg))]">
+              {b.value} <span className="text-[rgb(var(--color-muted))] font-normal">({b.rate.toFixed(1)}%)</span>
+            </span>
+          </div>
+          <div className="h-1.5 rounded-full overflow-hidden bg-[rgb(var(--color-glass-subtle))]">
+            <div className="h-full rounded-full transition-all duration-500" style={{ width: `${b.rate}%`, background: `rgb(var(--color-${b.color}))` }} />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function EvaluationsPanel({ evals, navigate }: { evals: import("@/core/models/dashboard").EvaluationStats; navigate: (to: string) => void }) {
+  const { atencionesEnRango, evaluadas, pendientesEval, avgCalificacion, distribucion } = evals
+  const dist = [
+    { label: "Satisfactoria",    value: distribucion.SATISFACTORIA,    color: "success" },
+    { label: "Con novedades",    value: distribucion.CON_NOVEDADES,    color: "warning" },
+    { label: "No satisfactoria", value: distribucion.NO_SATISFACTORIA, color: "danger" },
+  ]
+
+  return (
+    <div className="space-y-3">
+      <div className="flex gap-3 flex-wrap">
+        <div className="glass-subtle rounded-lg px-3 py-2 text-center min-w-[72px]">
+          <p className="text-lg font-bold tabular-nums text-[rgb(var(--color-fg))]">{atencionesEnRango}</p>
+          <p className="text-[10px] text-[rgb(var(--color-muted))]">Cerradas</p>
+        </div>
+        <div className="glass-subtle rounded-lg px-3 py-2 text-center min-w-[72px]">
+          <p className="text-lg font-bold tabular-nums text-[rgb(var(--color-success))]">{evaluadas}</p>
+          <p className="text-[10px] text-[rgb(var(--color-muted))]">Evaluadas</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => navigate("/atenciones?pendingEval=true")}
+          className="glass-subtle rounded-lg px-3 py-2 text-center min-w-[72px] hover:opacity-80 transition-opacity"
+        >
+          <p className="text-lg font-bold tabular-nums text-[rgb(var(--color-warning))]">{pendientesEval}</p>
+          <p className="text-[10px] text-[rgb(var(--color-muted))]">Sin eval.</p>
+        </button>
+        {avgCalificacion !== null && (
+          <div className="glass-subtle rounded-lg px-3 py-2 text-center min-w-[72px]">
+            <p className="text-lg font-bold tabular-nums text-[rgb(var(--color-info))]">{avgCalificacion.toFixed(1)}</p>
+            <p className="text-[10px] text-[rgb(var(--color-muted))]">Promedio</p>
+          </div>
+        )}
+      </div>
+      <div className="space-y-2">
+        {dist.map((d) => {
+          const pct = Math.round((d.value / Math.max(evaluadas, 1)) * 100)
+          return (
+            <div key={d.label}>
+              <div className="flex justify-between mb-1">
+                <span className="text-xs text-[rgb(var(--color-muted))]">{d.label}</span>
+                <span className="text-xs font-semibold tabular-nums text-[rgb(var(--color-fg))]">{d.value}</span>
+              </div>
+              <div className="h-1.5 rounded-full overflow-hidden bg-[rgb(var(--color-glass-subtle))]">
+                <div className="h-full rounded-full" style={{ width: `${pct}%`, background: `rgb(var(--color-${d.color}))` }} />
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+// ─── Sub-components — shared ──────────────────────────────────────────────────
 
 function KpiCard({ label, value, color }: { label: string; value?: number; color: "info" | "success" | "warning" | "danger" | "neutral" }) {
   const colorMap: Record<string, string> = {
@@ -672,98 +918,6 @@ function KpiCard({ label, value, color }: { label: string; value?: number; color
   )
 }
 
-function GuideStatRow({ label, value, total, color }: { label: string; value: number; total: number; color: string }) {
-  const pct = total > 0 ? Math.round((value / total) * 100) : 0
-  const colorVarMap: Record<string, string> = {
-    fg: "rgb(var(--color-fg))",
-    success: "rgb(var(--color-success))",
-    primary: "rgb(var(--color-primary))",
-    muted: "rgb(var(--color-muted))",
-    danger: "rgb(var(--color-danger))",
-  }
-  const barColor = colorVarMap[color] ?? "rgb(var(--color-primary))"
-
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-1">
-        <span className="text-xs text-[rgb(var(--color-muted))]">{label}</span>
-        <span className="text-xs font-semibold tabular-nums text-[rgb(var(--color-fg))]">
-          {value} <span className="text-[rgb(var(--color-muted))] font-normal">({pct}%)</span>
-        </span>
-      </div>
-      <div className="h-1.5 rounded-full overflow-hidden bg-[rgb(var(--color-glass-subtle))]">
-        <div
-          className="h-full rounded-full transition-all duration-500"
-          style={{ width: `${pct}%`, background: barColor }}
-        />
-      </div>
-    </div>
-  )
-}
-
-function RateCell({ label, value, color }: { label: string; value: number; color: string }) {
-  const colorVarMap: Record<string, string> = {
-    primary: "rgb(var(--color-primary))",
-    success: "rgb(var(--color-success))",
-    danger:  "rgb(var(--color-danger))",
-    info:    "rgb(var(--color-info))",
-  }
-  const c = colorVarMap[color] ?? "rgb(var(--color-primary))"
-  return (
-    <div className="glass-subtle rounded-xl p-3 flex flex-col gap-1">
-      <p className="text-[11px] text-[rgb(var(--color-muted))] font-medium">{label}</p>
-      <p className="text-xl font-bold tabular-nums leading-none" style={{ color: c }}>
-        {value.toFixed(1)}<span className="text-sm font-normal text-[rgb(var(--color-muted))]">%</span>
-      </p>
-    </div>
-  )
-}
-
-function Trend7dChart({ days }: { days: TrendDay[] }) {
-  const maxTurnos = Math.max(...days.map((d) => d.turnos), 1)
-  const BAR_HEIGHT = 72
-
-  return (
-    <div className="flex items-end gap-1.5" style={{ height: BAR_HEIGHT + 40 }}>
-      {days.map((day) => {
-        const completedH = Math.round((day.completed / maxTurnos) * BAR_HEIGHT)
-        const noShowH    = Math.round((day.noShows / maxTurnos) * BAR_HEIGHT)
-        const otherH     = Math.max(0, Math.round((day.turnos / maxTurnos) * BAR_HEIGHT) - completedH - noShowH)
-        const totalH     = completedH + noShowH + otherH
-
-        return (
-          <div key={day.date} className="flex-1 flex flex-col items-center gap-1">
-            <span className="text-[10px] tabular-nums text-[rgb(var(--color-muted))]">
-              {day.turnos > 0 ? day.turnos : ""}
-            </span>
-            <div
-              className="w-full flex flex-col justify-end rounded-sm overflow-hidden"
-              style={{ height: BAR_HEIGHT, background: "rgb(var(--color-glass-subtle))" }}
-              title={`${day.date}: ${day.turnos} turnos, ${day.completed} completados, ${day.noShows} no-shows`}
-            >
-              {totalH > 0 && (
-                <div className="w-full flex flex-col" style={{ height: totalH }}>
-                  {noShowH > 0 && (
-                    <div style={{ height: noShowH, background: "rgb(var(--color-danger))", opacity: 0.75 }} />
-                  )}
-                  {otherH > 0 && (
-                    <div style={{ height: otherH, background: "rgb(var(--color-info))", opacity: 0.55 }} />
-                  )}
-                  {completedH > 0 && (
-                    <div style={{ height: completedH, background: "rgb(var(--color-success))", opacity: 0.8 }} />
-                  )}
-                </div>
-              )}
-            </div>
-            <span className="text-[10px] text-[rgb(var(--color-muted))] capitalize">
-              {shortDayLabel(day.date)}
-            </span>
-          </div>
-        )
-      })}
-    </div>
-  )
-}
 
 const MILESTONE_COLORS: Record<string, string> = {
   RECALADA_ARRIVAL:   "rgb(var(--color-info))",
