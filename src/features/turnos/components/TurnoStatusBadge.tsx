@@ -6,39 +6,27 @@ interface TurnoStatusBadgeProps {
   status: TurnoStatus
 }
 
-const statusConfig: Record<TurnoStatus, { label: string; colorClass: string }> = {
-  AVAILABLE: {
-    label: "Libre",
-    colorClass: "bg-green-500/20 text-green-500",
-  },
-  ASSIGNED: {
-    label: "Asignado",
-    colorClass: "bg-blue-500/20 text-blue-500",
-  },
-  IN_PROGRESS: {
-    label: "En curso",
-    colorClass: "bg-yellow-500/20 text-yellow-600",
-  },
-  COMPLETED: {
-    label: "Completado",
-    colorClass: "bg-purple-500/20 text-purple-500",
-  },
-  CANCELED: {
-    label: "Cancelado",
-    colorClass: "bg-gray-500/20 text-gray-500",
-  },
-  NO_SHOW: {
-    label: "No-show",
-    colorClass: "bg-red-500/20 text-red-500",
-  },
+const statusConfig: Record<TurnoStatus, { label: string; cssVar: string }> = {
+  AVAILABLE:   { label: "Libre",      cssVar: "--color-success" },
+  ASSIGNED:    { label: "Asignado",   cssVar: "--color-info" },
+  IN_PROGRESS: { label: "En curso",   cssVar: "--color-warning" },
+  COMPLETED:   { label: "Completado", cssVar: "--color-primary" },
+  CANCELED:    { label: "Cancelado",  cssVar: "--color-muted" },
+  NO_SHOW:     { label: "No-show",    cssVar: "--color-danger" },
 }
 
 export function TurnoStatusBadge({ status }: TurnoStatusBadgeProps) {
-  const config = statusConfig[status]
-
+  const cfg = statusConfig[status]
   return (
-    <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${config.colorClass}`}>
-      {config.label}
+    <span
+      className="inline-flex items-center text-[10px] px-2 py-0.5 rounded-md font-semibold whitespace-nowrap leading-none"
+      style={{
+        color:      `rgb(var(${cfg.cssVar}))`,
+        background: `rgba(var(${cfg.cssVar}), 0.13)`,
+        border:     `1px solid rgba(var(${cfg.cssVar}), 0.25)`,
+      }}
+    >
+      {cfg.label}
     </span>
   )
 }

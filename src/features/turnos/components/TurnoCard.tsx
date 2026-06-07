@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { Eye, User, Square, UserX, UserPlus, UserMinus, Hand, LogIn, XCircle, CheckCircle2, Clock } from "lucide-react"
+import { Eye, User, Square, UserX, UserPlus, UserMinus, Hand, LogIn, XCircle, CheckCircle2, Clock, Trash2 } from "lucide-react"
 import { GlassCard } from "@/shared/components/glass/GlassCard"
 import { GlassButton } from "@/shared/components/glass/GlassButton"
 import { GlassModal, GlassModalFooter } from "@/shared/components/glass/GlassModal"
@@ -30,13 +30,22 @@ interface TurnoCardProps {
   firstAvailableTurnoId?: number | null
 }
 
-const statusColors: Record<TurnoStatus, string> = {
-  AVAILABLE: "border-[rgb(var(--color-success)/0.28)] bg-[rgb(var(--color-success)/0.04)]",
-  ASSIGNED: "border-[rgb(var(--color-info)/0.28)] bg-[rgb(var(--color-info)/0.04)]",
-  IN_PROGRESS: "border-[rgb(var(--color-warning)/0.32)] bg-[rgb(var(--color-warning)/0.05)]",
-  COMPLETED: "border-[rgb(var(--color-primary)/0.28)] bg-[rgb(var(--color-primary)/0.04)]",
-  CANCELED: "border-[rgb(var(--color-border)/0.6)] bg-[rgb(var(--color-bg)/0.4)]",
-  NO_SHOW: "border-[rgb(var(--color-danger)/0.28)] bg-[rgb(var(--color-danger)/0.04)]",
+const statusCardStyle: Record<TurnoStatus, string> = {
+  AVAILABLE:   "border-[rgb(var(--color-success)/0.2)] bg-[rgb(var(--color-success)/0.03)]",
+  ASSIGNED:    "border-[rgb(var(--color-info)/0.2)] bg-[rgb(var(--color-info)/0.03)]",
+  IN_PROGRESS: "border-[rgb(var(--color-warning)/0.25)] bg-[rgb(var(--color-warning)/0.04)]",
+  COMPLETED:   "border-[rgb(var(--color-primary)/0.2)] bg-[rgb(var(--color-primary)/0.03)]",
+  CANCELED:    "border-[rgb(var(--color-border)/0.3)] bg-transparent",
+  NO_SHOW:     "border-[rgb(var(--color-danger)/0.2)] bg-[rgb(var(--color-danger)/0.03)]",
+}
+
+const statusAccentVar: Record<TurnoStatus, string> = {
+  AVAILABLE:   "--color-success",
+  ASSIGNED:    "--color-info",
+  IN_PROGRESS: "--color-warning",
+  COMPLETED:   "--color-primary",
+  CANCELED:    "--color-muted",
+  NO_SHOW:     "--color-danger",
 }
 
 export function TurnoCard({
@@ -225,136 +234,233 @@ export function TurnoCard({
   const canUnassign =
     actionsEnabled && isSupervisor && turno.status === "ASSIGNED" && !hasPendingCheckIn
   const canMarkNoShow = actionsEnabled && isSupervisor && turno.status === "ASSIGNED"
-  const canCancel = actionsEnabled && isSupervisor && (turno.status === "AVAILABLE" || turno.status === "ASSIGNED")
+  const canCancel =
+    actionsEnabled &&
+    isSupervisor &&
+    (turno.status === "AVAILABLE" || turno.status === "ASSIGNED")
+
+  const accentVar = statusAccentVar[turno.status]
+  const guiaName =
+    turno.guia?.usuario?.nombres || turno.guia?.usuario?.email || null
+  const guiaInitial = guiaName?.charAt(0).toUpperCase() ?? "G"
+
+  const hasPrimaryCta =
+    canClaim || canAssign || canRequestCheckIn || canConfirmCheckIn || canCheckOut
 
   return (
     <>
       <GlassCard
-        className={`animate-fade-in-up border-2 ${statusColors[turno.status]}`}
-        style={{ animationDelay: `${index * 0.02}s` }}
+        className={`relative animate-fade-in-up border overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg ${statusCardStyle[turno.status]}`}
+        style={{ padding: 0, animationDelay: `${index * 0.02}s` }}
       >
-        <div className="space-y-2">
-          {/* Number and Status */}
-          <div className="flex items-center justify-between">
-            <span className="text-2xl font-bold text-[rgb(var(--color-fg))]">#{turno.numero}</span>
-            <TurnoStatusBadge status={turno.status} />
-          </div>
+        {/* Left accent bar */}
+        <div
+          className="absolute left-0 top-0 bottom-0 w-[3px] pointer-events-none"
+          style={{ background: `rgb(var(${accentVar}))` }}
+        />
 
-          {/* Guia Info */}
-          {turno.guia && (
-            <div className="flex items-center gap-2 text-sm text-[rgb(var(--color-muted))]">
-              <User className="w-4 h-4" />
-              <span className="truncate">
-                {turno.guia.usuario?.nombres || turno.guia.usuario?.email || "Guia asignado"}
+        {/* Zone 1: Header */}
+        <div className="pl-5 pr-4 pt-4 pb-3">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <p
+                className="text-[9px] font-semibold uppercase tracking-widest leading-none mb-1.5"
+                style={{ color: `rgb(var(${accentVar}))`, opacity: 0.7 }}
+              >
+                Turno
+              </p>
+              <span className="text-[28px] font-bold tabular-nums leading-none text-[rgb(var(--color-fg))]">
+                #{turno.numero}
               </span>
             </div>
-          )}
+            <TurnoStatusBadge status={turno.status} />
+          </div>
+        </div>
 
-          {/* Times */}
-          {turno.checkInAt && (
-            <p className="text-xs font-medium text-[rgb(var(--color-success))]">
-              In · {new Date(turno.checkInAt).toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" })}
-            </p>
-          )}
-          {!turno.checkInAt && turno.checkInRequestedAt && !turno.checkInRejectedAt && (
-            <div
-              className="inline-flex items-center gap-1 rounded-md border border-[rgb(var(--color-warning)/0.28)] bg-[rgb(var(--color-warning)/0.1)] px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--color-warning))]"
-              role="status"
-            >
-              <Clock className="h-3 w-3" />
-              Pendiente
+        {/* Hairline divider */}
+        <div
+          className="mx-4"
+          style={{ height: "1px", background: "rgba(var(--color-border), 0.09)" }}
+        />
+
+        {/* Zone 2: Body */}
+        <div className="pl-5 pr-4 py-3 flex flex-col gap-2 min-h-[56px]">
+          {turno.guia ? (
+            <div className="flex items-center gap-2">
+              <div
+                className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-[10px] font-bold leading-none"
+                style={{
+                  background: `rgba(var(${accentVar}), 0.15)`,
+                  color: `rgb(var(${accentVar}))`,
+                }}
+              >
+                {guiaInitial}
+              </div>
+              <span className="text-xs text-[rgb(var(--color-fg))] truncate font-medium">
+                {guiaName ?? "Guía asignado"}
+              </span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <div
+                className="w-6 h-6 rounded-full flex items-center justify-center shrink-0"
+                style={{ background: "rgba(var(--color-border), 0.15)" }}
+              >
+                <User className="w-3 h-3 text-[rgb(var(--color-muted))]" />
+              </div>
+              <span className="text-xs text-[rgb(var(--color-muted))]">Sin asignar</span>
             </div>
           )}
-          {turno.checkInRejectedAt && (
-            <p className="text-xs font-medium text-[rgb(var(--color-danger))]">
-              Check-in rechazado
-            </p>
-          )}
-          {turno.checkOutAt && (
-            <p className="text-xs font-medium text-[rgb(var(--color-primary))]">
-              Out · {new Date(turno.checkOutAt).toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" })}
-            </p>
+
+          {/* Time / state dot indicators */}
+          <div className="flex flex-wrap gap-x-3 gap-y-1">
+            {turno.checkInAt && (
+              <span
+                className="inline-flex items-center gap-1 text-[10px] font-medium"
+                style={{ color: "rgb(var(--color-success))" }}
+              >
+                <span
+                  className="w-1.5 h-1.5 rounded-full inline-block shrink-0"
+                  style={{ background: "rgb(var(--color-success))" }}
+                />
+                In · {new Date(turno.checkInAt).toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" })}
+              </span>
+            )}
+            {!turno.checkInAt && turno.checkInRequestedAt && !turno.checkInRejectedAt && (
+              <span
+                className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-semibold border"
+                style={{
+                  color: "rgb(var(--color-warning))",
+                  background: "rgba(var(--color-warning), 0.1)",
+                  borderColor: "rgba(var(--color-warning), 0.28)",
+                }}
+                role="status"
+              >
+                <Clock className="h-2.5 w-2.5 shrink-0" />
+                Check-in pendiente
+              </span>
+            )}
+            {turno.checkInRejectedAt && (
+              <span
+                className="inline-flex items-center gap-1 text-[10px] font-medium"
+                style={{ color: "rgb(var(--color-danger))" }}
+              >
+                <span
+                  className="w-1.5 h-1.5 rounded-full inline-block shrink-0"
+                  style={{ background: "rgb(var(--color-danger))" }}
+                />
+                Check-in rechazado
+              </span>
+            )}
+            {turno.checkOutAt && (
+              <span
+                className="inline-flex items-center gap-1 text-[10px] font-medium"
+                style={{ color: "rgb(var(--color-primary))" }}
+              >
+                <span
+                  className="w-1.5 h-1.5 rounded-full inline-block shrink-0"
+                  style={{ background: "rgb(var(--color-primary))" }}
+                />
+                Out · {new Date(turno.checkOutAt).toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" })}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Hairline divider */}
+        <div
+          className="mx-4"
+          style={{ height: "1px", background: "rgba(var(--color-border), 0.09)" }}
+        />
+
+        {/* Zone 3: Footer */}
+        <div className="pl-5 pr-4 pb-4 pt-3 flex flex-col gap-1.5">
+          {/* Primary CTA — full width, one at a time */}
+          {hasPrimaryCta && (
+            <div>
+              {canClaim && (
+                <GlassButton
+                  variant="primary"
+                  size="sm"
+                  onClick={handleClaim}
+                  loading={isClaiming}
+                  className="w-full justify-center"
+                >
+                  <Hand className="w-3.5 h-3.5" />
+                  Reclamar
+                </GlassButton>
+              )}
+              {canAssign && (
+                <GlassButton
+                  variant="glass"
+                  size="sm"
+                  onClick={() => setIsAssignDialogOpen(true)}
+                  className="w-full justify-center"
+                >
+                  <UserPlus className="w-3.5 h-3.5" />
+                  Asignar guía
+                </GlassButton>
+              )}
+              {canRequestCheckIn && (
+                <GlassButton
+                  variant="primary"
+                  size="sm"
+                  onClick={handleCheckIn}
+                  loading={isCheckingIn}
+                  className="w-full justify-center"
+                >
+                  <LogIn className="w-3.5 h-3.5" />
+                  Solicitar check-in
+                </GlassButton>
+              )}
+              {canConfirmCheckIn && (
+                <GlassButton
+                  variant="primary"
+                  size="sm"
+                  onClick={handleConfirmCheckIn}
+                  loading={isConfirmingCheckIn}
+                  className="w-full justify-center"
+                  aria-label={`Confirmar check-in del turno ${turno.numero}`}
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  Confirmar check-in
+                </GlassButton>
+              )}
+              {canCheckOut && (
+                <GlassButton
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleCheckOut}
+                  loading={isCheckingOut}
+                  className="w-full justify-center"
+                >
+                  <Square className="w-3.5 h-3.5" />
+                  Finalizar
+                </GlassButton>
+              )}
+            </div>
           )}
 
-          {/* Actions */}
-          <div className="flex flex-wrap gap-1 pt-2">
+          {/* Secondary row: detail (flex-1) + icon-only danger actions */}
+          <div className="flex items-center gap-1.5">
             <GlassButton
               variant="ghost"
               size="sm"
               onClick={() => navigate(`/turnos/${turno.id}`)}
               aria-label={`Ver turno ${turno.numero}`}
+              className="flex-1 justify-center"
             >
-              <Eye className="w-3 h-3" />
+              <Eye className="w-3.5 h-3.5" />
             </GlassButton>
-            {canRequestCheckIn && (
-              <GlassButton
-                variant="primary"
-                size="sm"
-                onClick={handleCheckIn}
-                loading={isCheckingIn}
-                className="flex-1"
-              >
-                <LogIn className="w-3 h-3" />
-                Solicitar
-              </GlassButton>
-            )}
-            {canConfirmCheckIn && (
-              <GlassButton
-                variant="primary"
-                size="sm"
-                onClick={handleConfirmCheckIn}
-                loading={isConfirmingCheckIn}
-                className="flex-1"
-                aria-label={`Confirmar check-in del turno ${turno.numero}`}
-              >
-                <CheckCircle2 className="w-3 h-3" />
-                Confirmar
-              </GlassButton>
-            )}
             {canRejectCheckIn && (
               <GlassButton
                 variant="danger"
                 size="sm"
                 onClick={() => setIsRejectDialogOpen(true)}
                 loading={isRejectingCheckIn}
-                aria-label={`Rechazar check-in del turno ${turno.numero}`}
+                aria-label="Rechazar check-in"
               >
-                <XCircle className="w-3 h-3" />
-              </GlassButton>
-            )}
-            {canCheckOut && (
-              <GlassButton
-                variant="secondary"
-                size="sm"
-                onClick={handleCheckOut}
-                loading={isCheckingOut}
-                className="flex-1"
-              >
-                <Square className="w-3 h-3" />
-                Finalizar
-              </GlassButton>
-            )}
-            {canClaim && (
-              <GlassButton
-                variant="primary"
-                size="sm"
-                onClick={handleClaim}
-                loading={isClaiming}
-                className="flex-1"
-              >
-                <Hand className="w-3 h-3" />
-                Reclamar
-              </GlassButton>
-            )}
-            {canAssign && (
-              <GlassButton
-                variant="glass"
-                size="sm"
-                onClick={() => setIsAssignDialogOpen(true)}
-                className="flex-1"
-                aria-label={`Asignar guía al turno ${turno.numero}`}
-              >
-                <UserPlus className="w-3 h-3" />
+                <XCircle className="w-3.5 h-3.5" />
               </GlassButton>
             )}
             {canUnassign && (
@@ -363,9 +469,9 @@ export function TurnoCard({
                 size="sm"
                 onClick={handleUnassign}
                 loading={isUnassigning}
-                aria-label={`Liberar turno ${turno.numero}`}
+                aria-label="Liberar turno"
               >
-                <UserMinus className="w-3 h-3" />
+                <UserMinus className="w-3.5 h-3.5" />
               </GlassButton>
             )}
             {canMarkNoShow && (
@@ -374,9 +480,9 @@ export function TurnoCard({
                 size="sm"
                 onClick={() => setIsNoShowDialogOpen(true)}
                 loading={isMarkingNoShow}
-                aria-label={`Marcar NO_SHOW al turno ${turno.numero}`}
+                aria-label="Marcar NO_SHOW"
               >
-                <UserX className="w-3 h-3" />
+                <UserX className="w-3.5 h-3.5" />
               </GlassButton>
             )}
             {canCancel && (
@@ -385,9 +491,9 @@ export function TurnoCard({
                 size="sm"
                 onClick={() => setIsCancelDialogOpen(true)}
                 loading={isCanceling}
-                aria-label={`Cancelar turno ${turno.numero}`}
+                aria-label="Cancelar turno"
               >
-                <XCircle className="w-3 h-3" />
+                <Trash2 className="w-3.5 h-3.5" />
               </GlassButton>
             )}
           </div>

@@ -232,7 +232,14 @@ export function TurnosPage() {
                     {pendingItems.length}
                   </span>
                 </header>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                <div
+                  className="gap-3"
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(240px, 280px))",
+                    justifyContent: "start",
+                  }}
+                >
                   {pendingItems.map((t, i) => (
                     <TurnoCard
                       key={`pending-${t.id}`}
@@ -387,18 +394,37 @@ export function TurnosPage() {
 
         {/* Content */}
         {isLoading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+              gap: "1rem",
+            }}
+          >
             {Array.from({ length: 12 }).map((_, i) => (
-              <GlassCard key={i}>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <Skeleton className="h-8 w-12" />
-                    <Skeleton className="h-5 w-16" />
+              <GlassCard key={i} style={{ padding: 0 }}>
+                <div className="pl-5 pr-4 pt-4 pb-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex flex-col gap-1.5">
+                      <Skeleton className="h-2 w-8" />
+                      <Skeleton className="h-7 w-10" />
+                    </div>
+                    <Skeleton className="h-5 w-16 rounded-md" />
                   </div>
-                  <Skeleton className="h-4 w-full" />
-                  <div className="flex gap-1">
-                    <Skeleton className="h-8 flex-1" />
-                    <Skeleton className="h-8 w-8" />
+                </div>
+                <div className="mx-4" style={{ height: "1px", background: "rgba(var(--color-border), 0.09)" }} />
+                <div className="pl-5 pr-4 py-3 flex flex-col gap-2">
+                  <div className="flex items-center gap-2">
+                    <Skeleton className="w-6 h-6 rounded-full shrink-0" />
+                    <Skeleton className="h-3 flex-1" />
+                  </div>
+                </div>
+                <div className="mx-4" style={{ height: "1px", background: "rgba(var(--color-border), 0.09)" }} />
+                <div className="pl-5 pr-4 pb-4 pt-3 flex flex-col gap-1.5">
+                  <Skeleton className="h-8 w-full rounded-lg" />
+                  <div className="flex gap-1.5">
+                    <Skeleton className="h-7 flex-1 rounded-lg" />
+                    <Skeleton className="h-7 w-7 rounded-lg" />
                   </div>
                 </div>
               </GlassCard>
@@ -424,7 +450,13 @@ export function TurnosPage() {
           </GlassCard>
         ) : (
           <>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+                gap: "1rem",
+              }}
+            >
               {turnos.map((turno, index) => (
                 <TurnoCard
                   key={turno.id}
