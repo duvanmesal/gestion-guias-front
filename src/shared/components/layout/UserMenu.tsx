@@ -42,7 +42,7 @@ export function UserMenu() {
     return () => mq.removeEventListener?.("change", h)
   }, [])
 
-  const DURATION = reduce ? 0 : 170
+  const DURATION = reduce ? 0 : 240
 
   // Drive mount/visibility so the menu can animate in and out.
   useEffect(() => {
@@ -163,7 +163,7 @@ export function UserMenu() {
             boxShadow: "var(--shadow-lg)",
             transformOrigin: "top right",
             opacity: shown ? 1 : 0,
-            transform: shown ? "translateY(0) scale(1)" : "translateY(-6px) scale(0.97)",
+            transform: shown ? "translateY(0) scale(1)" : "translateY(-10px) scale(0.95)",
             transition: `opacity ${DURATION}ms var(--ease-out-soft), transform ${DURATION}ms var(--ease-out-soft)`,
             willChange: "transform, opacity",
           }}

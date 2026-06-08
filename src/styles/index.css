@@ -372,11 +372,11 @@
 :root {
   /* Durations */
   --motion-instant: 90ms;
-  --motion-fast:    140ms;
-  --motion-base:    200ms;
-  --motion-panel:   260ms;
-  --motion-overlay: 240ms;
-  --motion-stagger: 38ms;
+  --motion-fast:    150ms;
+  --motion-base:    240ms;
+  --motion-panel:   340ms;
+  --motion-overlay: 300ms;
+  --motion-stagger: 45ms;
 
   /* Easings */
   --ease-out-soft:    cubic-bezier(0.16, 1, 0.3, 1);

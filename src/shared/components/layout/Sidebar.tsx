@@ -380,7 +380,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         style={{
           opacity: isOpen ? 1 : 0,
           pointerEvents: isOpen ? "auto" : "none",
-          transition: "opacity 250ms var(--ease-out-soft)",
+          transition: "opacity var(--motion-overlay) var(--ease-out-soft)",
           willChange: "opacity",
         }}
       />

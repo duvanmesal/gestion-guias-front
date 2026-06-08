@@ -93,7 +93,7 @@ export function GlassDateTimeInput({
     return () => mq.removeEventListener?.("change", h)
   }, [])
 
-  const DURATION = reduce ? 0 : 180
+  const DURATION = reduce ? 0 : 260
 
   const openMenu = useCallback(() => {
     if (disabled) return
@@ -219,7 +219,7 @@ export function GlassDateTimeInput({
         overflow: "hidden",
         transformOrigin: "top",
         opacity: shown ? 1 : 0,
-        transform: shown ? "translateY(0) scale(1)" : "translateY(-6px) scale(0.98)",
+        transform: shown ? "translateY(0) scale(1)" : "translateY(-10px) scale(0.96)",
         transition: `opacity ${DURATION}ms ${shown ? "var(--ease-out-soft)" : "ease-in"}, transform ${DURATION}ms ${shown ? "var(--ease-out-soft)" : "ease-in"}`,
         willChange: "transform, opacity",
       }}

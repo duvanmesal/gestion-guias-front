@@ -34,8 +34,8 @@ export function GlassModal({
     return () => mq.removeEventListener?.("change", h)
   }, [])
 
-  const D_IN = reduce ? 0 : 260
-  const D_OUT = reduce ? 0 : 190
+  const D_IN = reduce ? 0 : 340
+  const D_OUT = reduce ? 0 : 240
 
   // Mount on open, keep mounted during the exit transition, then unmount.
   useEffect(() => {
