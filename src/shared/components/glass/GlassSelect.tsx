@@ -18,7 +18,7 @@ export const GlassSelect = forwardRef<HTMLSelectElement, GlassSelectProps>(
           </label>
         )}
         <div
-          className={`glass rounded-xl px-4 py-3 transition-all duration-200 relative group hover:bg-[rgb(var(--color-glass-hover)/0.5)] ${
+          className={`glass rounded-xl px-4 py-3 transition-[background-color,border-color,box-shadow] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] relative group hover:bg-[rgb(var(--color-glass-hover)/0.5)] focus-within:border-[rgb(var(--color-primary))] focus-within:shadow-[0_0_0_3px_rgba(var(--color-primary),0.12)] ${
             error ? "border-[rgb(var(--color-danger))] border-2" : ""
           }`}
         >
@@ -37,7 +37,7 @@ export const GlassSelect = forwardRef<HTMLSelectElement, GlassSelectProps>(
               </option>
             ))}
           </select>
-          <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[rgb(var(--color-muted))] pointer-events-none group-hover:text-[rgb(var(--color-primary))] transition-colors" />
+          <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[rgb(var(--color-muted))] pointer-events-none group-hover:text-[rgb(var(--color-primary))] group-focus-within:text-[rgb(var(--color-primary))] group-focus-within:-translate-y-[40%] transition-[color,transform] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]" />
         </div>
         {error && (
           <p className="mt-2 text-sm text-[rgb(var(--color-danger))] font-medium">

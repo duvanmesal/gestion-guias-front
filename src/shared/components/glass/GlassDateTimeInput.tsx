@@ -50,9 +50,13 @@ export function GlassDateTimeInput({
   placeholder,
 }: GlassDateTimeInputProps) {
   const [open, setOpen] = useState(false)
+  const [mounted, setMounted] = useState(false)
+  const [shown, setShown] = useState(false)
+  const [reduce, setReduce] = useState(false)
   const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number; width: number } | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const today = new Date()
   const parsed = parseValue(value, type)
@@ -80,6 +84,35 @@ export function GlassDateTimeInput({
     setDropdownPos({ top: rect.bottom + 4, left: rect.left, width: Math.max(rect.width, 288) })
   }, [])
 
+  // prefers-reduced-motion
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)")
+    setReduce(mq.matches)
+    const h = () => setReduce(mq.matches)
+    mq.addEventListener?.("change", h)
+    return () => mq.removeEventListener?.("change", h)
+  }, [])
+
+  const DURATION = reduce ? 0 : 180
+
+  const openMenu = useCallback(() => {
+    if (disabled) return
+    if (closeTimer.current) clearTimeout(closeTimer.current)
+    updatePos()
+    setMounted(true)
+    setOpen(true)
+    requestAnimationFrame(() => requestAnimationFrame(() => setShown(true)))
+  }, [disabled, updatePos])
+
+  const closeMenu = useCallback(() => {
+    setShown(false)
+    setOpen(false)
+    if (closeTimer.current) clearTimeout(closeTimer.current)
+    closeTimer.current = setTimeout(() => setMounted(false), DURATION)
+  }, [DURATION])
+
+  useEffect(() => () => { if (closeTimer.current) clearTimeout(closeTimer.current) }, [])
+
   useEffect(() => {
     if (open) {
       updatePos()
@@ -98,11 +131,12 @@ export function GlassDateTimeInput({
         containerRef.current && !containerRef.current.contains(e.target as Node) &&
         dropdownRef.current && !dropdownRef.current.contains(e.target as Node)
       ) {
-        setOpen(false)
+        closeMenu()
       }
     }
     document.addEventListener("mousedown", handler)
     return () => document.removeEventListener("mousedown", handler)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Calendar grid
@@ -124,7 +158,7 @@ export function GlassDateTimeInput({
     const dateStr = toDateStr(viewYear, viewMonth, day)
     if (type === "date") {
       onChange(dateStr)
-      setOpen(false)
+      closeMenu()
     } else {
       onChange(`${dateStr}T${hours}:${minutes}`)
     }
@@ -163,13 +197,13 @@ export function GlassDateTimeInput({
     setViewMonth(t.getMonth())
     const dateStr = toDateStr(t.getFullYear(), t.getMonth(), t.getDate())
     onChange(type === "datetime-local" ? `${dateStr}T${hours}:${minutes}` : dateStr)
-    if (type === "date") setOpen(false)
+    if (type === "date") closeMenu()
   }
 
   const displayValue = formatDisplay(value, type)
   const defaultPlaceholder = type === "datetime-local" ? "Seleccionar fecha y hora" : "Seleccionar fecha"
 
-  const dropdown = open && dropdownPos ? (
+  const dropdown = mounted && dropdownPos ? (
     <div
       ref={dropdownRef}
       style={{
@@ -181,8 +215,13 @@ export function GlassDateTimeInput({
         background: "rgb(var(--color-bg-elevated))",
         border: "1px solid rgba(var(--color-border), 0.1)",
         borderRadius: "var(--radius-lg)",
-        boxShadow: "var(--shadow-lg)",
+        boxShadow: "var(--shadow-floating), var(--glass-inner-highlight)",
         overflow: "hidden",
+        transformOrigin: "top",
+        opacity: shown ? 1 : 0,
+        transform: shown ? "translateY(0) scale(1)" : "translateY(-6px) scale(0.98)",
+        transition: `opacity ${DURATION}ms ${shown ? "var(--ease-out-soft)" : "ease-in"}, transform ${DURATION}ms ${shown ? "var(--ease-out-soft)" : "ease-in"}`,
+        willChange: "transform, opacity",
       }}
     >
       {/* Month nav */}
@@ -193,7 +232,7 @@ export function GlassDateTimeInput({
         <button
           type="button"
           onClick={prevMonth}
-          className="p-1 rounded-lg hover:bg-[rgba(var(--color-primary),0.08)] transition-colors"
+          className="motion-pressable p-1 rounded-lg hover:bg-[rgba(var(--color-primary),0.08)] active:scale-90"
         >
           <ChevronLeft className="w-4 h-4" style={{ color: "rgb(var(--color-fg))" }} />
         </button>
@@ -203,7 +242,7 @@ export function GlassDateTimeInput({
         <button
           type="button"
           onClick={nextMonth}
-          className="p-1 rounded-lg hover:bg-[rgba(var(--color-primary),0.08)] transition-colors"
+          className="motion-pressable p-1 rounded-lg hover:bg-[rgba(var(--color-primary),0.08)] active:scale-90"
         >
           <ChevronRight className="w-4 h-4" style={{ color: "rgb(var(--color-fg))" }} />
         </button>
@@ -228,7 +267,7 @@ export function GlassDateTimeInput({
               key={day}
               type="button"
               onMouseDown={() => selectDay(day)}
-              className="aspect-square flex items-center justify-center rounded-lg text-sm transition-colors hover:opacity-80"
+              className="aspect-square flex items-center justify-center rounded-lg text-sm hover:scale-[1.06] active:scale-95 hover:bg-[rgba(var(--color-primary),0.08)]"
               style={{
                 background:
                   day === selectedDay
@@ -243,6 +282,14 @@ export function GlassDateTimeInput({
                     ? "rgb(var(--color-primary))"
                     : "rgb(var(--color-fg))",
                 fontWeight: day === selectedDay || day === todayDay ? 600 : 400,
+                boxShadow:
+                  day === selectedDay
+                    ? "0 4px 10px -2px rgba(var(--color-primary), 0.45)"
+                    : day === todayDay
+                    ? "inset 0 0 0 1px rgba(var(--color-primary), 0.35)"
+                    : "none",
+                transition:
+                  "transform var(--motion-fast) var(--ease-out-soft), background-color var(--motion-fast) var(--ease-out-soft), box-shadow var(--motion-fast) var(--ease-out-soft)",
               }}
             >
               {day}
@@ -264,7 +311,7 @@ export function GlassDateTimeInput({
             max={23}
             value={hours}
             onChange={(e) => handleHours(e.target.value)}
-            className="w-10 text-center text-sm font-medium bg-transparent outline-none border rounded-lg px-1 py-0.5"
+            className="w-10 text-center text-sm font-medium bg-transparent outline-none border rounded-lg px-1 py-0.5 transition-shadow focus:ring-2 focus:ring-[rgb(var(--color-primary))/0.3]"
             style={{ color: "rgb(var(--color-fg))", borderColor: "rgba(var(--color-border), 0.2)" }}
           />
           <span className="text-sm font-medium" style={{ color: "rgb(var(--color-muted))" }}>:</span>
@@ -274,7 +321,7 @@ export function GlassDateTimeInput({
             max={59}
             value={minutes}
             onChange={(e) => handleMinutes(e.target.value)}
-            className="w-10 text-center text-sm font-medium bg-transparent outline-none border rounded-lg px-1 py-0.5"
+            className="w-10 text-center text-sm font-medium bg-transparent outline-none border rounded-lg px-1 py-0.5 transition-shadow focus:ring-2 focus:ring-[rgb(var(--color-primary))/0.3]"
             style={{ color: "rgb(var(--color-fg))", borderColor: "rgba(var(--color-border), 0.2)" }}
           />
         </div>
@@ -287,8 +334,8 @@ export function GlassDateTimeInput({
       >
         <button
           type="button"
-          onMouseDown={() => { onChange(""); setOpen(false) }}
-          className="text-xs px-2 py-1 rounded-lg transition-colors"
+          onMouseDown={() => { onChange(""); closeMenu() }}
+          className="motion-pressable text-xs px-2 py-1 rounded-lg hover:bg-[rgba(var(--color-border),0.06)] active:scale-95"
           style={{ color: "rgb(var(--color-muted))" }}
         >
           Borrar
@@ -296,7 +343,7 @@ export function GlassDateTimeInput({
         <button
           type="button"
           onMouseDown={goToday}
-          className="text-xs px-2 py-1 rounded-lg font-medium transition-colors"
+          className="motion-pressable text-xs px-2 py-1 rounded-lg font-medium hover:bg-[rgba(var(--color-primary),0.08)] active:scale-95"
           style={{ color: "rgb(var(--color-primary))" }}
         >
           Hoy
@@ -316,10 +363,10 @@ export function GlassDateTimeInput({
       <div
         role="button"
         tabIndex={disabled ? -1 : 0}
-        onClick={() => { if (!disabled) setOpen((o) => !o) }}
+        onClick={() => { if (!disabled) (open ? closeMenu() : openMenu()) }}
         onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") { e.preventDefault(); if (!disabled) setOpen((o) => !o) }
-          if (e.key === "Escape") setOpen(false)
+          if (e.key === "Enter" || e.key === " ") { e.preventDefault(); if (!disabled) (open ? closeMenu() : openMenu()) }
+          if (e.key === "Escape") closeMenu()
         }}
         className={`glass flex items-center gap-2 px-4 py-3 cursor-pointer select-none transition-all duration-200 ${
           error ? "border-2 border-[rgb(var(--color-danger))]" : ""

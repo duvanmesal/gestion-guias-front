@@ -21,7 +21,7 @@ export function GlassButton({
   ...props
 }: GlassButtonProps) {
   const base =
-    "rounded-xl font-semibold transition-all duration-150 focus-ring active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2"
+    "rounded-xl font-semibold transition-[transform,box-shadow,background-color,opacity,filter] duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] focus-ring hover:-translate-y-px hover:brightness-[1.03] active:translate-y-0 active:scale-[0.97] active:brightness-100 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:hover:translate-y-0 disabled:hover:brightness-100 flex items-center justify-center gap-2 [&_svg]:transition-transform [&_svg]:duration-150 [&:hover_svg:not(.animate-spin)]:translate-x-[1px]"
 
   const variants: Record<string, React.CSSProperties> = {
     primary: {

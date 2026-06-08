@@ -78,18 +78,18 @@ export function RecaladaDetailPage() {
   const handleArrive = async () => {
     try {
       await arriveRecaladaAsync()
-      showToast("success", "Recalada marcada como arribada")
+      showToast("success", "Llegada registrada")
     } catch (error) {
-      showToast("error", "Error al marcar arribo")
+      showToast("error", "No pude registrar la llegada")
     }
   }
 
   const handleDepart = async () => {
     try {
       await departRecaladaAsync()
-      showToast("success", "Recalada marcada como zarpada")
+      showToast("success", "Zarpe registrado")
     } catch (error) {
-      showToast("error", "Error al marcar zarpe")
+      showToast("error", "No pude registrar el zarpe")
     }
   }
 
@@ -224,7 +224,7 @@ export function RecaladaDetailPage() {
                     <p className="font-semibold text-[rgb(var(--color-fg))]">{formatDate(recalada.fechaLlegada)}</p>
                     <p className="text-sm text-[rgb(var(--color-muted))]">{formatTime(recalada.fechaLlegada)}</p>
                     {recalada.arrivedAt && (
-                      <p className="text-xs text-green-500 mt-1">Arribo real: {formatTime(recalada.arrivedAt)}</p>
+                      <p className="text-xs text-green-500 mt-1">Llegada real: {formatTime(recalada.arrivedAt)}</p>
                     )}
                   </div>
                 </div>
@@ -235,7 +235,7 @@ export function RecaladaDetailPage() {
                       <Clock className="w-5 h-5 text-purple-500" />
                     </div>
                     <div>
-                      <p className="text-sm text-[rgb(var(--color-muted))]">Salida Programada</p>
+                      <p className="text-sm text-[rgb(var(--color-muted))]">Zarpe Programado</p>
                       <p className="font-semibold text-[rgb(var(--color-fg))]">{formatDate(recalada.fechaSalida)}</p>
                       <p className="text-sm text-[rgb(var(--color-muted))]">{formatTime(recalada.fechaSalida)}</p>
                       {recalada.departedAt && (
@@ -344,13 +344,13 @@ export function RecaladaDetailPage() {
                   {canArrive && (
                     <GlassButton variant="primary" fullWidth onClick={handleArrive} loading={isArriving}>
                       <PlayCircle className="w-4 h-4" />
-                      Marcar Arribo
+                      Marcar llegada
                     </GlassButton>
                   )}
                   {canDepart && (
                     <GlassButton variant="secondary" fullWidth onClick={handleDepart} loading={isDeparting}>
                       <StopCircle className="w-4 h-4" />
-                      Marcar Zarpe
+                      Marcar zarpe
                     </GlassButton>
                   )}
                   {canCancel && (

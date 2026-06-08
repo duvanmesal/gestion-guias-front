@@ -2,6 +2,7 @@
 
 import { Clock, CheckCircle, Ship, XCircle } from "lucide-react"
 import type { RecaladaOperativeStatus } from "@/core/models/recaladas"
+import { RECALADA_STATUS_COPY } from "../recalada-status-copy"
 
 interface RecaladaStatusBadgeProps {
   status: RecaladaOperativeStatus
@@ -13,22 +14,22 @@ const statusConfig: Record<
   { label: string; icon: typeof Clock; colorClass: string }
 > = {
   SCHEDULED: {
-    label: "Programada",
+    label: RECALADA_STATUS_COPY.SCHEDULED.singular,
     icon: Clock,
     colorClass: "bg-blue-500/10 text-blue-500 border-blue-500/20",
   },
   ARRIVED: {
-    label: "Arribada",
+    label: RECALADA_STATUS_COPY.ARRIVED.singular,
     icon: CheckCircle,
     colorClass: "bg-green-500/10 text-green-500 border-green-500/20",
   },
   DEPARTED: {
-    label: "Zarpada",
+    label: RECALADA_STATUS_COPY.DEPARTED.singular,
     icon: Ship,
     colorClass: "bg-purple-500/10 text-purple-500 border-purple-500/20",
   },
   CANCELED: {
-    label: "Cancelada",
+    label: RECALADA_STATUS_COPY.CANCELED.singular,
     icon: XCircle,
     colorClass: "bg-red-500/10 text-red-500 border-red-500/20",
   },

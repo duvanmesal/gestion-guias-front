@@ -373,12 +373,17 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   return (
     <>
-      {isOpen && (
-        <div
-          className="fixed inset-0 bg-[rgb(var(--color-bg)/0.8)] backdrop-blur-sm z-40 md:hidden animate-fade-in-up"
-          onClick={onClose}
-        />
-      )}
+      <div
+        className="fixed inset-0 bg-[rgb(var(--color-bg)/0.8)] backdrop-blur-sm z-40 md:hidden"
+        onClick={onClose}
+        aria-hidden={!isOpen}
+        style={{
+          opacity: isOpen ? 1 : 0,
+          pointerEvents: isOpen ? "auto" : "none",
+          transition: "opacity 250ms var(--ease-out-soft)",
+          willChange: "opacity",
+        }}
+      />
 
       <aside
         className={`
@@ -391,7 +396,10 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         style={{
           background: "rgb(var(--color-bg-elevated))",
           borderRight: "1px solid rgba(var(--color-border), 0.07)",
-          boxShadow: "2px 0 16px rgba(var(--color-border), 0.04)",
+          boxShadow: isOpen
+            ? "12px 0 40px -12px rgba(15, 23, 42, 0.22)"
+            : "2px 0 16px rgba(var(--color-border), 0.04)",
+          transition: "transform 300ms var(--ease-out-soft), box-shadow 300ms var(--ease-out-soft)",
         }}
       >
         <button
