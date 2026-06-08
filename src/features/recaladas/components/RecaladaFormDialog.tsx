@@ -7,7 +7,10 @@ import { GlassInput } from "@/shared/components/glass/GlassInput";
 import { GlassTextarea } from "@/shared/components/glass/GlassTextarea";
 import { GlassButton } from "@/shared/components/glass/GlassButton";
 import { SearchableCombobox } from "@/shared/components/glass/SearchableCombobox";
-import { GlassDateTimeInput } from "@/shared/components/glass/GlassDateTimeInput";
+import {
+  RecaladaDateTimeField,
+  isoToLocalInput,
+} from "./RecaladaDateTimeField";
 import { useBuquesLookup } from "@/hooks/use-buques";
 import { usePaisesLookup } from "@/hooks/use-paises";
 import { usePuertosLookup } from "@/hooks/use-puertos";
@@ -81,12 +84,8 @@ export function RecaladaFormDialog({
           : "",
         puertoId: recalada.puertoId ? String(recalada.puertoId) : "",
         muelleId: recalada.muelleId ? String(recalada.muelleId) : "",
-        fechaLlegada: recalada.fechaLlegada
-          ? recalada.fechaLlegada.slice(0, 16)
-          : "",
-        fechaSalida: recalada.fechaSalida
-          ? recalada.fechaSalida.slice(0, 16)
-          : "",
+        fechaLlegada: isoToLocalInput(recalada.fechaLlegada),
+        fechaSalida: isoToLocalInput(recalada.fechaSalida),
         terminal: recalada.terminal || "",
         muelle: recalada.muelle || "",
         pasajerosEstimados:
@@ -130,7 +129,7 @@ export function RecaladaFormDialog({
     if (formData.fechaSalida && formData.fechaLlegada) {
       if (new Date(formData.fechaSalida) < new Date(formData.fechaLlegada)) {
         newErrors.fechaSalida =
-          "La fecha de salida debe ser posterior a la llegada";
+          "La fecha de zarpe debe ser posterior a la llegada";
       }
     }
 
@@ -246,17 +245,19 @@ export function RecaladaFormDialog({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <GlassDateTimeInput
-            label="Fecha/Hora Llegada *"
-            type="datetime-local"
+          <RecaladaDateTimeField
+            label="Fecha/Hora Llegada"
+            variant="arrival"
             value={formData.fechaLlegada}
             onChange={(v) => setFormData({ ...formData, fechaLlegada: v })}
             error={errors.fechaLlegada}
           />
 
-          <GlassDateTimeInput
-            label="Fecha/Hora Salida"
-            type="datetime-local"
+          <RecaladaDateTimeField
+            label="Fecha/Hora Zarpe"
+            variant="departure"
+            optional
+            minValue={formData.fechaLlegada}
             value={formData.fechaSalida}
             onChange={(v) => setFormData({ ...formData, fechaSalida: v })}
             error={errors.fechaSalida}

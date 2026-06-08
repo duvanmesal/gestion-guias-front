@@ -113,7 +113,7 @@ export function RecaladaCard({ recalada, index = 0, onClick }: RecaladaCardProps
             >
               <Clock className="w-4 h-4 shrink-0" />
               <span className="truncate">
-                {isOverdueDeparture ? "Salida venció:" : "Salida programada:"}{" "}
+                {isOverdueDeparture ? "Zarpe venció:" : "Zarpe programado:"}{" "}
                 {formatDate(recalada.fechaSalida)} · {formatTime(recalada.fechaSalida)}
               </span>
             </div>

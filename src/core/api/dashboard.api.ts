@@ -10,6 +10,7 @@ export const dashboardApi = {
     if (params?.tzOffsetMinutes !== undefined) search.set("tzOffsetMinutes", String(params.tzOffsetMinutes))
     if (params?.upcomingLimit !== undefined) search.set("upcomingLimit", String(params.upcomingLimit))
     if (params?.availableAtencionesLimit !== undefined) search.set("availableAtencionesLimit", String(params.availableAtencionesLimit))
+    if (params?.rangeDays !== undefined) search.set("rangeDays", String(params.rangeDays))
     const qs = search.toString()
     const response = await http.get<ApiResponse<DashboardOverview>>(`/dashboard/overview${qs ? `?${qs}` : ""}`)
     return response.data

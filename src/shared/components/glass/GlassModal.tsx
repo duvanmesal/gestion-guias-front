@@ -1,6 +1,6 @@
 "use client"
 
-import { type ReactNode, useEffect } from "react"
+import { type ReactNode, useEffect, useRef, useState } from "react"
 import { X } from "lucide-react"
 
 interface GlassModalProps {
@@ -20,16 +20,43 @@ export function GlassModal({
   description,
   size = "md",
 }: GlassModalProps) {
+  const [mounted, setMounted] = useState(isOpen)
+  const [shown, setShown] = useState(false)
+  const [reduce, setReduce] = useState(false)
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // prefers-reduced-motion
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)")
+    setReduce(mq.matches)
+    const h = () => setReduce(mq.matches)
+    mq.addEventListener?.("change", h)
+    return () => mq.removeEventListener?.("change", h)
+  }, [])
+
+  const D_IN = reduce ? 0 : 340
+  const D_OUT = reduce ? 0 : 240
+
+  // Mount on open, keep mounted during the exit transition, then unmount.
   useEffect(() => {
     if (isOpen) {
-      document.body.style.overflow = "hidden"
+      if (closeTimer.current) clearTimeout(closeTimer.current)
+      setMounted(true)
+      requestAnimationFrame(() => requestAnimationFrame(() => setShown(true)))
     } else {
-      document.body.style.overflow = "unset"
+      setShown(false)
+      if (closeTimer.current) clearTimeout(closeTimer.current)
+      closeTimer.current = setTimeout(() => setMounted(false), D_OUT)
     }
-    return () => {
-      document.body.style.overflow = "unset"
-    }
-  }, [isOpen])
+  }, [isOpen, D_OUT])
+
+  useEffect(() => () => { if (closeTimer.current) clearTimeout(closeTimer.current) }, [])
+
+  // Lock body scroll while the modal occupies the screen.
+  useEffect(() => {
+    document.body.style.overflow = mounted ? "hidden" : "unset"
+    return () => { document.body.style.overflow = "unset" }
+  }, [mounted])
 
   // Handle escape key
   useEffect(() => {
@@ -42,7 +69,7 @@ export function GlassModal({
     return () => document.removeEventListener("keydown", handleEscape)
   }, [isOpen, onClose])
 
-  if (!isOpen) return null
+  if (!mounted) return null
 
   const sizeClasses = {
     sm: "max-w-md",
@@ -53,19 +80,35 @@ export function GlassModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[rgb(var(--color-bg)/0.8)] backdrop-blur-sm animate-fade-in-up"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
       aria-labelledby={title ? "modal-title" : undefined}
+      style={{
+        background: "rgb(var(--color-bg) / 0.72)",
+        backdropFilter: shown ? "blur(6px)" : "blur(0px)",
+        WebkitBackdropFilter: shown ? "blur(6px)" : "blur(0px)",
+        opacity: shown ? 1 : 0,
+        transition: `opacity var(--motion-overlay) var(--ease-out-soft), backdrop-filter var(--motion-overlay) var(--ease-out-soft)`,
+        willChange: "opacity",
+      }}
     >
       <div
-        className={`glass-strong p-6 rounded-2xl w-full ${sizeClasses[size]} animate-scale-in relative`}
+        className={`glass-strong rounded-2xl w-full ${sizeClasses[size]} relative flex flex-col max-h-[90dvh]`}
         onClick={(e) => e.stopPropagation()}
+        style={{
+          opacity: shown ? 1 : 0,
+          transform: shown ? "translateY(0) scale(1)" : "translateY(14px) scale(0.96)",
+          transformOrigin: "center",
+          boxShadow: "var(--shadow-modal), var(--glass-inner-highlight)",
+          transition: `opacity ${shown ? D_IN : D_OUT}ms ${shown ? "var(--ease-out-soft)" : "var(--ease-in-soft)"}, transform ${shown ? D_IN : D_OUT}ms ${shown ? "var(--ease-out-soft)" : "var(--ease-in-soft)"}`,
+          willChange: "transform, opacity",
+        }}
       >
         {/* Header */}
         {(title || true) && (
-          <div className="flex items-start justify-between mb-5">
+          <div className="flex items-start justify-between p-6 pb-5 shrink-0">
             <div>
               {title && (
                 <h2
@@ -83,7 +126,7 @@ export function GlassModal({
             </div>
             <button
               onClick={onClose}
-              className="p-2 rounded-lg hover:bg-[rgb(var(--color-glass-hover)/0.5)] transition-colors focus-ring -mr-2 -mt-1"
+              className="p-2 rounded-lg hover:bg-[rgb(var(--color-glass-hover)/0.5)] transition-colors focus-ring -mr-2 -mt-1 active:scale-90"
               aria-label="Cerrar"
             >
               <X className="w-5 h-5 text-[rgb(var(--color-muted))]" />
@@ -91,8 +134,13 @@ export function GlassModal({
           </div>
         )}
 
-        {/* Content */}
-        {children}
+        {/* Content (scroll vertical real dentro del viewport) */}
+        <div
+          className="overflow-y-auto px-6 pb-6 min-h-0 modal-stagger"
+          style={{ overscrollBehavior: "contain", WebkitOverflowScrolling: "touch" }}
+        >
+          {children}
+        </div>
       </div>
     </div>
   )

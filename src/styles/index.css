@@ -307,7 +307,7 @@
    ============================================ */
 
 @keyframes fade-in-up {
-  from { opacity: 0; transform: translateY(14px); }
+  from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
@@ -331,10 +331,151 @@
   100% { background-position:  500px 0; }
 }
 
-.animate-fade-in-up  { animation: fade-in-up   0.3s ease-out forwards; }
-.animate-scale-in    { animation: scale-in      0.25s ease-out forwards; }
-.animate-slide-in    { animation: slide-in-right 0.25s ease-out forwards; }
-.animate-slide-in-left { animation: slide-in-left 0.28s ease-out forwards; }
+.animate-fade-in-up    { animation: fade-in-up    0.22s ease-out both; }
+.animate-scale-in      { animation: scale-in       0.22s ease-out both; }
+.animate-slide-in      { animation: slide-in-right 0.28s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.animate-slide-in-left { animation: slide-in-left  0.28s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+/* content-related: bars fill with data */
+@keyframes bar-fill {
+  from { width: 0%; }
+}
+.animate-bar-fill { animation: bar-fill 650ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+@keyframes bar-grow {
+  from { transform: scaleY(0); }
+}
+.animate-bar-grow {
+  animation: bar-grow 600ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  transform-origin: bottom center;
+}
+
+/* content-related: stacked bar reveals left to right */
+@keyframes reveal-ltr {
+  from { clip-path: inset(0 100% 0 0); }
+  to   { clip-path: inset(0 0% 0 0); }
+}
+.animate-reveal-ltr { animation: reveal-ltr 700ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+/* content-related: numeric values spring in */
+@keyframes num-pop {
+  0%   { opacity: 0; transform: scale(0.82) translateY(6px); }
+  65%  { opacity: 1; transform: scale(1.06); }
+  100% { opacity: 1; transform: scale(1)    translateY(0); }
+}
+.animate-num-pop { animation: num-pop 380ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+
+/* ============================================
+   Motion tokens & shared utilities
+   ============================================ */
+
+:root {
+  /* Durations */
+  --motion-instant: 90ms;
+  --motion-fast:    150ms;
+  --motion-base:    240ms;
+  --motion-panel:   340ms;
+  --motion-overlay: 300ms;
+  --motion-stagger: 45ms;
+
+  /* Easings */
+  --ease-out-soft:    cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-soft:     cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-spring-soft: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-emphasized:  cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  /* Depth */
+  --shadow-floating:   0 10px 30px -12px rgba(15, 23, 42, 0.22), 0 4px 10px -4px rgba(15, 23, 42, 0.10);
+  --shadow-modal:      0 28px 70px -20px rgba(15, 23, 42, 0.32), 0 10px 28px -12px rgba(15, 23, 42, 0.18);
+  --shadow-interactive: 0 4px 14px -4px rgba(15, 23, 42, 0.16);
+  --glass-inner-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.55);
+  --glass-active-border: rgba(var(--color-primary), 0.40);
+}
+
+.dark {
+  --shadow-floating:   0 12px 34px -12px rgba(0, 0, 0, 0.62), 0 4px 12px -4px rgba(0, 0, 0, 0.5);
+  --shadow-modal:      0 32px 80px -20px rgba(0, 0, 0, 0.72), 0 12px 32px -12px rgba(0, 0, 0, 0.55);
+  --shadow-interactive: 0 6px 18px -6px rgba(0, 0, 0, 0.55);
+  --glass-inner-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+@keyframes modal-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Semantic icon / value micro-pop */
+@keyframes motion-pop {
+  0%   { transform: scale(0.6); opacity: 0; }
+  60%  { transform: scale(1.12); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Inline error reveal (no layout jump) */
+@keyframes motion-error-in {
+  from { opacity: 0; transform: translateY(-3px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Toast life bar */
+@keyframes toast-progress {
+  from { transform: scaleX(1); }
+  to   { transform: scaleX(0); }
+}
+
+/* ── Motion utilities ── */
+
+/* Tactile press feedback for any clickable surface */
+.motion-pressable {
+  transition: transform var(--motion-fast) var(--ease-out-soft),
+              box-shadow var(--motion-fast) var(--ease-out-soft),
+              background-color var(--motion-fast) var(--ease-out-soft),
+              border-color var(--motion-fast) var(--ease-out-soft),
+              opacity var(--motion-fast) var(--ease-out-soft);
+}
+.motion-pressable:active { transform: translateY(0) scale(0.97); }
+.motion-pressable:disabled { transform: none; }
+.motion-pressable svg { transition: transform var(--motion-fast) var(--ease-out-soft); }
+
+/* List/menu option row with tactile slide */
+.motion-list-item {
+  transition: transform var(--motion-fast) var(--ease-out-soft),
+              background-color var(--motion-fast) var(--ease-out-soft),
+              color var(--motion-fast) var(--ease-out-soft);
+}
+.motion-list-item:hover { transform: translateX(2px); }
+.motion-list-item:hover .motion-icon { transform: translateX(1px); }
+
+/* Icon helper */
+.motion-icon {
+  transition: transform var(--motion-fast) var(--ease-out-soft),
+              color var(--motion-fast) var(--ease-out-soft);
+}
+
+.motion-pop { animation: motion-pop var(--motion-base) var(--ease-spring-soft) both; }
+.motion-error { animation: motion-error-in var(--motion-base) var(--ease-out-soft) both; }
+
+/* Cascade for form fields entering inside a modal */
+.modal-stagger form > * {
+  animation: modal-rise 0.34s var(--ease-out-soft) both;
+}
+.modal-stagger form > *:nth-child(1) { animation-delay: 0.03s; }
+.modal-stagger form > *:nth-child(2) { animation-delay: 0.06s; }
+.modal-stagger form > *:nth-child(3) { animation-delay: 0.09s; }
+.modal-stagger form > *:nth-child(4) { animation-delay: 0.12s; }
+.modal-stagger form > *:nth-child(5) { animation-delay: 0.15s; }
+.modal-stagger form > *:nth-child(6) { animation-delay: 0.18s; }
+.modal-stagger form > *:nth-child(7) { animation-delay: 0.21s; }
+.modal-stagger form > *:nth-child(8) { animation-delay: 0.24s; }
+.modal-stagger form > *:nth-child(n+9) { animation-delay: 0.27s; }
+
+/* Cascade for the stacked blocks of a dropdown menu (UserMenu) */
+.menu-pop > * {
+  animation: modal-rise 0.26s var(--ease-out-soft) both;
+}
+.menu-pop > *:nth-child(1) { animation-delay: 0.02s; }
+.menu-pop > *:nth-child(2) { animation-delay: 0.06s; }
+.menu-pop > *:nth-child(3) { animation-delay: 0.10s; }
 
 /* Skeleton */
 .skeleton {

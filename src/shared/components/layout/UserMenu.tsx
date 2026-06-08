@@ -20,14 +20,44 @@ export function UserMenu() {
   const navigate = useNavigate()
   const { user, logout } = useAuth()
   const [open, setOpen] = useState(false)
+  const [mounted, setMounted] = useState(false)
+  const [shown, setShown] = useState(false)
+  const [reduce, setReduce] = useState(false)
   const [theme, setTheme] = useState<"dark" | "light">(
     () => (localStorage.getItem("theme") as "dark" | "light") || "light"
   )
   const containerRef = useRef<HTMLDivElement>(null)
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     applyTheme(theme)
   }, [theme])
+
+  // prefers-reduced-motion
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)")
+    setReduce(mq.matches)
+    const h = () => setReduce(mq.matches)
+    mq.addEventListener?.("change", h)
+    return () => mq.removeEventListener?.("change", h)
+  }, [])
+
+  const DURATION = reduce ? 0 : 240
+
+  // Drive mount/visibility so the menu can animate in and out.
+  useEffect(() => {
+    if (open) {
+      if (closeTimer.current) clearTimeout(closeTimer.current)
+      setMounted(true)
+      requestAnimationFrame(() => requestAnimationFrame(() => setShown(true)))
+    } else {
+      setShown(false)
+      if (closeTimer.current) clearTimeout(closeTimer.current)
+      closeTimer.current = setTimeout(() => setMounted(false), DURATION)
+    }
+  }, [open, DURATION])
+
+  useEffect(() => () => { if (closeTimer.current) clearTimeout(closeTimer.current) }, [])
 
   useEffect(() => {
     if (!open) return
@@ -123,14 +153,19 @@ export function UserMenu() {
         />
       </button>
 
-      {open && (
+      {mounted && (
         <div
           role="menu"
-          className="absolute right-0 mt-2 w-72 rounded-2xl overflow-hidden z-50 animate-fade-in-up"
+          className="absolute right-0 mt-2 w-72 rounded-2xl overflow-hidden z-50 menu-pop"
           style={{
             background: "rgb(var(--color-bg-elevated))",
             border: "1px solid rgba(var(--color-border), 0.08)",
             boxShadow: "var(--shadow-lg)",
+            transformOrigin: "top right",
+            opacity: shown ? 1 : 0,
+            transform: shown ? "translateY(0) scale(1)" : "translateY(-10px) scale(0.95)",
+            transition: `opacity ${DURATION}ms var(--ease-out-soft), transform ${DURATION}ms var(--ease-out-soft)`,
+            willChange: "transform, opacity",
           }}
         >
           {/* Identity block */}
@@ -218,7 +253,7 @@ function MenuButton({
       type="button"
       role="menuitem"
       onClick={onClick}
-      className="flex items-center gap-2.5 w-full px-3 py-2.5 mx-1 rounded-lg text-sm font-medium transition-colors focus-ring text-left"
+      className="motion-list-item flex items-center gap-2.5 w-full px-3 py-2.5 mx-1 rounded-lg text-sm font-medium focus-ring text-left"
       style={{ color, width: "calc(100% - 8px)" }}
       onMouseEnter={(e) => {
         ;(e.currentTarget as HTMLButtonElement).style.background = hoverBg
@@ -227,7 +262,7 @@ function MenuButton({
         ;(e.currentTarget as HTMLButtonElement).style.background = "transparent"
       }}
     >
-      <span className="shrink-0" style={{ color }}>
+      <span className="motion-icon shrink-0" style={{ color }}>
         {icon}
       </span>
       <span>{label}</span>
@@ -254,7 +289,7 @@ function MenuToggle({
       role="menuitemcheckbox"
       aria-checked={isOn}
       onClick={onClick}
-      className="flex items-center justify-between gap-2 w-full px-3 py-2.5 mx-1 rounded-lg text-sm font-medium transition-colors focus-ring text-left"
+      className="motion-list-item flex items-center justify-between gap-2 w-full px-3 py-2.5 mx-1 rounded-lg text-sm font-medium focus-ring text-left"
       style={{ color: "rgb(var(--color-fg))", width: "calc(100% - 8px)" }}
       onMouseEnter={(e) => {
         ;(e.currentTarget as HTMLButtonElement).style.background =
@@ -265,7 +300,7 @@ function MenuToggle({
       }}
     >
       <span className="flex items-center gap-2.5">
-        <span className="shrink-0" style={{ color: "rgb(var(--color-fg))" }}>
+        <span className="motion-icon shrink-0" style={{ color: "rgb(var(--color-fg))" }}>
           {icon}
         </span>
         <span>{label}</span>
@@ -287,8 +322,12 @@ function MenuToggle({
           }}
         >
           <span
-            className="absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all"
-            style={{ left: isOn ? "18px" : "2px", boxShadow: "0 1px 2px rgba(0,0,0,0.2)" }}
+            className="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white"
+            style={{
+              transform: isOn ? "translateX(16px)" : "translateX(0)",
+              transition: "transform var(--motion-base) var(--ease-spring-soft)",
+              boxShadow: "0 1px 2px rgba(0,0,0,0.2)",
+            }}
           />
         </span>
       </span>

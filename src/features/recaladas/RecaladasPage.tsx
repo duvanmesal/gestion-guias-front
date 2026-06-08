@@ -17,6 +17,7 @@ import { useAuthStore } from "@/app/stores/auth-store"
 import { Rol } from "@/core/models/auth"
 import { useRecaladaSocket } from "@/hooks/use-recalada-socket"
 import type { RecaladaOperativeStatus } from "@/core/models/recaladas"
+import { RECALADA_STATUS_COPY } from "./recalada-status-copy"
 import { RecaladaCard } from "./components/RecaladaCard"
 import { RecaladaFormDialog } from "./components/RecaladaFormDialog"
 
@@ -89,10 +90,10 @@ export function RecaladasPage() {
 
   const statusOptions = [
     { value: "", label: "Todos los estados" },
-    { value: "SCHEDULED", label: "Programada" },
-    { value: "ARRIVED", label: "Arribada" },
-    { value: "DEPARTED", label: "Zarpada" },
-    { value: "CANCELED", label: "Cancelada" },
+    { value: "SCHEDULED", label: RECALADA_STATUS_COPY.SCHEDULED.singular },
+    { value: "ARRIVED", label: RECALADA_STATUS_COPY.ARRIVED.singular },
+    { value: "DEPARTED", label: RECALADA_STATUS_COPY.DEPARTED.singular },
+    { value: "CANCELED", label: RECALADA_STATUS_COPY.CANCELED.singular },
   ]
 
   const buqueOptions = buquesLookup.map((b) => ({
@@ -101,7 +102,10 @@ export function RecaladasPage() {
   }))
 
   const statusLabel: Record<string, string> = {
-    SCHEDULED: "Programada", ARRIVED: "Arribada", DEPARTED: "Zarpada", CANCELED: "Cancelada",
+    SCHEDULED: RECALADA_STATUS_COPY.SCHEDULED.singular,
+    ARRIVED: RECALADA_STATUS_COPY.ARRIVED.singular,
+    DEPARTED: RECALADA_STATUS_COPY.DEPARTED.singular,
+    CANCELED: RECALADA_STATUS_COPY.CANCELED.singular,
   }
 
   const activeChips = [
@@ -169,7 +173,7 @@ export function RecaladasPage() {
                 </span>
               </div>
               <p className="mt-1 text-[12.5px] leading-snug text-[rgb(var(--color-muted))]">
-                Buques arribados con salida programada vencida.
+                Buques con llegada registrada y zarpe programado vencido.
               </p>
             </div>
             <button
@@ -272,7 +276,7 @@ export function RecaladasPage() {
                 </p>
                 <p className="text-sm text-[rgb(var(--color-muted))] mb-4">
                   {overdueOnly
-                    ? "No existen recaladas arribadas con salida programada vencida para los filtros actuales."
+                    ? "No existen recaladas con llegada registrada y zarpe programado vencido para los filtros actuales."
                     : "Comienza programando la primera recalada"}
                 </p>
                 {overdueOnly ? (

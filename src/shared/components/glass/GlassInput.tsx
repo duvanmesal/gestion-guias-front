@@ -68,15 +68,24 @@ export const GlassInput = forwardRef<HTMLInputElement, GlassInputProps>(
               background: error ? "rgba(var(--color-danger), 0.03)" : "rgb(var(--color-bg-elevated))",
               border: `1.5px solid ${borderColor}`,
               borderRadius: "var(--radius-md)",
-              transition: "border-color 0.15s, box-shadow 0.15s",
+              transition:
+                "border-color 0.18s var(--ease-out-soft), box-shadow 0.18s var(--ease-out-soft), background-color 0.18s var(--ease-out-soft)",
               boxShadow,
               position: "relative",
             }}
           >
             {leftIcon && (
               <span
-                className="absolute left-3.5 top-1/2 -translate-y-1/2"
-                style={{ color: "rgb(var(--color-muted))" }}
+                className="absolute left-3.5 top-1/2"
+                style={{
+                  color: error
+                    ? "rgb(var(--color-danger))"
+                    : isFocused
+                    ? "rgb(var(--color-primary))"
+                    : "rgb(var(--color-muted))",
+                  transform: isFocused ? "translateY(-50%) scale(1.08)" : "translateY(-50%) scale(1)",
+                  transition: "color var(--motion-fast) var(--ease-out-soft), transform var(--motion-fast) var(--ease-out-soft)",
+                }}
               >
                 {leftIcon}
               </span>
@@ -124,10 +133,10 @@ export const GlassInput = forwardRef<HTMLInputElement, GlassInputProps>(
 
         {error && (
           <p
-            className="mt-1.5 text-xs font-medium flex items-center gap-1 animate-fade-in-up"
+            className="mt-1.5 text-xs font-medium flex items-center gap-1 motion-error"
             style={{ color: "rgb(var(--color-danger))" }}
           >
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="motion-pop w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             {error}
