@@ -1,8 +1,8 @@
 "use client"
 
-import { useMemo, useState } from "react"
-import { useNavigate } from "react-router-dom"
-import { CalendarClock, RefreshCw, Search } from "lucide-react"
+import { useEffect, useMemo, useState } from "react"
+import { useNavigate, useSearchParams } from "react-router-dom"
+import { CalendarClock, ClipboardCheck, RefreshCw, Search, X } from "lucide-react"
 
 import { AppShell } from "@/shared/components/layout/AppShell"
 import {
@@ -34,33 +34,70 @@ function toEndOfDay(value: string) {
   return value ? `${value}T23:59:59.999Z` : undefined
 }
 
+function isTruthyParam(value: string | null): boolean {
+  return ["1", "true"].includes((value ?? "").toLowerCase())
+}
+
 export function AtencionesPage() {
   const navigate = useNavigate()
-  const [status, setStatus] = useState("")
-  const [from, setFrom] = useState("")
-  const [to, setTo] = useState("")
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  const [status, setStatus] = useState(() => searchParams.get("operationalStatus") ?? "")
+  const [from, setFrom] = useState(() => searchParams.get("from") ?? "")
+  const [to, setTo] = useState(() => searchParams.get("to") ?? "")
+  const [recaladaId, setRecaladaId] = useState<number | undefined>(() => {
+    const raw = Number(searchParams.get("recaladaId"))
+    return Number.isFinite(raw) && raw > 0 ? raw : undefined
+  })
+  const [pendingEval, setPendingEval] = useState(() =>
+    isTruthyParam(searchParams.get("pendingEval")),
+  )
   const [page, setPage] = useState(1)
+
+  // Sincroniza los filtros provenientes de alertas con la URL en ambos sentidos.
+  useEffect(() => {
+    const nextPending = isTruthyParam(searchParams.get("pendingEval"))
+    const nextRecalada = Number(searchParams.get("recaladaId"))
+    const nextStatus = searchParams.get("operationalStatus") ?? ""
+
+    setPendingEval(nextPending)
+    setRecaladaId(Number.isFinite(nextRecalada) && nextRecalada > 0 ? nextRecalada : undefined)
+    setStatus(nextStatus)
+    setPage(1)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams])
 
   const queryParams = useMemo(
     () => ({
       page,
       pageSize: 12,
       operationalStatus: status ? (status as AtencionOperativeStatus) : undefined,
+      recaladaId,
+      pendingEval: pendingEval || undefined,
       from: toStartOfDay(from),
       to: toEndOfDay(to),
     }),
-    [from, page, status, to],
+    [from, page, status, to, recaladaId, pendingEval],
   )
 
   const { atenciones, meta, isLoading, error, refetch } = useAtenciones(queryParams)
 
   const totalPages = meta?.totalPages ?? 1
 
+  const clearUrlFilters = (...keys: string[]) => {
+    const next = new URLSearchParams(searchParams)
+    for (const k of keys) next.delete(k)
+    setSearchParams(next, { replace: true })
+  }
+
   const resetFilters = () => {
     setStatus("")
     setFrom("")
     setTo("")
+    setRecaladaId(undefined)
+    setPendingEval(false)
     setPage(1)
+    clearUrlFilters("operationalStatus", "from", "to", "recaladaId", "pendingEval")
   }
 
   return (
@@ -80,6 +117,25 @@ export function AtencionesPage() {
             Refrescar
           </GlassButton>
         </div>
+
+        {(pendingEval || recaladaId) && (
+          <div className="flex flex-wrap items-center gap-3 rounded-xl border border-[rgb(var(--color-warning)/0.28)] bg-[rgb(var(--color-warning)/0.06)] px-4 py-3">
+            <ClipboardCheck className="w-5 h-5 shrink-0 text-[rgb(var(--color-warning))]" />
+            <p className="flex-1 text-sm text-[rgb(var(--color-fg))]">
+              {pendingEval
+                ? "Mostrando atenciones cerradas pendientes de evaluación."
+                : `Mostrando atenciones de la recalada #${recaladaId}.`}
+            </p>
+            <button
+              type="button"
+              onClick={resetFilters}
+              className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-[rgb(var(--color-warning))] focus-ring transition-colors hover:bg-[rgb(var(--color-warning)/0.1)]"
+            >
+              <X className="w-3.5 h-3.5" />
+              Quitar filtro
+            </button>
+          </div>
+        )}
 
         <GlassCard>
           <GlassCardHeader>

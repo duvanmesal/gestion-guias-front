@@ -14,15 +14,39 @@ import { X, CheckCircle, AlertCircle, Info, AlertTriangle } from "lucide-react"
 
 type ToastType = "success" | "error" | "info" | "warning"
 
+export interface ToastAction {
+  label: string
+  onClick: () => void
+}
+
+export interface ToastOptions {
+  /**
+   * Clave de deduplicación. Si se repite dentro de `cooldownMs`, el toast no
+   * se vuelve a mostrar (silencio temporal). Sin `id` no hay deduplicación.
+   */
+  id?: string
+  title?: string
+  action?: ToastAction
+  duration?: number
+  /** Ventana de silencio (ms) por `id`. */
+  cooldownMs?: number
+}
+
 interface Toast {
   id: string
   type: ToastType
   message: string
+  title?: string
+  action?: ToastAction
   duration?: number
 }
 
 interface ToastContextType {
-  showToast: (type: ToastType, message: string, duration?: number) => void
+  showToast: (
+    type: ToastType,
+    message: string,
+    durationOrOptions?: number | ToastOptions,
+  ) => void
 }
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined)
@@ -37,11 +61,37 @@ export function useToast() {
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([])
+  // Última vez (ms) que se mostró cada `id` con cooldown activo.
+  const lastShownById = useRef<Map<string, number>>(new Map())
 
   const showToast = useCallback(
-    (type: ToastType, message: string, duration = 5000) => {
+    (
+      type: ToastType,
+      message: string,
+      durationOrOptions?: number | ToastOptions,
+    ) => {
+      const opts: ToastOptions =
+        typeof durationOrOptions === "number"
+          ? { duration: durationOrOptions }
+          : durationOrOptions ?? {}
+
+      // Ventana de silencio: si el mismo `id` se mostró hace poco, no repetir.
+      if (opts.id && opts.cooldownMs && opts.cooldownMs > 0) {
+        const now = Date.now()
+        const last = lastShownById.current.get(opts.id)
+        if (last !== undefined && now - last < opts.cooldownMs) return
+        lastShownById.current.set(opts.id, now)
+      }
+
       const id = Math.random().toString(36).substring(7)
-      const toast: Toast = { id, type, message, duration }
+      const toast: Toast = {
+        id,
+        type,
+        message,
+        title: opts.title,
+        action: opts.action,
+        duration: opts.duration ?? 5000,
+      }
 
       setToasts((prev) => [...prev, toast])
       // Auto-dismiss is handled inside ToastItem so it can animate out first.
@@ -163,12 +213,38 @@ function ToastItem({ toast, onClose }: { toast: Toast; onClose: () => void }) {
       <div className={`p-1 rounded ${config.bg} ${show ? "motion-pop" : ""}`}>
         <Icon className={`w-4 h-4 ${config.color}`} />
       </div>
-      <p className="flex-1 text-sm text-[rgb(var(--color-fg))] font-medium">
-        {toast.message}
-      </p>
+      <div className="flex-1 min-w-0">
+        {toast.title && (
+          <p className="text-sm font-semibold text-[rgb(var(--color-fg))] leading-tight">
+            {toast.title}
+          </p>
+        )}
+        <p
+          className={`text-sm text-[rgb(var(--color-fg))] ${
+            toast.title ? "mt-0.5 text-[rgb(var(--color-muted))] font-normal" : "font-medium"
+          }`}
+        >
+          {toast.message}
+        </p>
+        {toast.action && (
+          <button
+            onClick={() => {
+              toast.action?.onClick()
+              beginClose()
+            }}
+            className="mt-2 inline-flex items-center text-xs font-semibold focus-ring motion-pressable rounded px-2 py-1"
+            style={{
+              color: `rgb(${config.accent})`,
+              background: `rgb(${config.accent} / 0.12)`,
+            }}
+          >
+            {toast.action.label}
+          </button>
+        )}
+      </div>
       <button
         onClick={beginClose}
-        className="p-1 rounded hover:bg-[rgb(var(--color-glass-hover)/0.5)] transition-colors focus-ring motion-pressable"
+        className="p-1 rounded hover:bg-[rgb(var(--color-glass-hover)/0.5)] transition-colors focus-ring motion-pressable shrink-0"
         aria-label="Cerrar"
       >
         <X className="w-4 h-4 text-[rgb(var(--color-muted))]" />

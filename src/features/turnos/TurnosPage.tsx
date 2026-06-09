@@ -1,7 +1,8 @@
 // src/features/turnos/TurnosPage.tsx
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
+import { useSearchParams } from "react-router-dom"
 import { Clock, Filter, Users } from "lucide-react"
 import { useQuery } from "@tanstack/react-query"
 
@@ -35,19 +36,27 @@ function getTodayDateInputValue() {
 
 export function TurnosPage() {
   const { user } = useAuthStore()
+  const [searchParams] = useSearchParams()
 
-  const [statusFilter, setStatusFilter] = useState<string>("")
-  const [atencionFilter, setAtencionFilter] = useState<string>("")
-  const [guiaFilter, setGuiaFilter] = useState<string>("")
-  const [buqueFilter, setBuqueFilter] = useState<string>("")
-  const [dateFrom, setDateFrom] = useState<string>("")
-  const [dateTo, setDateTo] = useState<string>("")
+  const [statusFilter, setStatusFilter] = useState<string>(() => searchParams.get("status") ?? "")
+  const [atencionFilter, setAtencionFilter] = useState<string>(() => searchParams.get("atencionId") ?? "")
+  const [guiaFilter, setGuiaFilter] = useState<string>(() => searchParams.get("guiaId") ?? "")
+  const [buqueFilter, setBuqueFilter] = useState<string>(() => searchParams.get("buqueId") ?? "")
+  const [dateFrom, setDateFrom] = useState<string>(() => searchParams.get("dateFrom") ?? "")
+  const [dateTo, setDateTo] = useState<string>(() => searchParams.get("dateTo") ?? "")
   const [dateField, setDateField] = useState<string>("overlap")
   const [page, setPage] = useState(1)
   const pageSize = 24
 
   const isSupervisor = user?.rol === Rol.SUPER_ADMIN || user?.rol === Rol.SUPERVISOR
   const isGuia = user?.rol === Rol.GUIA
+
+  // Alerta accionable: al llegar con ?checkInPending=1 enfocamos la sección de
+  // check-ins pendientes para que el supervisor actúe de inmediato.
+  const pendingSectionRef = useRef<HTMLElement>(null)
+  const checkInPending = ["1", "true"].includes(
+    (searchParams.get("checkInPending") ?? "").toLowerCase(),
+  )
 
   const { data: atencionesResp, isLoading: loadingAtenciones } = useQuery({
     queryKey: ["atenciones", { pageSize: 100 }],
@@ -90,6 +99,12 @@ export function TurnosPage() {
     isSupervisor ? { pageSize: 20 } : undefined,
   )
   const pendingItems = isSupervisor ? pendingResp?.data ?? [] : []
+
+  useEffect(() => {
+    if (checkInPending && pendingItems.length > 0) {
+      pendingSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+    }
+  }, [checkInPending, pendingItems.length])
 
   const hasActiveFilters = !!(statusFilter || atencionFilter || guiaFilter || buqueFilter || dateFrom || dateTo)
 
@@ -204,11 +219,18 @@ export function TurnosPage() {
         {/* Pending check-ins (Epica 5) */}
         {isSupervisor && pendingItems.length > 0 && (
           <section
-            className="animate-fade-in-up"
+            ref={pendingSectionRef}
+            className="animate-fade-in-up scroll-mt-20"
             style={{ animationDelay: "0.02s" }}
             aria-label="Check-ins pendientes de confirmación"
           >
-            <GlassCard className="border border-[rgb(var(--color-warning)/0.28)] bg-[rgb(var(--color-warning)/0.04)]">
+            <GlassCard
+              className={`border bg-[rgb(var(--color-warning)/0.04)] transition-shadow ${
+                checkInPending
+                  ? "border-[rgb(var(--color-warning)/0.55)] ring-2 ring-[rgb(var(--color-warning)/0.35)]"
+                  : "border-[rgb(var(--color-warning)/0.28)]"
+              }`}
+            >
               <div className="space-y-4">
                 <header className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2.5">

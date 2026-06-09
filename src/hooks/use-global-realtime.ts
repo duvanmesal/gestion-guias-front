@@ -3,6 +3,8 @@ import { useQueryClient } from "@tanstack/react-query"
 import { socketClient } from "@/core/socket/socket.client"
 import { useAuthStore } from "@/app/stores/auth-store"
 import { useToast } from "@/shared/components/feedback/Toast"
+import { useAlertStore } from "@/app/stores/alert-store"
+import { router } from "@/app/router/routes"
 
 interface TurnoSocketPayload {
   turnoId: number
@@ -63,6 +65,45 @@ interface OpNotifPayload {
   atencionId?: number | null
   turnoId?: number | null
 }
+
+type AlertSeverity = "info" | "success" | "warning"
+
+const DETAIL_ROUTE = /^\/(recaladas|atenciones|turnos)\/\d+(\?.*)?$/
+
+/**
+ * Normaliza la ruta de una notificación a una ruta web válida para evitar 404.
+ * - GUIDE_PENALIZED / rutas `/perfil*` (sólo existen en mobile) → `/profile`.
+ * - Rutas de detalle conocidas pasan tal cual.
+ * - En último caso se reconstruye desde los ids del payload.
+ */
+function normalizeAlertRoute(payload: OpNotifPayload): string | null {
+  const raw = payload.route ?? ""
+
+  if (payload.type === "GUIDE_PENALIZED" || raw.startsWith("/perfil")) {
+    return "/profile"
+  }
+
+  if (DETAIL_ROUTE.test(raw)) return raw
+
+  if (payload.turnoId) return `/turnos/${payload.turnoId}`
+  if (payload.atencionId) return `/atenciones/${payload.atencionId}`
+  if (payload.recaladaId) return `/recaladas/${payload.recaladaId}`
+
+  if (
+    raw.startsWith("/recaladas") ||
+    raw.startsWith("/atenciones") ||
+    raw.startsWith("/turnos")
+  ) {
+    return raw
+  }
+
+  return null
+}
+
+// Las alertas job-driven repiten; mantenemos un único toast visible por
+// ventana. Las dirigidas al usuario llevan id único, basta una ventana corta.
+const JOB_ALERT_TOAST_COOLDOWN_MS = 5 * 60 * 1000
+const USER_ALERT_TOAST_COOLDOWN_MS = 15 * 1000
 
 export function useGlobalRealtime() {
   const queryClient = useQueryClient()
@@ -266,17 +307,39 @@ export function useGlobalRealtime() {
     socket.on("catalog:muelle:updated", invalidateMuelle)
     socket.on("catalog:muelle:removed", invalidateMuelle)
 
-    // Epica 7 — Notificaciones operativas. Cada handler dispara un toast
-    // informacional y refresca la cache de la entidad afectada para que la
-    // UI quede al día sin esperar al próximo poll.
-    const opNotifInfo = (payload: OpNotifPayload) => {
-      showToast("info", payload.body, 6000)
+    // Epica 7 — Notificaciones operativas. Cada handler registra una alerta
+    // accionable en la bandeja, dispara un toast con botón "Ver" que navega a
+    // su contexto y refresca la cache de la entidad afectada para que la UI
+    // quede al día sin esperar al próximo poll.
+    const emitAlert = (
+      payload: OpNotifPayload,
+      severity: AlertSeverity,
+      cooldownMs: number,
+    ) => {
+      const route = normalizeAlertRoute(payload)
+
+      useAlertStore.getState().pushAlert({
+        notificationId: payload.notificationId,
+        type: payload.type,
+        severity,
+        title: payload.title,
+        body: payload.body,
+        route,
+      })
+
+      showToast(severity, payload.body, {
+        id: payload.notificationId,
+        title: payload.title,
+        cooldownMs,
+        duration: severity === "warning" ? 8000 : 6000,
+        action: route
+          ? { label: "Ver", onClick: () => router.navigate(route) }
+          : undefined,
+      })
     }
-    const opNotifWarning = (payload: OpNotifPayload) => {
-      showToast("warning", payload.body, 8000)
-    }
+
     const handleOpNotifAtencionAvailable = (payload: OpNotifPayload) => {
-      showToast("success", payload.body, 6000)
+      emitAlert(payload, "success", USER_ALERT_TOAST_COOLDOWN_MS)
       queryClient.invalidateQueries({ queryKey: ["atenciones"] })
       queryClient.invalidateQueries({ queryKey: ["dashboard-overview"] })
       if (payload.atencionId) {
@@ -284,7 +347,7 @@ export function useGlobalRealtime() {
       }
     }
     const handleOpNotifTurno = (payload: OpNotifPayload) => {
-      opNotifInfo(payload)
+      emitAlert(payload, "info", USER_ALERT_TOAST_COOLDOWN_MS)
       queryClient.invalidateQueries({ queryKey: ["turnos"] })
       queryClient.invalidateQueries({ queryKey: ["turnos-me"] })
       queryClient.invalidateQueries({ queryKey: ["turnos-me-next"] })
@@ -294,22 +357,22 @@ export function useGlobalRealtime() {
       }
     }
     const handleOpNotifCheckInPending = (payload: OpNotifPayload) => {
-      opNotifWarning(payload)
+      emitAlert(payload, "warning", USER_ALERT_TOAST_COOLDOWN_MS)
       queryClient.invalidateQueries({ queryKey: ["turnos-checkins-pending"] })
       queryClient.invalidateQueries({ queryKey: ["dashboard-overview"] })
     }
     const handleOpNotifPenalty = (payload: OpNotifPayload) => {
-      opNotifWarning(payload)
+      emitAlert(payload, "warning", USER_ALERT_TOAST_COOLDOWN_MS)
       queryClient.invalidateQueries({ queryKey: ["me"] })
       queryClient.invalidateQueries({ queryKey: ["users-guides"] })
     }
     const handleOpNotifRecaladaOverdue = (payload: OpNotifPayload) => {
-      opNotifWarning(payload)
+      emitAlert(payload, "warning", JOB_ALERT_TOAST_COOLDOWN_MS)
       queryClient.invalidateQueries({ queryKey: ["recaladas"] })
       queryClient.invalidateQueries({ queryKey: ["dashboard-overview"] })
     }
     const handleOpNotifAtencionNear = (payload: OpNotifPayload) => {
-      opNotifWarning(payload)
+      emitAlert(payload, "warning", JOB_ALERT_TOAST_COOLDOWN_MS)
       queryClient.invalidateQueries({ queryKey: ["atenciones"] })
       queryClient.invalidateQueries({ queryKey: ["dashboard-overview"] })
     }

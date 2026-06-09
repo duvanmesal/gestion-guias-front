@@ -18,14 +18,26 @@ interface AtencionSocketPayload {
   recaladaId: number
 }
 
+// Estable entre renders para no reenganchar los listeners del socket.
+const NOOP_TOAST = () => {}
+
 interface UseTurnoSocketOptions {
   atencionId?: number
+  /**
+   * Si es `false`, este hook sólo invalida cache y no dispara toasts. Útil
+   * cuando las alertas accionables `notif:*` (useGlobalRealtime) ya cubren la
+   * notificación visible y queremos evitar toasts duplicados.
+   */
+  notify?: boolean
 }
 
-export function useTurnoSocket({ atencionId }: UseTurnoSocketOptions = {}) {
+export function useTurnoSocket({ atencionId, notify = true }: UseTurnoSocketOptions = {}) {
   const queryClient = useQueryClient()
-  const { showToast } = useToast()
+  const { showToast: rawShowToast } = useToast()
   const { user } = useAuthStore()
+
+  // Silenciar toasts cuando notify === false, manteniendo la invalidación.
+  const showToast: typeof rawShowToast = notify ? rawShowToast : NOOP_TOAST
 
   useEffect(() => {
     const socket = socketClient.getSocket()
