@@ -84,6 +84,8 @@ export interface AtencionesQueryParams {
   supervisorId?: string
   status?: StatusType
   operationalStatus?: AtencionOperativeStatus
+  /** Atenciones cerradas sin evaluación registrada (pendientes de evaluar). */
+  pendingEval?: boolean
 }
 
 // Create Atencion Request

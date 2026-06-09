@@ -2,6 +2,7 @@
 
 import { Menu, Anchor } from "lucide-react"
 import { UserMenu } from "./UserMenu"
+import { AlertCenter } from "./AlertCenter"
 
 interface TopbarProps {
   onMenuClick: () => void
@@ -65,7 +66,10 @@ export function Topbar({ onMenuClick }: TopbarProps) {
         </div>
 
         {/* Right */}
-        <UserMenu />
+        <div className="flex items-center gap-1.5">
+          <AlertCenter />
+          <UserMenu />
+        </div>
       </div>
     </header>
   )

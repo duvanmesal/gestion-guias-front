@@ -292,10 +292,66 @@ Impacto: los gestores de contraseñas detectan correctamente el formulario y ofr
 
 ---
 
+## Alertas operativas accionables (Epica 7+)
+
+Fuente: `src/hooks/use-global-realtime.ts`, `src/app/stores/alert-store.ts`,
+`src/shared/components/layout/AlertCenter.tsx`,
+`src/shared/components/feedback/Toast.tsx`,
+`src/features/turnos/TurnosPage.tsx`, `src/features/atenciones/AtencionesPage.tsx`.
+
+Cada evento realtime `notif:*` se convierte en una **alerta accionable**:
+
+1. **Toast accionable.** `useGlobalRealtime` muestra un toast con título, cuerpo
+   y un botón **Ver** que navega al contexto (`router.navigate(route)`). El
+   `ToastProvider` admite un overload retrocompatible:
+   `showToast(type, message, duration)` sigue funcionando y se añade
+   `showToast(type, message, { id, title, action, cooldownMs, duration })`.
+   - `cooldownMs` + `id` silencian repeticiones del mismo `notificationId`
+     dentro de la ventana (job-driven: 5 min; dirigidas al usuario: 15 s).
+
+2. **Bandeja (campana en el Topbar).** `AlertCenter` lista las últimas 50
+   alertas de la **sesión** (en memoria, no persiste entre recargas). Muestra
+   contador de no leídas, acción **Ver**, marcar como leída/todas y eliminar.
+   Si el mismo `notificationId` llega de nuevo, sube al tope con contador `×N`.
+   El **dashboard** sigue siendo la fuente de las alertas agregadas; la bandeja
+   cubre los eventos recibidos en vivo.
+
+3. **Normalización de rutas (evita 404).** Rutas de detalle válidas
+   (`/recaladas/:id`, `/atenciones/:id`, `/turnos/:id`) pasan tal cual.
+   `GUIDE_PENALIZED` (y cualquier `route` `/perfil*`, que sólo existe en mobile)
+   se normaliza a `/profile`. Como respaldo se reconstruye desde los ids del
+   payload.
+
+### Filtros por query param activados desde alertas
+
+Las páginas leen query params para que una alerta abra su contexto ya filtrado:
+
+- **Turnos** (`/turnos`): `status`, `atencionId`, `guiaId`, `buqueId`,
+  `dateFrom`, `dateTo` inicializan los filtros. `checkInPending=1` hace scroll y
+  resalta la sección de check-ins pendientes (supervisor).
+- **Atenciones** (`/atenciones`): `operationalStatus`, `recaladaId`, `from`,
+  `to` y `pendingEval=1` (atenciones cerradas sin evaluar). Con `pendingEval` o
+  `recaladaId` activos se muestra un banner con opción "Quitar filtro".
+
+### Menos ruido
+
+- `useTurnoSocket` admite `notify: false`: mantiene la invalidación de cache
+  pero no dispara toasts, para evitar duplicados cuando los `notif:*` ya cubren
+  el aviso visible accionable.
+- Las alertas automáticas del job (recalada vencida, atención próxima con turnos
+  libres) llegan por socket como máximo cada 30 min por `notificationId`
+  (cooldown server-side, ver `gestionguias-api/docs/realtime.md`).
+
 ## Matriz de QA manual
 
 | Escenario | Resultado esperado |
 | --- | --- |
+| Llega `notif:recalada:overdue` | Toast con botón **Ver**; navega a `/recaladas/{id}`. |
+| Misma alerta repetida dentro del cooldown | No se repite el toast; la bandeja sube la entrada con contador `×N`. |
+| Abrir la campana del Topbar | Lista de alertas de la sesión; marcar leída/eliminar/limpiar funciona. |
+| Abrir `/turnos?checkInPending=1` | Hace scroll y resalta la sección de check-ins pendientes. |
+| Abrir `/atenciones?pendingEval=1` | Muestra atenciones cerradas sin evaluación y banner para quitar el filtro. |
+| Alerta `GUIDE_PENALIZED` | El botón **Ver** navega a `/profile`, no a `/perfil/penalizaciones`. |
 | Guia entra a Turnos con un turno futuro asignado | El turno aparece sin tener que seleccionar fecha manualmente. |
 | Guia entra a Turnos | No se dispara `GET /buques/lookup`; no hay `403` por buques. |
 | Supervisor entra a Turnos | Puede filtrar por atencion, guia, buque, estado y fechas. |
