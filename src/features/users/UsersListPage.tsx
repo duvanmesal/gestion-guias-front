@@ -12,6 +12,7 @@ import { useUsers } from "@/hooks/use-users"
 import { useGuidesLookup } from "@/hooks/use-guides"
 import { UserFormDialog } from "./UserFormDialog"
 import { DeleteUserDialog } from "./DeleteUserDialog"
+import { BulkImportGuidesDialog } from "./BulkImportGuidesDialog"
 import { Rol } from "@/core/models/auth"
 import type { User } from "@/core/models/auth"
 import type { ProfileStatus } from "@/core/models/users"
@@ -29,6 +30,7 @@ import {
   Users as UsersIcon,
   ChevronLeft,
   ChevronRight,
+  Upload,
 } from "lucide-react"
 import { useAuthStore } from "@/app/stores/auth-store"
 
@@ -141,6 +143,7 @@ export function UsersListPage() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<User | null>(null)
   const [deletingUser, setDeletingUser] = useState<User | null>(null)
+  const [isBulkImportOpen, setIsBulkImportOpen] = useState(false)
 
   const { users, meta, isLoading } = useUsers({
     q: q || undefined,
@@ -295,10 +298,16 @@ export function UsersListPage() {
           </div>
 
           {canCreateUser && (
-            <GlassButton variant="primary" onClick={() => setIsCreateDialogOpen(true)}>
-              <Plus className="w-4 h-4" />
-              Nuevo usuario
-            </GlassButton>
+            <div className="flex items-center gap-2">
+              <GlassButton variant="ghost" onClick={() => setIsBulkImportOpen(true)}>
+                <Upload className="w-4 h-4" />
+                Importar guías
+              </GlassButton>
+              <GlassButton variant="primary" onClick={() => setIsCreateDialogOpen(true)}>
+                <Plus className="w-4 h-4" />
+                Nuevo usuario
+              </GlassButton>
+            </div>
           )}
         </div>
 
@@ -870,6 +879,12 @@ export function UsersListPage() {
           setDeletingUser(null)
           showToast("success", "Usuario eliminado exitosamente")
         }}
+      />
+
+      <BulkImportGuidesDialog
+        isOpen={isBulkImportOpen}
+        onClose={() => setIsBulkImportOpen(false)}
+        onSuccess={() => showToast("success", "Importación de guías completada")}
       />
     </AppShell>
   )

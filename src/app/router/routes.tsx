@@ -15,6 +15,7 @@ import { PaisesPage } from "@/features/catalog/paises/PaisesPage"
 import { BuquesPage } from "@/features/catalog/buques/BuquesPage"
 import { PuertosPage } from "@/features/catalog/puertos/PuertosPage"
 import { MuellesPage } from "@/features/catalog/muelles/MuellesPage"
+import { SlotsPage } from "@/features/catalog/slots/SlotsPage"
 
 import { RecaladasPage } from "@/features/recaladas/RecaladasPage"
 import { RecaladaDetailPage } from "@/features/recaladas/RecaladaDetailPage"
@@ -175,6 +176,16 @@ export const router = createBrowserRouter([
       <ProtectedRoute>
         <RequireRoles allowedRoles={[Rol.SUPER_ADMIN, Rol.SUPERVISOR]}>
           <MuellesPage />
+        </RequireRoles>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/catalog/slots",
+    element: (
+      <ProtectedRoute>
+        <RequireRoles allowedRoles={[Rol.SUPER_ADMIN, Rol.SUPERVISOR]}>
+          <SlotsPage />
         </RequireRoles>
       </ProtectedRoute>
     ),

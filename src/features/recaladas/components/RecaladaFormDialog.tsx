@@ -13,8 +13,7 @@ import {
 } from "./RecaladaDateTimeField";
 import { useBuquesLookup } from "@/hooks/use-buques";
 import { usePaisesLookup } from "@/hooks/use-paises";
-import { usePuertosLookup } from "@/hooks/use-puertos";
-import { useMuellesLookup } from "@/hooks/use-muelles";
+import { useSlotsLookup } from "@/hooks/use-slots";
 import { useRecaladas } from "@/hooks/use-recaladas";
 import type {
   Recalada,
@@ -32,12 +31,10 @@ interface RecaladaFormDialogProps {
 type FormState = {
   buqueId: string;
   paisOrigenId: string;
-  puertoId: string;
-  muelleId: string;
+  slotId: string;
   fechaLlegada: string;
   fechaSalida: string;
   terminal: string;
-  muelle: string;
   pasajerosEstimados: string;
   tripulacionEstimada: string;
   observaciones: string;
@@ -51,7 +48,7 @@ export function RecaladaFormDialog({
 }: RecaladaFormDialogProps) {
   const { buques, isLoading: loadingBuques } = useBuquesLookup();
   const { paises, isLoading: loadingPaises } = usePaisesLookup();
-  const { puertos, isLoading: loadingPuertos } = usePuertosLookup();
+  const { slots, isLoading: loadingSlots } = useSlotsLookup();
   const { createRecaladaAsync, updateRecaladaAsync, isCreating, isUpdating } =
     useRecaladas();
 
@@ -60,12 +57,10 @@ export function RecaladaFormDialog({
   const [formData, setFormData] = useState<FormState>({
     buqueId: "",
     paisOrigenId: "",
-    puertoId: "",
-    muelleId: "",
+    slotId: "",
     fechaLlegada: "",
     fechaSalida: "",
     terminal: "",
-    muelle: "",
     pasajerosEstimados: "",
     tripulacionEstimada: "",
     observaciones: "",
@@ -82,12 +77,10 @@ export function RecaladaFormDialog({
         paisOrigenId: recalada.paisOrigenId
           ? String(recalada.paisOrigenId)
           : "",
-        puertoId: recalada.puertoId ? String(recalada.puertoId) : "",
-        muelleId: recalada.muelleId ? String(recalada.muelleId) : "",
+        slotId: recalada.slotId ? String(recalada.slotId) : "",
         fechaLlegada: isoToLocalInput(recalada.fechaLlegada),
         fechaSalida: isoToLocalInput(recalada.fechaSalida),
         terminal: recalada.terminal || "",
-        muelle: recalada.muelle || "",
         pasajerosEstimados:
           recalada.pasajerosEstimados != null
             ? String(recalada.pasajerosEstimados)
@@ -102,12 +95,10 @@ export function RecaladaFormDialog({
       setFormData({
         buqueId: "",
         paisOrigenId: "",
-        puertoId: "",
-        muelleId: "",
+        slotId: "",
         fechaLlegada: "",
         fechaSalida: "",
         terminal: "",
-        muelle: "",
         pasajerosEstimados: "",
         tripulacionEstimada: "",
         observaciones: "",
@@ -156,14 +147,12 @@ export function RecaladaFormDialog({
     const common = {
       buqueId: formData.buqueId,
       paisOrigenId: formData.paisOrigenId,
-      puertoId: formData.puertoId || undefined,
-      muelleId: formData.muelleId || undefined,
+      slotId: formData.slotId ? Number(formData.slotId) : undefined,
       fechaLlegada: new Date(formData.fechaLlegada).toISOString(),
       fechaSalida: formData.fechaSalida
         ? new Date(formData.fechaSalida).toISOString()
         : undefined,
       terminal: formData.terminal.trim() ? formData.terminal.trim() : undefined,
-      muelle: formData.muelle.trim() ? formData.muelle.trim() : undefined,
       pasajerosEstimados:
         formData.pasajerosEstimados.trim() !== ""
           ? Number(formData.pasajerosEstimados)
@@ -199,15 +188,10 @@ export function RecaladaFormDialog({
     label: `${p.nombre} (${p.codigo})`,
   }));
 
-  const puertoOptions = puertos.map((p) => ({
-    value: String(p.id),
-    label: `${p.nombre} (${p.codigo})`,
-  }));
-
-  const { muelles, isLoading: loadingMuelles } = useMuellesLookup(formData.puertoId || undefined);
-  const muelleOptions = muelles.map((m) => ({
-    value: String(m.id),
-    label: `${m.nombre} (${m.codigo})`,
+  const slotOptions = slots.map((s) => ({
+    value: String(s.id),
+    label: `Slot ${s.numero}${s.status !== "ACTIVO" ? " (inactivo)" : ""}`,
+    disabled: s.status !== "ACTIVO",
   }));
 
   return (
@@ -267,30 +251,15 @@ export function RecaladaFormDialog({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <SearchableCombobox
-              label="Puerto"
-              options={puertoOptions}
-              value={formData.puertoId}
-              onChange={(val) =>
-                setFormData({ ...formData, puertoId: val, muelleId: "" })
-              }
-              placeholder="Seleccionar puerto..."
-              disabled={loadingPuertos}
+              label="Slot operativo"
+              options={slotOptions}
+              value={formData.slotId}
+              onChange={(val) => setFormData({ ...formData, slotId: val })}
+              placeholder="Seleccionar slot (1-4)..."
+              disabled={loadingSlots}
             />
           </div>
 
-          <div>
-            <SearchableCombobox
-              label="Muelle de catálogo"
-              options={muelleOptions}
-              value={formData.muelleId}
-              onChange={(val) => setFormData({ ...formData, muelleId: val })}
-              placeholder={formData.puertoId ? "Seleccionar muelle..." : "Selecciona un puerto primero"}
-              disabled={!formData.puertoId || loadingMuelles}
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-[rgb(var(--color-fg))] mb-1">
               Terminal
@@ -302,20 +271,6 @@ export function RecaladaFormDialog({
                 setFormData({ ...formData, terminal: e.target.value })
               }
               placeholder="Ej: Terminal de Cruceros"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-[rgb(var(--color-fg))] mb-1">
-              Muelle
-            </label>
-            <GlassInput
-              type="text"
-              value={formData.muelle}
-              onChange={(e) =>
-                setFormData({ ...formData, muelle: e.target.value })
-              }
-              placeholder="Ej: Muelle 1"
             />
           </div>
         </div>
