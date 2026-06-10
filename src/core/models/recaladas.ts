@@ -1,6 +1,12 @@
 // src/core/models/recaladas.ts
 import type { StatusType, Buque, Muelle, PaisMini, Puerto } from "./catalog"
 
+export interface SlotMini {
+  id: number
+  numero: number
+  status: "ACTIVO" | "INACTIVO" | "SUSPENDIDO"
+}
+
 // Recalada Operative Status
 export type RecaladaOperativeStatus = "SCHEDULED" | "ARRIVED" | "DEPARTED" | "CANCELED"
 
@@ -33,6 +39,8 @@ export interface Recalada {
   puerto?: Puerto | null
   muelleId?: string | null
   muelleCatalogo?: Muelle | null
+  slotId?: number | null
+  slot?: SlotMini | null
 
   supervisorId?: string | null
   supervisor?: SupervisorMini | null
@@ -111,6 +119,8 @@ export interface CreateRecaladaRequest {
   paisOrigenId: string
   puertoId?: string
   muelleId?: string
+  slotId?: number | null
+  slotNumero?: number | null
   fechaLlegada: string
   fechaSalida?: string
   terminal?: string
@@ -127,6 +137,8 @@ export interface UpdateRecaladaRequest {
   paisOrigenId?: string
   puertoId?: string | null
   muelleId?: string | null
+  slotId?: number | null
+  slotNumero?: number | null
   fechaLlegada?: string
   fechaSalida?: string
   terminal?: string

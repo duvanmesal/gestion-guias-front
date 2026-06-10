@@ -108,4 +108,41 @@ export const recaladasApi = {
     );
     return response.data;
   },
+
+  // Bulk import recaladas via JSON
+  async bulkRecaladas(body: {
+    mode: "UPSERT" | "CREATE_ONLY";
+    dryRun: boolean;
+    items: unknown[];
+  }): Promise<ApiResponse<BulkRecaladasResult>> {
+    const response = await http.post<ApiResponse<BulkRecaladasResult>>(
+      "/recaladas/bulk",
+      body,
+    );
+    return response.data;
+  },
+
+  // Bulk import recaladas via file (CSV/XLSX)
+  async bulkRecaladasFile(
+    file: File,
+    query: { mode: "UPSERT" | "CREATE_ONLY"; dryRun: boolean },
+  ): Promise<ApiResponse<BulkRecaladasResult>> {
+    const response = await http.post<ApiResponse<BulkRecaladasResult>>(
+      `/recaladas/bulk/file?mode=${query.mode}&dryRun=${query.dryRun}`,
+      file,
+      { headers: { "Content-Type": file.type || "text/csv" } },
+    );
+    return response.data;
+  },
+};
+
+export type BulkRecaladasResult = {
+  mode: "UPSERT" | "CREATE_ONLY";
+  dryRun: boolean;
+  requested: number;
+  created: number;
+  updated: number;
+  skipped: number;
+  failed: number;
+  errors: { row: number; field?: string; message: string }[];
 };

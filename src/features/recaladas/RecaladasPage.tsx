@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useNavigate, useSearchParams } from "react-router-dom"
-import { Anchor, Plus, Search, Calendar, AlertTriangle } from "lucide-react"
+import { Anchor, Plus, Search, Calendar, AlertTriangle, Upload } from "lucide-react"
 import { AppShell } from "@/shared/components/layout/AppShell"
 import { GlassCard, GlassCardContent } from "@/shared/components/glass/GlassCard"
 import { GlassInput } from "@/shared/components/glass/GlassInput"
@@ -20,6 +20,7 @@ import type { RecaladaOperativeStatus } from "@/core/models/recaladas"
 import { RECALADA_STATUS_COPY } from "./recalada-status-copy"
 import { RecaladaCard } from "./components/RecaladaCard"
 import { RecaladaFormDialog } from "./components/RecaladaFormDialog"
+import { BulkImportRecaladasDialog } from "./components/BulkImportRecaladasDialog"
 
 export function RecaladasPage() {
   const navigate = useNavigate()
@@ -40,6 +41,7 @@ export function RecaladasPage() {
   const pageSize = 12
 
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+  const [isBulkImportOpen, setIsBulkImportOpen] = useState(false)
 
   // Sincroniza el filtro overdueDeparture con la URL en ambos sentidos.
   useEffect(() => {
@@ -144,10 +146,16 @@ export function RecaladasPage() {
               </div>
             </div>
             {canCreate && (
-              <GlassButton variant="primary" onClick={() => setIsCreateDialogOpen(true)}>
-                <Plus className="w-4 h-4" />
-                Nueva Recalada
-              </GlassButton>
+              <div className="flex items-center gap-2">
+                <GlassButton variant="ghost" onClick={() => setIsBulkImportOpen(true)}>
+                  <Upload className="w-4 h-4" />
+                  Importar
+                </GlassButton>
+                <GlassButton variant="primary" onClick={() => setIsCreateDialogOpen(true)}>
+                  <Plus className="w-4 h-4" />
+                  Nueva Recalada
+                </GlassButton>
+              </div>
             )}
           </div>
         </div>
@@ -343,6 +351,13 @@ export function RecaladasPage() {
           setIsCreateDialogOpen(false)
           showToast("success", "Recalada creada exitosamente")
         }}
+      />
+
+      {/* Bulk Import Dialog */}
+      <BulkImportRecaladasDialog
+        isOpen={isBulkImportOpen}
+        onClose={() => setIsBulkImportOpen(false)}
+        onSuccess={() => showToast("success", "Importación completada")}
       />
     </AppShell>
   )

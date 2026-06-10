@@ -44,17 +44,23 @@ export type GuidesLookupParams = {
 
 export type GuideLookupItem = {
   guiaId: string;
-  nombres: string;
-  apellidos: string;
+  usuarioId: string;
+  nombres: string | null;
+  apellidos: string | null;
   email: string;
+  telefono: string | null;
+  documentType: string | null;
+  documentNumber: string | null;
+  direccion: string | null;
+  profileStatus: string | null;
   activo: boolean;
   disponibleParaTurnos: boolean;
   disponibilidadUpdatedAt: string | null;
   pendingPenalty: boolean;
-  /** Epica 6: expiración de la penalización vigente (null si no hay). */
   penaltyExpiresAt?: string | null;
-  /** Epica 6: motivo de la penalización vigente (null si no hay). */
   penaltyReason?: string | null;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export const usersApi = {
@@ -167,4 +173,34 @@ export const usersApi = {
     );
     return response.data;
   },
+
+  // Bulk import guides via file (CSV/XLSX)
+  async bulkGuidesFile(
+    file: File,
+    query: { mode: "UPSERT" | "CREATE_ONLY"; dryRun: boolean; sendInvites: boolean },
+  ): Promise<ApiResponse<BulkGuidesResult>> {
+    const params = new URLSearchParams({
+      mode: query.mode,
+      dryRun: String(query.dryRun),
+      sendInvites: String(query.sendInvites),
+    });
+    const response = await http.post<ApiResponse<BulkGuidesResult>>(
+      `/users/guides/bulk/file?${params.toString()}`,
+      file,
+      { headers: { "Content-Type": file.type || "text/csv" } },
+    );
+    return response.data;
+  },
+};
+
+export type BulkGuidesResult = {
+  mode: "UPSERT" | "CREATE_ONLY";
+  dryRun: boolean;
+  sendInvites: boolean;
+  requested: number;
+  created: number;
+  updated: number;
+  skipped: number;
+  failed: number;
+  errors: { row: number; field?: string; message: string }[];
 };
