@@ -1,5 +1,6 @@
 import { BulkImportDialog } from "@/shared/components/bulk/BulkImportDialog"
 import { recaladasApi } from "@/core/api"
+import { useQueryClient } from "@tanstack/react-query"
 
 interface Props {
   isOpen: boolean
@@ -8,11 +9,20 @@ interface Props {
 }
 
 export function BulkImportRecaladasDialog({ isOpen, onClose, onSuccess }: Props) {
+  const queryClient = useQueryClient()
+
+  const handleSuccess = () => {
+    void queryClient.invalidateQueries({ queryKey: ["recaladas"] })
+    void queryClient.invalidateQueries({ queryKey: ["atenciones"] })
+    void queryClient.invalidateQueries({ queryKey: ["dashboard-overview"] })
+    onSuccess?.()
+  }
+
   return (
     <BulkImportDialog
       isOpen={isOpen}
       onClose={onClose}
-      onSuccess={onSuccess}
+      onSuccess={handleSuccess}
       title="Importar Recaladas"
       description="Carga masiva de recaladas desde CSV o XLSX"
       feminine
