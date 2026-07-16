@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query"
 import { socketClient } from "@/core/socket/socket.client"
 
 interface RecaladaSocketPayload {
-  recaladaId: number
+  recaladaId?: number
 }
 
 interface UseRecaladaSocketOptions {
@@ -23,7 +23,9 @@ export function useRecaladaSocket({ recaladaId }: UseRecaladaSocketOptions = {})
 
     const invalidate = (payload: RecaladaSocketPayload) => {
       queryClient.invalidateQueries({ queryKey: ["recaladas"] })
-      queryClient.invalidateQueries({ queryKey: ["recalada", payload.recaladaId] })
+      if (payload.recaladaId) {
+        queryClient.invalidateQueries({ queryKey: ["recalada", payload.recaladaId] })
+      }
       queryClient.invalidateQueries({ queryKey: ["dashboard-overview"] })
     }
 
@@ -42,6 +44,7 @@ export function useRecaladaSocket({ recaladaId }: UseRecaladaSocketOptions = {})
     socket.on("recalada:arrived", invalidate)
     socket.on("recalada:departed", invalidate)
     socket.on("recalada:canceled", invalidateWithAtenciones)
+    socket.on("recalada:bulkChanged", onCreated)
 
     return () => {
       if (recaladaId) socket.emit("leave:recalada", recaladaId)
@@ -50,6 +53,7 @@ export function useRecaladaSocket({ recaladaId }: UseRecaladaSocketOptions = {})
       socket.off("recalada:arrived", invalidate)
       socket.off("recalada:departed", invalidate)
       socket.off("recalada:canceled", invalidateWithAtenciones)
+      socket.off("recalada:bulkChanged", onCreated)
     }
   }, [recaladaId, queryClient])
 }
